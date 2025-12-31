@@ -64,11 +64,11 @@ mvn clean install
 mvn spring-boot:run
 ```
 
-The application will start on `http://localhost:8080/api`
+The application will start on `http://localhost:8090/api`
 
 ### 3. Access H2 Console
 
-Navigate to: `http://localhost:8080/api/h2-console`
+Navigate to: `http://localhost:8090/api/h2-console`
 
 - JDBC URL: `jdbc:h2:mem:businessdb`
 - Username: `sa`
@@ -76,14 +76,17 @@ Navigate to: `http://localhost:8080/api/h2-console`
 
 ### 4. Access API Documentation
 
-Swagger UI: `http://localhost:8080/api/swagger-ui.html`
+Swagger UI: `http://localhost:8090/api/swagger-ui.html`
 
 ## Default Users
 
-| Username | Password  | Roles       |
-|----------|-----------|-------------|
-| admin    | admin123  | ADMIN, USER |
-| user     | user123   | USER        |
+| Email | Username | Password  | Roles       |
+|-------|----------|-----------|-------------|
+| admin@example.com | admin | admin123  | ADMIN, USER |
+| user@example.com | user | user123   | USER        |
+| jane.smith@example.com | jane.smith | password123 | USER, MANAGER |
+| john.doe@example.com | john.doe | password123 | USER |
+| bob.wilson@example.com | bob.wilson | password123 | USER |
 
 ## Project Structure
 

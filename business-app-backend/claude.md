@@ -3,8 +3,8 @@
 ## Project Overview
 
 This is a comprehensive business application template with:
-- **Backend**: Spring Boot 3.4.0 (Java 21)
-- **Frontend**: React 19 with TypeScript and Vite
+- **Backend**: Spring Boot 3.4.0 (Java 17)
+- **Frontend**: React 19.2 with TypeScript and Vite
 - **Database**: H2 (in-memory) for development
 - **Authentication**: JWT-based stateless authentication
 - **UI Library**: Material-UI (MUI) v7
@@ -132,9 +132,10 @@ formatTimestamp('2025-12-07T...');// Accepts Date or ISO string
 - Protected routes use ProtectedRoute component
 
 **Test Users** (from DataInitializer):
-- Admin: admin@example.com / admin123
-- Manager: manager@example.com / manager123
-- Users: john@example.com, jane@example.com, bob@example.com, alice@example.com (all password: password123)
+- Admin: admin@example.com / admin123 (username: admin, roles: ADMIN, USER)
+- Regular User: user@example.com / user123 (username: user, roles: USER)
+- Manager: jane.smith@example.com / password123 (username: jane.smith, roles: USER, MANAGER)
+- Other Users: john.doe@example.com, bob.wilson@example.com (password: password123, roles: USER)
 
 ### 4. Advanced Data Table Component
 
@@ -224,12 +225,13 @@ npm run build
 ```
 
 ### Access
-- Backend API: http://localhost:8080
+- Backend API: http://localhost:8090/api
 - Frontend Dev: http://localhost:5173
-- H2 Console: http://localhost:8080/h2-console
-  - JDBC URL: jdbc:h2:mem:businessappdb
+- H2 Console: http://localhost:8090/api/h2-console
+  - JDBC URL: jdbc:h2:mem:businessdb
   - Username: sa
   - Password: (empty)
+- Swagger UI: http://localhost:8090/api/swagger-ui.html
 
 ## Theme & Styling
 
