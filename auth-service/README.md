@@ -1,16 +1,18 @@
 # Authentication Service
 
-A Spring Boot microservice providing centralized authentication with Active Directory LDAP and database fallback support.
+A Spring Boot 4.0.1 microservice providing centralized authentication with Active Directory LDAP and database fallback support.
 
 ## Features
 
+- **Spring Boot 4.0.1** - Latest Spring Boot with enhanced modularization and Java 25 support
 - **Dual Authentication Strategy**: Active Directory LDAP with database fallback
-- **JWT Token-based Authentication** with HS256 algorithm
+- **JWT Token-based Authentication** with HS256 algorithm (JJWT 0.12.6)
 - **User Registration** with BCrypt password encryption
 - **Role-based Access Control** with multi-entity support
 - **Multi-application Support** (entity-based role filtering)
 - **H2 Database (Development)** with auto-initialization
 - **Oracle Database (Production)** support
+- **SpringDoc OpenAPI 2.8.14** - Spring Boot 4.0 compatible API documentation
 - **Comprehensive JavaDoc Documentation**
 
 ## Authentication Flow
@@ -71,9 +73,29 @@ A Spring Boot microservice providing centralized authentication with Active Dire
 
 ### Development Profile (H2 Database)
 ```bash
-# Default profile - runs on port 8091
+# Default profile - runs on port 8091 with H2 in-memory database
 ./mvnw spring-boot:run
 ```
+
+### Test Profile (Oracle Database)
+```bash
+# Test profile - Oracle DB with dev-like debugging enabled
+export SPRING_PROFILES_ACTIVE=test
+export DB_HOST=localhost
+export DB_PORT=1521
+export DB_SID=TESTDB
+export DB_USERNAME=test_user
+export DB_PASSWORD=test_password
+
+./mvnw spring-boot:run
+```
+
+**Test Profile Features:**
+- Oracle database (like production)
+- Debug logging enabled (like development)
+- SQL logging and formatting enabled
+- LDAP disabled by default (use database authentication)
+- Hibernate DDL mode: `update` (automatically updates schema)
 
 ### Production Profile (Oracle Database)
 ```bash
