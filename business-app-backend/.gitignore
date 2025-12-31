@@ -35,3 +35,7 @@ src/main/resources/static/
 
 # Node installed by frontend-maven-plugin
 node/
+
+# Claude Code
+.claude/
+*.local.json

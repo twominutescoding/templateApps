@@ -40,3 +40,7 @@ mvnw.cmd
 ### LDAP Testing ###
 ldap-data/
 ldap-config/
+
+### Claude Code ###
+.claude/
+*.local.json
