@@ -44,7 +44,7 @@ A Spring Boot 4.0.1 microservice providing centralized authentication with Activ
 {
   "username": "admin",
   "password": "password",
-  "applicationCode": "APP001"  // Optional: filter roles by application
+  "applicationCode": "APP001"  
 }
 ```
 
