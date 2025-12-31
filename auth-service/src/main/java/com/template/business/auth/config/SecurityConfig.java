@@ -49,7 +49,10 @@ import java.util.List;
  *   <li>/api/v1/auth/health - Health check endpoint</li>
  *   <li>/h2-console/** - H2 database console (development)</li>
  *   <li>/swagger-ui/** - Swagger UI documentation</li>
- *   <li>/v3/api-docs/** - OpenAPI documentation</li>
+ *   <li>/v3/api-docs/** - OpenAPI v3 documentation (default SpringDoc path)</li>
+ *   <li>/api-docs/** - OpenAPI documentation (custom configured path)</li>
+ *   <li>/swagger-resources/** - Swagger resources</li>
+ *   <li>/webjars/** - WebJars resources for Swagger UI</li>
  * </ul>
  * </p>
  * <p>
@@ -118,7 +121,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/health").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
+                        // SpringDoc OpenAPI / Swagger UI paths
+                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/v3/api-docs/**", "/api-docs/**").permitAll()
+                        .requestMatchers("/swagger-resources/**", "/webjars/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable()));

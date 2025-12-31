@@ -206,7 +206,22 @@ The response format is compatible with your business application. To integrate:
 
 ## API Documentation
 
-Swagger UI available at: http://localhost:8091/auth/swagger-ui.html
+### Swagger UI URLs
+
+- **Swagger UI:** http://localhost:8091/auth/swagger-ui.html
+- **OpenAPI JSON:** http://localhost:8091/auth/v3/api-docs
+- **Custom API Docs:** http://localhost:8091/auth/api-docs
+
+### Customizing API Documentation
+
+You can customize the API documentation in `application.properties`:
+
+```properties
+# API metadata (optional)
+springdoc.api-docs.path=/api-docs
+springdoc.swagger-ui.path=/swagger-ui.html
+springdoc.swagger-ui.operationsSorter=method
+```
 
 ## H2 Console (Development Only)
 

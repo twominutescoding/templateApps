@@ -115,7 +115,8 @@ The service uses `ActiveDirectoryLdapAuthenticationProvider`:
 
 ### Access Points
 - API: http://localhost:8091/auth/api/v1/auth
-- Swagger: http://localhost:8091/auth/swagger-ui.html
+- Swagger UI: http://localhost:8091/auth/swagger-ui.html
+- OpenAPI Docs: http://localhost:8091/auth/v3/api-docs
 - H2 Console (dev): http://localhost:8091/auth/h2-console
   - JDBC URL: `jdbc:h2:mem:authdb`
   - Username: `sa`
