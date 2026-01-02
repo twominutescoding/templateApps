@@ -6,7 +6,9 @@ import com.template.business.auth.entity.UserRole;
 import com.template.business.auth.security.CustomAuthenticationProvider;
 import com.template.business.auth.security.JwtUtil;
 import com.template.business.auth.service.DatabaseUserDetailsService;
+import com.template.business.auth.service.RefreshTokenService;
 import com.template.business.auth.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,6 +53,7 @@ public class AuthController {
     private final DatabaseUserDetailsService databaseUserDetailsService;
     private final UserService userService;
     private final JwtUtil jwtUtil;
+    private final RefreshTokenService refreshTokenService;
 
     @Value("${ldap.enabled}")
     private boolean ldapEnabled;
@@ -71,7 +74,9 @@ public class AuthController {
      * @return {@link ApiResponse} containing {@link LoginResponse} with JWT token and user data
      */
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<ApiResponse<LoginResponse>> login(
+            @Valid @RequestBody LoginRequest request,
+            HttpServletRequest httpRequest) {
         try {
             log.info("Login attempt for user: {}", request.getUsername());
 
@@ -115,12 +120,21 @@ public class AuthController {
                         .collect(Collectors.toList());
             }
 
-            // Generate JWT token
-            String token = jwtUtil.generateToken(request.getUsername(), roles);
+            // Generate JWT access token (short-lived)
+            String accessToken = jwtUtil.generateToken(request.getUsername(), roles);
+
+            // Generate refresh token (long-lived) and store in database
+            String entityCode = request.getEntityCode() != null ? request.getEntityCode() : "DEFAULT";
+            String refreshToken = refreshTokenService.createRefreshToken(
+                    request.getUsername(),
+                    entityCode,
+                    httpRequest
+            );
 
             // Build response - ALWAYS include all user data from database (if available)
             LoginResponse.LoginResponseBuilder responseBuilder = LoginResponse.builder()
-                    .token(token)
+                    .token(accessToken)
+                    .refreshToken(refreshToken)
                     .type("Bearer")
                     .username(request.getUsername())
                     .roles(roles)
@@ -205,6 +219,152 @@ public class AuthController {
             return ResponseEntity.ok(ApiResponse.success("Token validation result", false));
         } catch (Exception e) {
             return ResponseEntity.ok(ApiResponse.success("Token validation result", false));
+        }
+    }
+
+    /**
+     * Refresh access token using a refresh token.
+     *
+     * <p>Implements token rotation: old refresh token is revoked, new tokens issued.
+     * This allows users to get new access tokens without re-entering credentials.
+     *
+     * @param request refresh token request
+     * @param httpRequest HTTP request for extracting metadata
+     * @return {@link ApiResponse} containing new access token and refresh token
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<RefreshTokenResponse>> refreshToken(
+            @Valid @RequestBody RefreshTokenRequest request,
+            HttpServletRequest httpRequest) {
+        try {
+            RefreshTokenResponse response = refreshTokenService.refreshAccessToken(
+                    request.getRefreshToken(),
+                    httpRequest
+            );
+            return ResponseEntity.ok(ApiResponse.success("Token refreshed successfully", response));
+        } catch (Exception e) {
+            log.error("Token refresh failed: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Invalid or expired refresh token"));
+        }
+    }
+
+    /**
+     * Logout - revoke refresh token.
+     *
+     * <p>Revokes the provided refresh token, preventing it from being used again.
+     * The access token will remain valid until expiry (typically 15 minutes).
+     *
+     * @param request refresh token to revoke
+     * @return {@link ApiResponse} with logout confirmation
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<String>> logout(@Valid @RequestBody RefreshTokenRequest request) {
+        try {
+            refreshTokenService.revokeRefreshToken(request.getRefreshToken());
+            return ResponseEntity.ok(ApiResponse.success("Logged out successfully", "success"));
+        } catch (Exception e) {
+            log.error("Logout failed: {}", e.getMessage());
+            return ResponseEntity.ok(ApiResponse.success("Logged out", "success"));
+        }
+    }
+
+    /**
+     * Logout from all devices - revoke all refresh tokens for the current user.
+     *
+     * <p>Requires authentication via JWT token in Authorization header.
+     * Revokes all active refresh tokens for the authenticated user.
+     *
+     * @param authHeader Authorization header with Bearer token
+     * @return {@link ApiResponse} with logout confirmation
+     */
+    @PostMapping("/logout-all")
+    public ResponseEntity<ApiResponse<String>> logoutAll(@RequestHeader("Authorization") String authHeader) {
+        try {
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
+                String username = jwtUtil.extractUsername(token);
+
+                if (username != null) {
+                    refreshTokenService.revokeAllUserTokens(username);
+                    return ResponseEntity.ok(ApiResponse.success(
+                            "Logged out from all devices successfully",
+                            "success"
+                    ));
+                }
+            }
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Invalid token"));
+        } catch (Exception e) {
+            log.error("Logout all failed: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Logout failed"));
+        }
+    }
+
+    /**
+     * Get all active sessions for the current user.
+     *
+     * <p>Returns list of all active sessions with device info, IP address, location, etc.
+     * Useful for session management UI.
+     *
+     * @param authHeader Authorization header with Bearer token
+     * @param refreshToken Optional refresh token to mark as current
+     * @return {@link ApiResponse} containing list of {@link SessionDTO}
+     */
+    @GetMapping("/sessions")
+    public ResponseEntity<ApiResponse<List<SessionDTO>>> getSessions(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestParam(required = false) String refreshToken) {
+        try {
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
+                String username = jwtUtil.extractUsername(token);
+
+                if (username != null) {
+                    List<SessionDTO> sessions = refreshTokenService.getActiveSessions(username, refreshToken);
+                    return ResponseEntity.ok(ApiResponse.success("Sessions retrieved", sessions));
+                }
+            }
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Invalid token"));
+        } catch (Exception e) {
+            log.error("Get sessions failed: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to retrieve sessions"));
+        }
+    }
+
+    /**
+     * Revoke a specific session.
+     *
+     * <p>Allows users to revoke a specific session (e.g., "logout from iPhone").
+     * Users can only revoke their own sessions.
+     *
+     * @param authHeader Authorization header with Bearer token
+     * @param request session revocation request
+     * @return {@link ApiResponse} with revocation confirmation
+     */
+    @PostMapping("/sessions/revoke")
+    public ResponseEntity<ApiResponse<String>> revokeSession(
+            @RequestHeader("Authorization") String authHeader,
+            @Valid @RequestBody RevokeSessionRequest request) {
+        try {
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
+                String username = jwtUtil.extractUsername(token);
+
+                if (username != null) {
+                    refreshTokenService.revokeSession(request.getSessionId(), username);
+                    return ResponseEntity.ok(ApiResponse.success("Session revoked successfully", "success"));
+                }
+            }
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Invalid token"));
+        } catch (Exception e) {
+            log.error("Revoke session failed: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(e.getMessage()));
         }
     }
 

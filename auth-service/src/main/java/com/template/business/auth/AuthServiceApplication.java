@@ -2,6 +2,7 @@ package com.template.business.auth;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * Main entry point for the Authentication Service application.
@@ -11,10 +12,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  *
  * <p>Key features:
  * <ul>
- *   <li>JWT token-based authentication</li>
+ *   <li>JWT token-based authentication with refresh tokens</li>
+ *   <li>Session management and tracking</li>
  *   <li>Active Directory LDAP integration (optional)</li>
  *   <li>Database fallback authentication</li>
  *   <li>Multi-entity role-based authorization</li>
+ *   <li>Scheduled token cleanup tasks</li>
  * </ul>
  *
  * @author Template Business
@@ -22,6 +25,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @since 2024
  */
 @SpringBootApplication
+@EnableScheduling
 public class AuthServiceApplication {
 
     /**

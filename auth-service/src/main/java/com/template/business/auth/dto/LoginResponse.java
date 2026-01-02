@@ -13,7 +13,8 @@ import java.util.List;
 @Builder
 public class LoginResponse {
 
-    private String token;
+    private String token; // Access token (JWT)
+    private String refreshToken; // Refresh token for getting new access tokens
     @Builder.Default
     private String type = "Bearer";
     private String username;
