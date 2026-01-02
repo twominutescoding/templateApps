@@ -267,6 +267,33 @@ public class RefreshTokenService {
     }
 
     /**
+     * Get all active sessions across all users (ADMIN only)
+     *
+     * @return list of all active sessions
+     */
+    public List<SessionDTO> getAllActiveSessions() {
+        Date now = new Date();
+        List<RefreshToken> activeTokens = refreshTokenRepository.findAllActiveTokens(now);
+
+        return activeTokens.stream()
+                .map(token -> SessionDTO.builder()
+                        .sessionId(token.getId())
+                        .username(token.getUsername())
+                        .entity(token.getEntity())
+                        .deviceName(token.getDeviceName())
+                        .ipAddress(token.getIpAddress())
+                        .location(token.getLocation())
+                        .userAgent(token.getUserAgent())
+                        .createdAt(token.getCreateDate())
+                        .lastUsedAt(token.getLastUsedAt())
+                        .expiresAt(token.getExpiresAt())
+                        .current(false)
+                        .revoked(token.getRevoked())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Revoke a specific session by ID
      * Only allows users to revoke their own sessions
      *
@@ -287,6 +314,23 @@ public class RefreshTokenService {
         refreshTokenRepository.save(token);
 
         log.info("Revoked session {} for user: {}", sessionId, username);
+    }
+
+    /**
+     * Revoke any session by ID (ADMIN only)
+     * Admins can revoke any user's session
+     *
+     * @param sessionId the session ID
+     */
+    @Transactional
+    public void revokeSessionByAdmin(Long sessionId) {
+        RefreshToken token = refreshTokenRepository.findById(sessionId)
+                .orElseThrow(() -> new RuntimeException("Session not found"));
+
+        token.revoke();
+        refreshTokenRepository.save(token);
+
+        log.info("Admin revoked session {} for user: {}", sessionId, token.getUsername());
     }
 
     /**

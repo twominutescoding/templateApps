@@ -52,12 +52,17 @@ public class DatabaseUserDetailsService implements UserDetailsService {
      * and constructs a UserDetails object containing the user's credentials and
      * authorities.
      * </p>
+     * <p>
+     * Note: @Transactional is required to allow lazy-loading of user roles
+     * when accessed by the JWT authentication filter.
+     * </p>
      *
      * @param username the username identifying the user whose data is required
      * @return a fully populated UserDetails object containing user information
      * @throws UsernameNotFoundException if the user could not be found or is not active
      */
     @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
@@ -84,6 +89,11 @@ public class DatabaseUserDetailsService implements UserDetailsService {
      * roles and converting the remaining active roles into GrantedAuthority objects
      * that Spring Security can use for authorization decisions.
      * </p>
+     * <p>
+     * Note: Spring Security requires authority names to be prefixed with "ROLE_"
+     * for role-based authorization with @PreAuthorize("hasRole('...')").
+     * Database stores "ADMIN", we convert to "ROLE_ADMIN".
+     * </p>
      *
      * @param user the user entity containing role assignments
      * @return a collection of granted authorities derived from active user roles
@@ -92,7 +102,7 @@ public class DatabaseUserDetailsService implements UserDetailsService {
         return user.getUserRoles().stream()
                 .filter(ur -> "ACTIVE".equals(ur.getStatus()))
                 .map(UserRole::getRole)
-                .map(role -> new SimpleGrantedAuthority(role.getId().getRole()))
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getId().getRole()))
                 .collect(Collectors.toList());
     }
 

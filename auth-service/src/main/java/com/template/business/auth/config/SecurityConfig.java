@@ -1,6 +1,7 @@
 package com.template.business.auth.config;
 
 import com.template.business.auth.security.CustomAuthenticationProvider;
+import com.template.business.auth.security.JwtAuthenticationFilter;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,6 +10,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -19,6 +21,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.ldap.core.DirContextOperations;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,11 +45,17 @@ import java.util.List;
  * works in conjunction with the custom authentication provider for fallback scenarios.
  * </p>
  * <p>
- * Public endpoints (no authentication required):
+ * Public endpoints (no Spring Security authentication, JWT validated in controllers):
  * <ul>
  *   <li>/api/v1/auth/login - Login endpoint</li>
  *   <li>/api/v1/auth/register - Registration endpoint</li>
  *   <li>/api/v1/auth/health - Health check endpoint</li>
+ *   <li>/api/v1/auth/refresh - Refresh access token</li>
+ *   <li>/api/v1/auth/logout - Logout (revoke refresh token)</li>
+ *   <li>/api/v1/auth/logout-all - Logout from all devices</li>
+ *   <li>/api/v1/auth/validate - Validate JWT token</li>
+ *   <li>/api/v1/auth/sessions/** - Session management endpoints</li>
+ *   <li>/api/v1/auth/admin/** - Admin endpoints (JWT validated in controller)</li>
  *   <li>/h2-console/** - H2 database console (development)</li>
  *   <li>/swagger-ui/** - Swagger UI documentation</li>
  *   <li>/v3/api-docs/** - OpenAPI v3 documentation (default SpringDoc path)</li>
@@ -74,10 +83,12 @@ import java.util.List;
 @Slf4j
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true) // Enable @PreAuthorize annotations
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final CustomAuthenticationProvider customAuthenticationProvider;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Value("${ldap.enabled}")
     private boolean ldapEnabled;
@@ -107,6 +118,10 @@ public class SecurityConfig {
      * </ul>
      * All endpoints except the explicitly permitted ones require authentication.
      * </p>
+     * <p>
+     * Note: Session management and admin endpoints are permitted at the Spring Security level
+     * but perform JWT validation within the controller methods themselves.
+     * </p>
      *
      * @param http the HttpSecurity configuration object
      * @return the configured SecurityFilterChain
@@ -119,15 +134,27 @@ public class SecurityConfig {
                 .cors(cors -> cors.configure(http))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Public endpoints (no authentication required)
                         .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/health").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         // SpringDoc OpenAPI / Swagger UI paths
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/api-docs/**").permitAll()
                         .requestMatchers("/swagger-resources/**", "/webjars/**").permitAll()
+                        // Public token management endpoints (no auth needed)
+                        .requestMatchers("/api/v1/auth/refresh").permitAll()
+                        .requestMatchers("/api/v1/auth/logout").permitAll()
+                        // Protected endpoints (require JWT authentication via filter)
+                        .requestMatchers("/api/v1/auth/logout-all").authenticated()
+                        .requestMatchers("/api/v1/auth/validate").authenticated()
+                        .requestMatchers("/api/v1/auth/sessions/**").authenticated()
+                        .requestMatchers("/api/v1/auth/admin/**").authenticated()
+                        // All other endpoints require authentication
                         .anyRequest().authenticated()
                 )
-                .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable()));
+                .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable()))
+                // Add JWT filter before UsernamePasswordAuthenticationFilter
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

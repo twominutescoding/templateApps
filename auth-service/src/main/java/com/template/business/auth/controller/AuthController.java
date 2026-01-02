@@ -15,9 +15,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -202,23 +204,27 @@ public class AuthController {
     /**
      * Validates a JWT token.
      *
-     * <p>Extracts the token from the Authorization header and checks if it's valid
-     * and not expired.
+     * <p>If the JWT filter successfully authenticated the request, this means the token is valid.
+     * Returns user information from SecurityContext.
      *
-     * @param authHeader the Authorization header containing the Bearer token
      * @return {@link ApiResponse} with boolean indicating token validity
      */
     @GetMapping("/validate")
-    public ResponseEntity<ApiResponse<Boolean>> validateToken(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<ApiResponse<Boolean>> validateToken() {
         try {
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String token = authHeader.substring(7);
-                boolean isValid = jwtUtil.validateToken(token);
-                return ResponseEntity.ok(ApiResponse.success("Token validation result", isValid));
+            // If we reach here, the JWT filter has already validated the token
+            // and set the authentication in SecurityContext
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+            if (authentication != null && authentication.isAuthenticated()) {
+                log.debug("Token validated for user: {}", authentication.getName());
+                return ResponseEntity.ok(ApiResponse.success("Token is valid", true));
             }
-            return ResponseEntity.ok(ApiResponse.success("Token validation result", false));
+
+            return ResponseEntity.ok(ApiResponse.success("Token is invalid", false));
         } catch (Exception e) {
-            return ResponseEntity.ok(ApiResponse.success("Token validation result", false));
+            log.error("Token validation error: {}", e.getMessage());
+            return ResponseEntity.ok(ApiResponse.success("Token is invalid", false));
         }
     }
 
@@ -272,29 +278,24 @@ public class AuthController {
     /**
      * Logout from all devices - revoke all refresh tokens for the current user.
      *
-     * <p>Requires authentication via JWT token in Authorization header.
+     * <p>Requires authentication via JWT token. Spring Security filter validates the JWT.
      * Revokes all active refresh tokens for the authenticated user.
      *
-     * @param authHeader Authorization header with Bearer token
      * @return {@link ApiResponse} with logout confirmation
      */
     @PostMapping("/logout-all")
-    public ResponseEntity<ApiResponse<String>> logoutAll(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<ApiResponse<String>> logoutAll() {
         try {
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String token = authHeader.substring(7);
-                String username = jwtUtil.extractUsername(token);
+            // Get authenticated username from SecurityContext (set by JWT filter)
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
 
-                if (username != null) {
-                    refreshTokenService.revokeAllUserTokens(username);
-                    return ResponseEntity.ok(ApiResponse.success(
-                            "Logged out from all devices successfully",
-                            "success"
-                    ));
-                }
-            }
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error("Invalid token"));
+            refreshTokenService.revokeAllUserTokens(username);
+            log.info("User {} logged out from all devices", username);
+
+            return ResponseEntity.ok(ApiResponse.success(
+                    "Logged out from all devices successfully",
+                    "success"
+            ));
         } catch (Exception e) {
             log.error("Logout all failed: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -308,26 +309,18 @@ public class AuthController {
      * <p>Returns list of all active sessions with device info, IP address, location, etc.
      * Useful for session management UI.
      *
-     * @param authHeader Authorization header with Bearer token
      * @param refreshToken Optional refresh token to mark as current
      * @return {@link ApiResponse} containing list of {@link SessionDTO}
      */
     @GetMapping("/sessions")
     public ResponseEntity<ApiResponse<List<SessionDTO>>> getSessions(
-            @RequestHeader("Authorization") String authHeader,
             @RequestParam(required = false) String refreshToken) {
         try {
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String token = authHeader.substring(7);
-                String username = jwtUtil.extractUsername(token);
+            // Get authenticated username from SecurityContext (set by JWT filter)
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
 
-                if (username != null) {
-                    List<SessionDTO> sessions = refreshTokenService.getActiveSessions(username, refreshToken);
-                    return ResponseEntity.ok(ApiResponse.success("Sessions retrieved", sessions));
-                }
-            }
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error("Invalid token"));
+            List<SessionDTO> sessions = refreshTokenService.getActiveSessions(username, refreshToken);
+            return ResponseEntity.ok(ApiResponse.success("Sessions retrieved", sessions));
         } catch (Exception e) {
             log.error("Get sessions failed: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -341,30 +334,110 @@ public class AuthController {
      * <p>Allows users to revoke a specific session (e.g., "logout from iPhone").
      * Users can only revoke their own sessions.
      *
-     * @param authHeader Authorization header with Bearer token
      * @param request session revocation request
      * @return {@link ApiResponse} with revocation confirmation
      */
     @PostMapping("/sessions/revoke")
-    public ResponseEntity<ApiResponse<String>> revokeSession(
-            @RequestHeader("Authorization") String authHeader,
-            @Valid @RequestBody RevokeSessionRequest request) {
+    public ResponseEntity<ApiResponse<String>> revokeSession(@Valid @RequestBody RevokeSessionRequest request) {
         try {
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String token = authHeader.substring(7);
-                String username = jwtUtil.extractUsername(token);
+            // Get authenticated username from SecurityContext (set by JWT filter)
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
 
-                if (username != null) {
-                    refreshTokenService.revokeSession(request.getSessionId(), username);
-                    return ResponseEntity.ok(ApiResponse.success("Session revoked successfully", "success"));
-                }
-            }
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error("Invalid token"));
+            refreshTokenService.revokeSession(request.getSessionId(), username);
+            return ResponseEntity.ok(ApiResponse.success("Session revoked successfully", "success"));
         } catch (Exception e) {
             log.error("Revoke session failed: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    /**
+     * ADMIN: Get all active sessions across all users.
+     *
+     * <p>Returns list of all active sessions for monitoring and administration.
+     * Requires ADMIN role.
+     *
+     * @return {@link ApiResponse} containing list of all {@link SessionDTO}
+     */
+    @GetMapping("/admin/sessions")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<SessionDTO>>> getAllSessions() {
+        try {
+            // Get authenticated username from SecurityContext (set by JWT filter)
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+
+            List<SessionDTO> sessions = refreshTokenService.getAllActiveSessions();
+            log.info("Admin {} retrieved all active sessions (count: {})", username, sessions.size());
+
+            return ResponseEntity.ok(ApiResponse.success(
+                    "All active sessions retrieved",
+                    sessions
+            ));
+        } catch (Exception e) {
+            log.error("Get all sessions failed: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to retrieve sessions"));
+        }
+    }
+
+    /**
+     * ADMIN: Revoke any user's session by session ID.
+     *
+     * <p>Allows administrators to force logout any user's session.
+     * Requires ADMIN role.
+     *
+     * @param request session revocation request
+     * @return {@link ApiResponse} with revocation confirmation
+     */
+    @PostMapping("/admin/sessions/revoke")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<String>> revokeSessionByAdmin(@Valid @RequestBody RevokeSessionRequest request) {
+        try {
+            // Get authenticated username from SecurityContext (set by JWT filter)
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+
+            refreshTokenService.revokeSessionByAdmin(request.getSessionId());
+            log.info("Admin {} revoked session ID: {}", username, request.getSessionId());
+
+            return ResponseEntity.ok(ApiResponse.success(
+                    "Session revoked successfully by admin",
+                    "success"
+            ));
+        } catch (Exception e) {
+            log.error("Admin revoke session failed: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    /**
+     * ADMIN: Force logout all sessions for a specific user.
+     *
+     * <p>Allows administrators to revoke all sessions for a specific user.
+     * Requires ADMIN role.
+     *
+     * @param targetUsername Username to logout
+     * @return {@link ApiResponse} with revocation confirmation
+     */
+    @PostMapping("/admin/users/{username}/logout")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<String>> forceLogoutUser(@PathVariable("username") String targetUsername) {
+        try {
+            // Get authenticated username from SecurityContext (set by JWT filter)
+            String adminUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+
+            refreshTokenService.revokeAllUserTokens(targetUsername);
+            log.info("Admin {} forced logout for user: {}", adminUsername, targetUsername);
+
+            return ResponseEntity.ok(ApiResponse.success(
+                    String.format("All sessions for user %s have been revoked", targetUsername),
+                    "success"
+            ));
+        } catch (Exception e) {
+            log.error("Force logout user failed: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to logout user"));
         }
     }
 
