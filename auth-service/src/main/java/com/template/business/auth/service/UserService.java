@@ -2,13 +2,17 @@ package com.template.business.auth.service;
 
 import com.template.business.auth.dto.UserRegistrationRequest;
 import com.template.business.auth.entity.User;
+import com.template.business.auth.exception.ApiErrorResponse;
+import com.template.business.auth.exception.CustomValidationException;
 import com.template.business.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -35,12 +39,17 @@ public class UserService {
      *
      * @param request user registration details
      * @return the created user entity
-     * @throws RuntimeException if username already exists
+     * @throws CustomValidationException if username already exists
      */
     @Transactional
     public User registerUser(UserRegistrationRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("Username already exists");
+            List<ApiErrorResponse.FieldError> errors = new ArrayList<>();
+            errors.add(new ApiErrorResponse.FieldError(
+                    "username",
+                    "A user with username '" + request.getUsername() + "' already exists"
+            ));
+            throw new CustomValidationException("Registration failed", errors);
         }
 
         User user = new User();

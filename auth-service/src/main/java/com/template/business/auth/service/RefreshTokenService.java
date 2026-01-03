@@ -5,6 +5,11 @@ import com.template.business.auth.dto.SessionDTO;
 import com.template.business.auth.entity.RefreshToken;
 import com.template.business.auth.entity.User;
 import com.template.business.auth.entity.UserRole;
+import com.template.business.auth.exception.CustomAuthenticationException;
+import com.template.business.auth.exception.CustomAuthorizationException;
+import com.template.business.auth.exception.ErrorCode;
+import com.template.business.auth.exception.InternalApiException;
+import com.template.business.auth.exception.ResourceNotFoundException;
 import com.template.business.auth.repository.RefreshTokenRepository;
 import com.template.business.auth.security.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
@@ -111,7 +116,8 @@ public class RefreshTokenService {
      *
      * @param refreshTokenValue the refresh token from client
      * @return RefreshTokenResponse with new access token and refresh token
-     * @throws RuntimeException if token is invalid
+     * @throws CustomAuthenticationException if token is invalid or expired
+     * @throws ResourceNotFoundException if user is not found
      */
     @Transactional
     public RefreshTokenResponse refreshAccessToken(String refreshTokenValue, HttpServletRequest request) {
@@ -120,11 +126,14 @@ public class RefreshTokenService {
 
         // Find token in database
         RefreshToken refreshToken = refreshTokenRepository.findByTokenHash(tokenHash)
-                .orElseThrow(() -> new RuntimeException("Invalid refresh token"));
+                .orElseThrow(() -> new CustomAuthenticationException(ErrorCode.INVALID_REFRESH_TOKEN));
 
         // Validate token
         if (!refreshToken.isValid()) {
-            throw new RuntimeException("Refresh token is expired or revoked");
+            throw new CustomAuthenticationException(
+                    ErrorCode.INVALID_REFRESH_TOKEN,
+                    "Refresh token is expired or revoked"
+            );
         }
 
         // Update last used timestamp
@@ -134,7 +143,7 @@ public class RefreshTokenService {
         // Get user details and roles
         User user = databaseUserDetailsService.getUserByUsername(refreshToken.getUsername());
         if (user == null) {
-            throw new RuntimeException("User not found");
+            throw new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND);
         }
 
         // Extract roles for the entity
@@ -299,15 +308,17 @@ public class RefreshTokenService {
      *
      * @param sessionId the session ID
      * @param username the username (for security check)
+     * @throws ResourceNotFoundException if session is not found
+     * @throws CustomAuthorizationException if user tries to revoke another user's session
      */
     @Transactional
     public void revokeSession(Long sessionId, String username) {
         RefreshToken token = refreshTokenRepository.findById(sessionId)
-                .orElseThrow(() -> new RuntimeException("Session not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.SESSION_NOT_FOUND));
 
         // Security check: user can only revoke their own sessions
         if (!token.getUsername().equals(username)) {
-            throw new RuntimeException("Unauthorized to revoke this session");
+            throw new CustomAuthorizationException(ErrorCode.UNAUTHORIZED_SESSION_ACCESS);
         }
 
         token.revoke();
@@ -321,11 +332,12 @@ public class RefreshTokenService {
      * Admins can revoke any user's session
      *
      * @param sessionId the session ID
+     * @throws ResourceNotFoundException if session is not found
      */
     @Transactional
     public void revokeSessionByAdmin(Long sessionId) {
         RefreshToken token = refreshTokenRepository.findById(sessionId)
-                .orElseThrow(() -> new RuntimeException("Session not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.SESSION_NOT_FOUND));
 
         token.revoke();
         refreshTokenRepository.save(token);
@@ -369,6 +381,8 @@ public class RefreshTokenService {
     /**
      * Hash a token using SHA-256
      * Security: never store plain tokens in database
+     *
+     * @throws InternalApiException if SHA-256 algorithm is not available
      */
     private String hashToken(String token) {
         try {
@@ -376,7 +390,11 @@ public class RefreshTokenService {
             byte[] hash = digest.digest(token.getBytes(StandardCharsets.UTF_8));
             return bytesToHex(hash);
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 algorithm not found", e);
+            throw new InternalApiException(
+                    ErrorCode.INTERNAL_SERVER_ERROR,
+                    "SHA-256 algorithm not found",
+                    e
+            );
         }
     }
 
