@@ -18,6 +18,7 @@ public class ExternalAuthResponse {
     @Data
     public static class AuthData {
         private String token;
+        private String refreshToken;
         private String type;
         private String username;
         private String email;

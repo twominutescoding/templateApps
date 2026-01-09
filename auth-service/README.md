@@ -229,3 +229,14 @@ Access at: http://localhost:8091/auth/h2-console
 - JDBC URL: jdbc:h2:mem:authdb
 - Username: sa
 - Password: (empty)
+
+## Documentation
+
+Detailed documentation is available in the [`docs/`](docs/) folder:
+
+- **[Refresh Token Implementation](docs/REFRESH_TOKEN_IMPLEMENTATION.md)** - Refresh token flow and configuration
+- **[Admin Endpoints](docs/ADMIN_ENDPOINTS.md)** - Admin user management endpoints
+- **[JWT Filter Implementation](docs/JWT_FILTER_IMPLEMENTATION.md)** - JWT validation and security
+- **[Exception Handling](docs/EXCEPTION_HANDLING.md)** - Error handling architecture
+- **[Exception Migration Guide](docs/EXCEPTION_MIGRATION_GUIDE.md)** - Migrating to custom exceptions
+- **[Improvements](docs/IMPROVEMENTS.md)** - Suggested enhancements and roadmap

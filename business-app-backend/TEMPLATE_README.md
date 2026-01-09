@@ -29,27 +29,57 @@ This is a template for creating enterprise-grade business applications with Spri
 
 ## Quick Start - Generate New Project
 
-### Method 1: Interactive Script (Recommended)
+You can generate either a **full-stack project** (backend + React frontend) or a **backend-only API** project.
+
+### Full-Stack Project (Backend + Frontend)
 
 ```bash
 cd /path/to/business-app-backend
-./create-new-project.sh
+node create-project.js
 ```
 
 The script will ask you:
 - **Project name**: `inventory-management` (kebab-case)
 - **Base package**: `com.mycompany`
 - **Display name**: `Inventory Management System`
+- **Server port**: `8090` (default)
+- **Auth-service URL**: `http://localhost:8091/auth/api/v1/auth/login` (default)
+- **Target directory**: `../` (where to create the new project)
+
+### Backend-Only Project (API Only)
+
+For microservices or when using a different frontend framework:
+
+```bash
+node create-backend-only-project.js
+```
+
+**What's different:**
+- ❌ No `frontend/` directory
+- ❌ No React dependencies
+- ❌ No frontend-maven-plugin in pom.xml
+- ✅ Smaller, faster builds
+- ✅ Pure REST API with Swagger UI
+- ✅ Use with any frontend (Angular, Vue, mobile apps, etc.)
+
+The script will ask you:
+- **Project name**: `inventory-api` (kebab-case)
+- **Base package**: `com.mycompany`
+- **Display name**: `Inventory API`
+- **Server port**: `8090` (default)
+- **Auth-service URL**: `http://localhost:8091/auth/api/v1/auth/login` (default)
 - **Target directory**: `../` (where to create the new project)
 
 Example:
 ```bash
-./create-new-project.sh
+node create-project.js
 
 # Input:
 # Project name: inventory-management
 # Base package: com.acme
 # Display name: Acme Inventory System
+# Server port: 8090
+# Auth-service URL: http://localhost:8091/auth/api/v1/auth/login
 # Target directory: ../
 
 # Output:

@@ -45,11 +45,12 @@ export const login = async (credentials: LoginCredentials): Promise<{ user: User
 
     const tokens: AuthTokens = {
       accessToken: loginData.token,
-      refreshToken: loginData.token, // Backend uses single token
+      refreshToken: loginData.refreshToken,
     };
 
-    // Store token in localStorage
+    // Store tokens in localStorage
     localStorage.setItem('token', loginData.token);
+    localStorage.setItem('refreshToken', loginData.refreshToken);
     localStorage.setItem('user', JSON.stringify(user));
 
     return { user, tokens };
@@ -63,17 +64,33 @@ export const login = async (credentials: LoginCredentials): Promise<{ user: User
 export const logout = async (): Promise<void> => {
   // Clear local storage
   localStorage.removeItem('token');
+  localStorage.removeItem('refreshToken');
   localStorage.removeItem('user');
 };
 
-// Refresh token function (backend uses single token, so we just validate it)
+// Refresh token function
 export const refreshToken = async (token: string): Promise<AuthTokens> => {
-  // Since backend uses a single token without refresh, we just return the same token
-  // In a real refresh token implementation, you would call a /refresh endpoint
-  return {
-    accessToken: token,
-    refreshToken: token,
-  };
+  try {
+    const response = await authAPI.refresh(token);
+
+    if (!response.success) {
+      throw new Error(response.message || 'Token refresh failed');
+    }
+
+    const loginData = response.data;
+
+    // Update tokens in localStorage
+    localStorage.setItem('token', loginData.token);
+    localStorage.setItem('refreshToken', loginData.refreshToken);
+
+    return {
+      accessToken: loginData.token,
+      refreshToken: loginData.refreshToken,
+    };
+  } catch (error: any) {
+    console.error('Token refresh error:', error);
+    throw new Error(error.response?.data?.message || error.message || 'Token refresh failed');
+  }
 };
 
 // Get current user from token

@@ -1,25 +1,33 @@
 package com.template.business.security;
 
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
 
+/**
+ * JWT Request Filter for validating tokens from auth-service.
+ *
+ * This filter validates JWT tokens issued by the external auth-service.
+ * It extracts username and roles directly from the token claims,
+ * without querying the local database.
+ */
 @Component
 @RequiredArgsConstructor
 public class JwtRequestFilter extends OncePerRequestFilter {
 
-    private final UserDetailsService userDetailsService;
     private final JwtUtil jwtUtil;
 
     @Override
@@ -41,17 +49,38 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+            try {
+                // Validate token (signature and expiration)
+                if (jwtUtil.isTokenValid(jwt)) {
+                    // Extract claims from token (username and roles)
+                    Claims claims = jwtUtil.extractAllClaims(jwt);
 
-            if (jwtUtil.validateToken(jwt, userDetails)) {
-                UsernamePasswordAuthenticationToken authenticationToken =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails, null, userDetails.getAuthorities());
-                authenticationToken.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                    // Extract roles from token claims
+                    @SuppressWarnings("unchecked")
+                    List<String> roles = claims.get("roles", List.class);
+
+                    // Convert roles to Spring Security authorities (add ROLE_ prefix if needed)
+                    List<SimpleGrantedAuthority> authorities = roles.stream()
+                            .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role)
+                            .map(SimpleGrantedAuthority::new)
+                            .collect(Collectors.toList());
+
+                    // Create authentication token with username and authorities
+                    UsernamePasswordAuthenticationToken authenticationToken =
+                            new UsernamePasswordAuthenticationToken(username, null, authorities);
+                    authenticationToken.setDetails(
+                            new WebAuthenticationDetailsSource().buildDetails(request));
+
+                    // Set authentication in security context
+                    SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+
+                    logger.debug("JWT token validated for user: " + username + " with roles: " + roles);
+                }
+            } catch (Exception e) {
+                logger.error("JWT token validation failed for user: " + username, e);
             }
         }
+
         chain.doFilter(request, response);
     }
 }

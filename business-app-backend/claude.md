@@ -5,9 +5,16 @@
 This is a comprehensive business application template with:
 - **Backend**: Spring Boot 3.4.0 (Java 17)
 - **Frontend**: React 19.2 with TypeScript and Vite
-- **Database**: H2 (in-memory) for development
-- **Authentication**: JWT-based stateless authentication
+- **Database**: H2 (in-memory) for development, Oracle for production
+- **Authentication**: External auth-service with JWT tokens and automatic refresh
 - **UI Library**: Material-UI (MUI) v7
+
+**IMPORTANT**: This application uses **external auth-service** for all authentication:
+- No local user management or authentication logic
+- JWT tokens issued and validated by auth-service
+- Refresh tokens managed by auth-service (7-day expiration with rotation)
+- Roles embedded in JWT token claims for authorization
+- Auth-service must be running before starting this application
 
 ## Project Structure
 
@@ -37,16 +44,14 @@ business/
 │   ├── PageResponse.java
 │   ├── SearchRequest.java
 │   └── AuthDTO.java
-├── entity/              # REAL business entities (currently has BaseEntity, User)
-│   ├── BaseEntity.java
-│   └── User.java
-├── repository/          # REAL business repositories
-│   └── UserRepository.java
+├── entity/              # REAL business entities (currently has BaseEntity only)
+│   └── BaseEntity.java
+├── repository/          # REAL business repositories (ready for business entities)
 ├── service/             # REAL business services
-│   ├── AuthService.java
-│   └── JwtService.java
+│   ├── AuthService.java            # Delegates to auth-service
+│   └── ExternalAuthService.java    # REST client for auth-service
 └── util/                # Utility classes
-    └── JwtUtil.java
+    └── SpecificationBuilder.java   # Dynamic query builder
 ```
 
 ### Frontend (`/frontend/src/`)
@@ -98,8 +103,9 @@ src/
 
 **Real Business Packages**:
 - `entity/`, `repository/`, `service/`, `controller/` are ready for real business logic
-- Currently contains only User entity and authentication services
+- Currently contains BaseEntity for auditing and authentication proxy services
 - Demo code does NOT pollute these packages
+- No user entity (users are managed by external auth-service)
 
 ### 2. Date/Timestamp Formatting System
 
@@ -122,20 +128,34 @@ formatTimestamp(new Date());      // "07.12.2025 14:30:45"
 formatTimestamp('2025-12-07T...');// Accepts Date or ISO string
 ```
 
-### 3. Authentication System
+### 3. External Authentication Architecture
 
-**JWT-based stateless authentication**:
-- Login endpoint: `POST /auth/login`
-- Returns JWT token
-- Token stored in localStorage (frontend)
-- JwtAuthenticationFilter validates token on each request
+**JWT-based authentication via external auth-service**:
+- Login: `POST /auth/login` → Proxies to auth-service
+- Refresh: `POST /auth/refresh` → Proxies to auth-service
+- Returns JWT access token (24 hours) + refresh token (7 days)
+- Tokens stored in localStorage (frontend)
+- JwtRequestFilter validates JWT signature and extracts roles from token claims
+- No database query for authentication - stateless validation
 - Protected routes use ProtectedRoute component
 
-**Test Users** (from DataInitializer):
-- Admin: admin@example.com / admin123 (username: admin, roles: ADMIN, USER)
-- Regular User: user@example.com / user123 (username: user, roles: USER)
-- Manager: jane.smith@example.com / password123 (username: jane.smith, roles: USER, MANAGER)
-- Other Users: john.doe@example.com, bob.wilson@example.com (password: password123, roles: USER)
+**How It Works**:
+1. User logs in → AuthService calls ExternalAuthService → auth-service validates credentials
+2. Auth-service returns JWT token with embedded roles
+3. JwtRequestFilter extracts username and roles from token: `claims.get("roles", List.class)`
+4. Spring Security uses roles for @PreAuthorize authorization
+5. On token expiration → Frontend automatically calls /auth/refresh → Gets new tokens
+6. If refresh fails → User is logged out
+
+**Test Users** (from auth-service):
+- Admin: `admin` / `password` (roles: ADMIN)
+- User: `user1` / `password` (roles: USER, MANAGER)
+- Manager: `user2` / `password` (roles: USER)
+
+**Configuration**:
+- `auth.service.url` - Auth-service login URL
+- `auth.service.refresh-url` - Auth-service refresh URL
+- `jwt.secret` - Must match auth-service secret for token validation
 
 ### 4. Advanced Data Table Component
 
@@ -186,9 +206,25 @@ const fetchData = useCallback(async (params: any) => {
 
 ## API Endpoints
 
-### Authentication
-- POST `/auth/login` - Login with email/password
-- POST `/auth/register` - Register new user
+### Authentication (Proxied to auth-service)
+
+#### Login
+- **POST** `/auth/login` - Login with username/password
+- Proxies to: `http://localhost:8091/auth/api/v1/auth/login`
+- Returns JWT access token + refresh token
+
+#### Refresh Token
+- **POST** `/auth/refresh` - Refresh expired access token
+- Proxies to: `http://localhost:8091/auth/api/v1/auth/refresh`
+- Returns new JWT access token + new refresh token
+- Frontend automatically calls this on 401 errors
+
+#### Automatic Token Refresh (Frontend)
+The Axios interceptor in `api.ts` handles token refresh automatically:
+1. On 401 error → Calls `/auth/refresh` with stored refreshToken
+2. Queues failed requests during refresh
+3. Retries all queued requests with new token
+4. Only logs out if refresh fails
 
 ### Demo Products
 - POST `/demo/products/search` - Search with filters/pagination
@@ -200,24 +236,34 @@ const fetchData = useCallback(async (params: any) => {
 
 ## Running the Application
 
-### Backend
+**IMPORTANT**: Start auth-service first!
+
+### 1. Start Auth Service (Required!)
 ```bash
-# From project root
+# In a separate terminal
+cd ../auth-service
+./mvnw spring-boot:run
+# Wait for: "Started AuthServiceApplication on port 8091"
+```
+
+### 2. Start Backend
+```bash
+# From business-app-backend directory
 ./mvnw spring-boot:run
 
 # Or build and run
 ./mvnw clean package
-java -jar target/business-app-backend-0.0.1-SNAPSHOT.jar
+java -jar target/business-app-backend-1.0.0.jar
 ```
 
-### Frontend (Development)
+### 3. Start Frontend (Development)
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-### Frontend (Build for Production)
+### Build Frontend for Production
 ```bash
 cd frontend
 npm run build
@@ -376,23 +422,37 @@ const MyEntityPage = () => {
 
 ## Important Notes
 
+- **Auth-service dependency** - Auth-service MUST be running on port 8091 before starting this app
+- **JWT_SECRET matching** - jwt.secret in this app MUST match auth-service secret for token validation
+- **No local users** - Users are managed in auth-service, not this app
+- **Roles from JWT** - User roles are extracted from JWT token claims, no database query
 - **Always use useMemo/useCallback** when passing arrays/functions to AdvancedDataTable
 - **Always extend BaseEntity** for new entities to get automatic createdAt/updatedAt
 - **Always use formatTimestamp** from DateFormatContext for displaying timestamps
 - **Demo package is separate** - safe to delete when ready for production
-- **JWT tokens expire** - currently set to 24 hours (configurable in application.properties)
+- **Access tokens expire** - 24 hours (from auth-service)
+- **Refresh tokens expire** - 7 days (from auth-service)
 
 ## Last Session Summary
 
-Completed timestamp formatting system:
-- Added TimestampFormatType to DateFormatContext
-- Implemented formatTimestamp function
-- Updated Settings page with timestamp format selector
-- Integrated throughout DemoProductsPage
-- Default format: DD.MM.YYYY HH:mm:ss
-- All features tested and working
+**External Authentication Architecture Implementation**:
+- Refactored to use external auth-service for ALL authentication
+- Removed local user management and authentication logic
+- Implemented refresh token flow (7-day tokens with rotation)
+- Updated JwtRequestFilter to extract roles from JWT claims (no database query)
+- Simplified SecurityConfig (removed UserDetailsService, PasswordEncoder, AuthenticationManager)
+- Updated frontend with automatic token refresh on 401 errors
+- Organized documentation into docs/ folders (both projects)
+- Updated project generator scripts (create-project.js) for external auth
+- Updated README and documentation to reflect new architecture
+
+**Previous Sessions**:
+- Timestamp formatting system with user-configurable formats
+- AdvancedDataTable with inline and bulk editing
+- Demo products CRUD implementation
+- Exception handling with custom exception hierarchy
 
 ---
 
-**Last Updated**: 2025-12-07
-**Session**: Completed timestamp formatting implementation
+**Last Updated**: 2026-01-09
+**Session**: External Auth Architecture + Documentation Updates

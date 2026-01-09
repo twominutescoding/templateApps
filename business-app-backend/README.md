@@ -1,17 +1,13 @@
 # Business Application Backend Template
 
-A comprehensive Spring Boot 3.4.0 backend template with common features for business applications.
+A comprehensive Spring Boot 3.4.0 backend template with **external authentication service integration**.
 
 ## 🚀 Quick Start - Generate New Project
 
 This is a **template project** that you can use to generate new projects with custom names!
 
-### Option 1: Bash Script (Linux/Mac)
-```bash
-./create-new-project.sh
-```
+### Full-Stack Project (Backend + Frontend)
 
-### Option 2: Node.js Script (Cross-platform)
 ```bash
 node create-project.js
 ```
@@ -19,74 +15,155 @@ node create-project.js
 **What it does:**
 - Creates a new project with your custom name
 - Updates all package names (Java + frontend)
-- Configures Maven and npm
+- Configures auth-service integration
+- Includes React 19 frontend
 - Renames database and application
-- Creates project-specific README
+- Creates project-specific README with all documentation
+
+### Backend-Only Project (API Only)
+
+```bash
+node create-backend-only-project.js
+```
+
+**What it does:**
+- Creates backend-only API project (no frontend)
+- Perfect for microservices or mobile app backends
+- Removes all frontend dependencies from pom.xml
+- Smaller, faster builds
+- Use with any frontend framework (React, Angular, Vue, mobile apps)
 
 **See [TEMPLATE_README.md](TEMPLATE_README.md) for detailed instructions.**
 
 ---
 
+## Architecture
+
+This application uses **external auth-service** for authentication:
+- All user authentication is handled by a separate auth-service microservice
+- JWT tokens are issued by auth-service and validated locally
+- Refresh tokens are managed by auth-service (7-day expiration with rotation)
+- No local user database (users stored in auth-service)
+- Roles are embedded in JWT tokens for authorization
+
 ## Features
 
 - ✅ **Spring Boot 3.4.0** - Latest Spring Boot version
-- ✅ **Spring Security** - JWT-based authentication
+- ✅ **External Auth Integration** - JWT authentication via auth-service
+- ✅ **Automatic Token Refresh** - 7-day refresh tokens with rotation
+- ✅ **Spring Security** - Stateless JWT validation
 - ✅ **Spring Data JPA** - Database access with Hibernate
-- ✅ **H2 Database** - In-memory database (easily switchable to PostgreSQL/MySQL)
+- ✅ **H2 Database** - In-memory database for development (switchable to Oracle)
 - ✅ **Lombok** - Reduce boilerplate code
 - ✅ **MapStruct** - DTO mapping
 - ✅ **SpringDoc OpenAPI** - Auto-generated API documentation (Swagger)
-- ✅ **Global Exception Handling** - Centralized error handling
+- ✅ **Global Exception Handling** - Custom error codes and messages
 - ✅ **CORS Configuration** - Pre-configured for frontend integration
 - ✅ **Base Entity** - Auditing fields (createdAt, updatedAt, createdBy, etc.)
 - ✅ **Dynamic Search** - Specification-based filtering
 - ✅ **Pagination & Sorting** - Built-in support
 - ✅ **Bulk Operations** - Bulk update support
-- ✅ **Sample Data** - Pre-loaded sample users and products
+- ✅ **Demo Products** - Sample CRUD operations (safe to delete)
+- ✅ **React 19 Frontend** - TypeScript, Vite, Material-UI v7
 
 ## Prerequisites
 
-- Java 17 or higher
-- Maven 3.6+
+1. **Auth Service must be running first!**
+   - Clone and start auth-service on port 8091
+   - See: https://github.com/your-org/auth-service
 
-## Getting Started
+2. Java 17 or higher
+3. Node.js 18+ and npm
+4. Maven 3.6+
 
-### 1. Build the project
+## Quick Start
 
+### 1. Start Auth Service (Required!)
 ```bash
-cd business-app-backend
-mvn clean install
+# In a separate terminal
+cd ../auth-service
+./mvnw spring-boot:run
+# Wait for: "Started AuthServiceApplication on port 8091"
 ```
 
-### 2. Run the application
-
+### 2. Start Backend
 ```bash
-mvn spring-boot:run
+./mvnw spring-boot:run
+# Starts on port 8090
 ```
 
-The application will start on `http://localhost:8090/api`
+### 3. Start Frontend (Development)
+```bash
+cd frontend
+npm install
+npm run dev
+# Starts on port 5173
+```
 
-### 3. Access H2 Console
+## Access
 
-Navigate to: `http://localhost:8090/api/h2-console`
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:8090/api
+- **Swagger UI**: http://localhost:8090/api/swagger-ui.html
+- **H2 Console**: http://localhost:8090/api/h2-console
+  - JDBC URL: `jdbc:h2:mem:businessdb`
+  - Username: `sa`
+  - Password: (empty)
 
-- JDBC URL: `jdbc:h2:mem:businessdb`
-- Username: `sa`
-- Password: (leave empty)
+## Authentication
 
-### 4. Access API Documentation
+### Login Credentials (from auth-service)
 
-Swagger UI: `http://localhost:8090/api/swagger-ui.html`
+- **Admin**: `admin` / `password`
+- **User**: `user1` / `password`
+- **Manager**: `user2` / `password`
 
-## Default Users
+Users are managed in the auth-service database.
 
-| Email | Username | Password  | Roles       |
-|-------|----------|-----------|-------------|
-| admin@example.com | admin | admin123  | ADMIN, USER |
-| user@example.com | user | user123   | USER        |
-| jane.smith@example.com | jane.smith | password123 | USER, MANAGER |
-| john.doe@example.com | john.doe | password123 | USER |
-| bob.wilson@example.com | bob.wilson | password123 | USER |
+### Auth Service Integration
+
+This app is configured to use auth-service at:
+- **Login**: http://localhost:8091/auth/api/v1/auth/login
+- **Refresh**: http://localhost:8091/auth/api/v1/auth/refresh
+
+To change this, update `application.properties`:
+```properties
+auth.service.url=${AUTH_SERVICE_URL:http://localhost:8091/auth/api/v1/auth/login}
+auth.service.refresh-url=${AUTH_SERVICE_REFRESH_URL:http://localhost:8091/auth/api/v1/auth/refresh}
+```
+
+## Configuration
+
+### JWT Secret (Important!)
+
+The `jwt.secret` in this app **must match** the auth-service secret, otherwise token validation will fail.
+
+In `application.properties`:
+```properties
+jwt.secret=${JWT_SECRET:your-secret-key}
+```
+
+Generate a secure secret:
+```bash
+openssl rand -base64 64
+```
+
+Set it in **both** applications (auth-service and this app):
+```bash
+export JWT_SECRET=your-generated-secret
+```
+
+### Database (Production)
+
+Switch to Oracle in production by setting:
+```bash
+export SPRING_PROFILES_ACTIVE=prod
+export DB_HOST=your-db-host
+export DB_PORT=1521
+export DB_SID=YOUR_SID
+export DB_USERNAME=your_user
+export DB_PASSWORD=your_password
+```
 
 ## Project Structure
 
@@ -94,18 +171,52 @@ Swagger UI: `http://localhost:8090/api/swagger-ui.html`
 src/main/java/com/template/business/
 ├── config/           # Configuration classes (CORS, Security)
 ├── controller/       # REST Controllers
+├── demo/             # Demo package - safe to delete
+│   ├── controller/   # DemoProductController
+│   ├── dto/          # DemoProductDTO
+│   ├── entity/       # DemoProduct (uses table: demo_products)
+│   ├── repository/   # DemoProductRepository
+│   └── service/      # DemoProductService
 ├── dto/              # Data Transfer Objects
-├── entity/           # JPA Entities
+├── entity/           # JPA Entities (BaseEntity for auditing)
 ├── exception/        # Custom exceptions and global handler
 ├── repository/       # Spring Data JPA repositories
 ├── security/         # JWT utilities and filters
 ├── service/          # Business logic
+│   ├── AuthService.java           # Delegates to auth-service
+│   └── ExternalAuthService.java   # REST client for auth-service
 └── util/             # Utility classes (SpecificationBuilder)
+```
+
+### Frontend Structure
+
+```
+frontend/src/
+├── components/
+│   ├── auth/            # ProtectedRoute
+│   ├── common/          # CustomPaletteEditor, DateRangeFilter, StatusChip
+│   ├── layout/          # Header, Layout, Sidebar
+│   └── table/           # AdvancedDataTable (with inline & bulk editing)
+├── context/
+│   └── DateFormatContext.tsx    # User-configurable date/timestamp formats
+├── contexts/
+│   └── AuthContext.tsx           # JWT authentication state
+├── pages/
+│   ├── demo/
+│   │   └── DemoProductsPage.tsx  # Example CRUD with AdvancedDataTable
+│   ├── Components.tsx
+│   ├── Dashboard.tsx
+│   ├── Login.tsx
+│   └── Settings.tsx              # Theme, date format configuration
+├── services/
+│   └── api.ts                    # Axios client with automatic token refresh
+└── theme/
+    └── ThemeContext.tsx          # Dark mode & custom palettes
 ```
 
 ## API Endpoints
 
-### Authentication
+### Authentication (Proxied to auth-service)
 
 ```http
 POST /api/auth/login
@@ -113,7 +224,7 @@ Content-Type: application/json
 
 {
   "username": "admin",
-  "password": "admin123"
+  "password": "password"
 }
 
 Response:
@@ -122,21 +233,44 @@ Response:
   "message": "Login successful",
   "data": {
     "token": "eyJhbGc...",
+    "refreshToken": "eyJhbGc...",
     "type": "Bearer",
-    "id": 1,
     "username": "admin",
     "email": "admin@example.com",
-    "roles": ["ADMIN", "USER"]
+    "roles": ["ADMIN"]
   }
 }
 ```
 
-### Products
+```http
+POST /api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "eyJhbGc..."
+}
+
+Response:
+{
+  "success": true,
+  "message": "Token refreshed successfully",
+  "data": {
+    "token": "eyJhbGc...",
+    "refreshToken": "eyJhbGc...",
+    "type": "Bearer",
+    "username": "admin",
+    "email": "admin@example.com",
+    "roles": ["ADMIN"]
+  }
+}
+```
+
+### Demo Products (Example CRUD)
 
 #### Search Products (with filtering, sorting, pagination)
 
 ```http
-POST /api/products/search
+POST /api/demo/products/search
 Authorization: Bearer {token}
 Content-Type: application/json
 
@@ -160,187 +294,151 @@ Content-Type: application/json
 }
 ```
 
-#### Get Product by ID
+#### Other Demo Product Endpoints
 
 ```http
-GET /api/products/{id}
-Authorization: Bearer {token}
+GET /api/demo/products/{id}           # Get by ID
+POST /api/demo/products               # Create
+PUT /api/demo/products/{id}           # Update
+PUT /api/demo/products/bulk-update    # Bulk update
+DELETE /api/demo/products/{id}        # Delete
 ```
 
-#### Create Product
+## How Authentication Works
 
-```http
-POST /api/products
-Authorization: Bearer {token}
-Content-Type: application/json
+### Token Validation Flow
 
-{
-  "name": "New Product",
-  "description": "Product description",
-  "price": 99.99,
-  "quantity": 100,
-  "category": "Electronics",
-  "sku": "PRD-001"
+1. **User logs in** → Auth-service validates credentials → Returns JWT + refresh token
+2. **Frontend stores tokens** in localStorage
+3. **Every request** includes `Authorization: Bearer <token>` header
+4. **JwtRequestFilter validates token**:
+   - Verifies signature using shared JWT_SECRET
+   - Checks expiration
+   - Extracts username and roles from token claims
+   - **No database query!** Roles come from JWT
+5. **On 401 error** → Frontend automatically calls /auth/refresh → Gets new tokens → Retries request
+
+### Role-Based Authorization
+
+```java
+@PreAuthorize("hasRole('ADMIN')")
+@GetMapping("/admin-only")
+public ResponseEntity<?> adminEndpoint() {
+    // Only users with ADMIN role can access
 }
 ```
 
-#### Update Product
-
-```http
-PUT /api/products/{id}
-Authorization: Bearer {token}
-Content-Type: application/json
-
-{
-  "name": "Updated Product",
-  "price": 109.99,
-  "quantity": 95
-}
+Roles are extracted from JWT token by `JwtRequestFilter`:
+```java
+List<String> roles = claims.get("roles", List.class);
 ```
 
-#### Bulk Update Products
+## Frontend Features
 
-```http
-PUT /api/products/bulk-update
-Authorization: Bearer {token}
-Content-Type: application/json
+### AdvancedDataTable Component
 
-{
-  "products": [
-    {
-      "id": 1,
-      "name": "Product 1",
-      "price": 99.99,
-      "quantity": 100
-    },
-    {
-      "id": 2,
-      "name": "Product 2",
-      "price": 149.99,
-      "quantity": 50
-    }
-  ]
-}
+**Features**:
+- Server-side pagination, filtering, sorting
+- Inline editing with save/cancel
+- Bulk editing (edit multiple rows, save all at once)
+- Date range filtering
+- Export to CSV/Excel
+
+**CRITICAL for Performance**:
+- Always wrap `columns` array in `useMemo`
+- Wrap callbacks (`onFetchData`, `onSave`, `onBulkSave`) in `useCallback`
+- Move helper functions outside component to prevent recreation
+
+### Date/Timestamp Formatting
+
+User-configurable from Settings page:
+```typescript
+const { formatDate, formatTimestamp } = useDateFormat();
+formatDate(new Date());           // "07.12.2025"
+formatTimestamp(new Date());      // "07.12.2025 14:30:45"
 ```
 
-#### Delete Product
+**Available formats**:
+- Date: DD.MM.YYYY (default), MM/DD/YYYY, YYYY-MM-DD
+- Timestamp: DD.MM.YYYY HH:mm:ss (default), MM/DD/YYYY HH:mm:ss, YYYY-MM-DD HH:mm:ss
 
-```http
-DELETE /api/products/{id}
-Authorization: Bearer {token}
-```
+### Theme System
 
-## Database Configuration
-
-### H2 (Default - In-Memory)
-
-```properties
-spring.datasource.url=jdbc:h2:mem:businessdb
-spring.datasource.driverClassName=org.h2.Driver
-spring.datasource.username=sa
-spring.datasource.password=
-```
-
-### PostgreSQL
-
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/businessdb
-spring.datasource.username=your_username
-spring.datasource.password=your_password
-spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
-```
-
-Add dependency:
-```xml
-<dependency>
-    <groupId>org.postgresql</groupId>
-    <artifactId>postgresql</artifactId>
-    <scope>runtime</scope>
-</dependency>
-```
-
-### MySQL
-
-```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/businessdb
-spring.datasource.username=your_username
-spring.datasource.password=your_password
-spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect
-```
-
-Add dependency:
-```xml
-<dependency>
-    <groupId>com.mysql</groupId>
-    <artifactId>mysql-connector-j</artifactId>
-    <scope>runtime</scope>
-</dependency>
-```
-
-## Security Configuration
-
-JWT configuration in `application.properties`:
-
-```properties
-jwt.secret=your-secret-key-change-this-in-production
-jwt.expiration=86400000  # 24 hours
-```
-
-**Important**: Change the JWT secret in production!
-
-## CORS Configuration
-
-Configure allowed origins in `application.properties`:
-
-```properties
-cors.allowed-origins=http://localhost:5173,http://localhost:3000
-cors.allowed-methods=GET,POST,PUT,DELETE,OPTIONS,PATCH
-cors.allowed-headers=*
-cors.allow-credentials=true
-```
-
-## Dynamic Search & Filtering
-
-The application supports dynamic filtering using JPA Specifications. The `SpecificationBuilder` utility class automatically builds queries based on the search request.
-
-### Supported Filter Types:
-
-- **Text filters**: Case-insensitive partial matching
-- **Number filters**: Exact matching
-- **Date range filters**: From/To date filtering
-- **Sorting**: By any column, ascending or descending
-- **Pagination**: Page number and size
-
-## Best Practices
-
-1. **DTOs**: Always use DTOs for API requests/responses
-2. **Validation**: Use Bean Validation (@NotBlank, @Email, etc.)
-3. **Transactions**: Service methods are transactional
-4. **Exception Handling**: Throw appropriate exceptions (ResourceNotFoundException)
-5. **Logging**: Use SLF4J for logging
-6. **Security**: Endpoints are secured by default (except /auth/*)
-
-## Adding New Entities
-
-1. Create entity class extending `BaseEntity`
-2. Create repository interface extending `JpaRepository` and `JpaSpecificationExecutor`
-3. Create DTO class
-4. Create service class with business logic
-5. Create controller with REST endpoints
-6. Add sample data in `DataInitializer` (optional)
-
-## Testing
-
-Run tests:
-```bash
-mvn test
-```
+- Dark mode toggle
+- Predefined palettes: Ocean Blue, Sunset Orange, Forest Green, Royal Purple, Cherry Red, Midnight Dark
+- Custom palettes (user-created, stored in localStorage)
 
 ## Building for Production
 
+### Backend + Frontend (Single JAR)
 ```bash
-mvn clean package
+cd frontend
+npm install
+npm run build  # Outputs to src/main/resources/static/
+
+cd ..
+./mvnw clean package
 java -jar target/business-app-backend-1.0.0.jar
+```
+
+### Backend Only
+```bash
+./mvnw clean package -Dmaven.test.skip=true
+java -jar target/business-app-backend-1.0.0.jar
+```
+
+## Troubleshooting
+
+### "Authentication service unavailable"
+- **Cause**: Auth-service is not running
+- **Solution**: Start auth-service first on port 8091
+
+### "Invalid token" errors
+- **Cause**: JWT_SECRET mismatch between services
+- **Solution**: Ensure both use the same JWT_SECRET
+
+### "User not found"
+- **Cause**: Users exist in auth-service, not this app
+- **Solution**: Login with credentials from auth-service
+
+## Documentation
+
+Detailed documentation is available in the [`docs/`](docs/) folder:
+
+- **[Exception Handling](docs/EXCEPTION_HANDLING.md)** - Error handling guide
+- **[Exception Migration Guide](docs/EXCEPTION_MIGRATION_GUIDE.md)** - Migrating exceptions
+- **[External Auth Refactoring](docs/EXTERNAL_AUTH_REFACTORING.md)** - Auth architecture
+
+Additional documentation:
+- **[Session Notes](claude.md)** - Development patterns and implementation details
+
+## Adding New Entities
+
+When adding real business entities:
+
+1. **Create entity** in `entity/` extending `BaseEntity` (provides createdAt, updatedAt, createdBy, modifiedBy)
+2. **Create repository** in `repository/` extending `JpaRepository` and `JpaSpecificationExecutor`
+3. **Create DTOs** in `dto/` for request/response
+4. **Create service** in `service/` using `SearchRequest` pattern
+5. **Create controller** in `controller/` with `@PreAuthorize` for role-based access
+6. **Create frontend page** in `pages/` using `AdvancedDataTable`
+
+**Remember**:
+- Use `formatTimestamp` from DateFormatContext for all timestamp displays
+- Use `useMemo`/`useCallback` for AdvancedDataTable props
+- Extend `BaseEntity` for automatic auditing
+
+## Demo Code
+
+The `demo/` package contains example code that can be safely deleted:
+- `com.template.business.demo` - Demo products CRUD
+- `frontend/src/pages/demo` - Demo products page
+
+To delete:
+```bash
+rm -rf src/main/java/com/template/business/demo/
+# Also remove demo route from frontend/src/App.tsx
+# Also remove "Demo Products" from frontend/src/components/layout/Sidebar.tsx
 ```
 
 ## Environment Variables
@@ -348,10 +446,20 @@ java -jar target/business-app-backend-1.0.0.jar
 Set these in production:
 
 ```bash
+# Auth Service URLs
+export AUTH_SERVICE_URL=https://your-auth-service/api/v1/auth/login
+export AUTH_SERVICE_REFRESH_URL=https://your-auth-service/api/v1/auth/refresh
+
+# JWT Secret (MUST match auth-service!)
 export JWT_SECRET=your-production-secret-key
-export SPRING_DATASOURCE_URL=jdbc:postgresql://your-db-host:5432/businessdb
-export SPRING_DATASOURCE_USERNAME=your_username
-export SPRING_DATASOURCE_PASSWORD=your_password
+
+# Database (Oracle for production)
+export SPRING_PROFILES_ACTIVE=prod
+export DB_HOST=your-db-host
+export DB_PORT=1521
+export DB_SID=YOUR_SID
+export DB_USERNAME=your_user
+export DB_PASSWORD=your_password
 ```
 
 ## License
@@ -360,4 +468,11 @@ This is a template project. Feel free to use and modify as needed.
 
 ## Support
 
-For issues and questions, check the code documentation and Swagger UI.
+For issues and questions, check:
+- Code documentation in `docs/` folder
+- Swagger UI for API documentation
+- Session notes in `claude.md`
+
+---
+
+Generated from Business App Template with External Auth Architecture

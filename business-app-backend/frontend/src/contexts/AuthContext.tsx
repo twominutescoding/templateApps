@@ -35,16 +35,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const savedTokens = localStorage.getItem('authTokens');
-        if (savedTokens) {
-          const tokens: AuthTokens = JSON.parse(savedTokens);
+        const token = localStorage.getItem('token');
+        const refreshToken = localStorage.getItem('refreshToken');
+
+        if (token && refreshToken) {
+          const tokens: AuthTokens = {
+            accessToken: token,
+            refreshToken: refreshToken,
+          };
 
           // Check if token is expired
           if (authService.isTokenExpired(tokens.accessToken)) {
             // Try to refresh
             try {
               const newTokens = await authService.refreshToken(tokens.refreshToken);
-              localStorage.setItem('authTokens', JSON.stringify(newTokens));
 
               const user = await authService.getCurrentUser(newTokens.accessToken);
               setState({
@@ -55,7 +59,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               });
             } catch {
               // Refresh failed, clear auth
-              localStorage.removeItem('authTokens');
+              localStorage.removeItem('token');
+              localStorage.removeItem('refreshToken');
+              localStorage.removeItem('user');
               setState({
                 user: null,
                 tokens: null,
@@ -94,8 +100,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       const { user, tokens } = await authService.login(credentials);
 
-      // Save tokens to localStorage
-      localStorage.setItem('authTokens', JSON.stringify(tokens));
+      // Tokens are already saved to localStorage by authService.login
+      // (as 'token' and 'refreshToken')
 
       setState({
         user,
@@ -112,8 +118,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       await authService.logout();
 
-      // Clear tokens from localStorage
-      localStorage.removeItem('authTokens');
+      // Tokens are already cleared from localStorage by authService.logout
+      // (removes 'token', 'refreshToken', and 'user')
 
       setState({
         user: null,

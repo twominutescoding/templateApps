@@ -3,6 +3,7 @@ package com.template.business.controller;
 import com.template.business.dto.ApiResponse;
 import com.template.business.dto.LoginRequest;
 import com.template.business.dto.LoginResponse;
+import com.template.business.dto.RefreshTokenRequest;
 import com.template.business.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,5 +25,11 @@ public class AuthController {
         );
 
         return ResponseEntity.ok(ApiResponse.success("Login successful", loginResponse));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<LoginResponse>> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        LoginResponse loginResponse = authService.refreshToken(request.getRefreshToken());
+        return ResponseEntity.ok(ApiResponse.success("Token refreshed successfully", loginResponse));
     }
 }
