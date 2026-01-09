@@ -6,6 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
  * It extracts username and roles directly from the token claims,
  * without querying the local database.
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtRequestFilter extends OncePerRequestFilter {
@@ -44,7 +46,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             try {
                 username = jwtUtil.extractUsername(jwt);
             } catch (Exception e) {
-                logger.error("JWT token extraction failed", e);
+                log.error("JWT token extraction failed", e);
             }
         }
 
@@ -74,10 +76,10 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                     // Set authentication in security context
                     SecurityContextHolder.getContext().setAuthentication(authenticationToken);
 
-                    logger.debug("JWT token validated for user: " + username + " with roles: " + roles);
+                    log.debug("JWT token validated for user: {} with roles: {}", username, roles);
                 }
             } catch (Exception e) {
-                logger.error("JWT token validation failed for user: " + username, e);
+                log.error("JWT token validation failed for user: {}", username, e);
             }
         }
 

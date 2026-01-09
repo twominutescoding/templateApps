@@ -203,7 +203,7 @@ This application uses **external auth-service** for authentication:
 
 ## Project Structure
 
-- **Backend**: Spring Boot 3.4.0 (Java 17)
+- **Backend**: Spring Boot 4.0.1 (Java 17)
 - **Frontend**: React 19 with TypeScript and Vite
 - **Database**: H2 (in-memory) for development, Oracle for production
 - **Authentication**: External auth-service (JWT-based)

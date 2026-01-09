@@ -225,7 +225,7 @@ This backend-only project was generated from the Business App Backend Template.
 ## Architecture
 
 This is a **backend-only API** application with:
-- **Spring Boot 3.4.0** (Java 17)
+- **Spring Boot 4.0.1** (Java 17)
 - **External auth-service** for authentication
 - **RESTful API** endpoints
 - **Swagger UI** for API documentation

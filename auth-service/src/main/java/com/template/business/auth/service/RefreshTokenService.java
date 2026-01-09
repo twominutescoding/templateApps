@@ -146,6 +146,14 @@ public class RefreshTokenService {
             throw new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND);
         }
 
+        // SECURITY: Validate user status - reject if user is not ACTIVE
+        if (!"ACTIVE".equals(user.getStatus())) {
+            throw new CustomAuthenticationException(
+                    ErrorCode.AUTHENTICATION_FAILED,
+                    "User account is not active"
+            );
+        }
+
         // Extract roles for the entity
         List<String> roles = user.getUserRoles().stream()
                 .filter(ur -> "ACTIVE".equals(ur.getStatus()))

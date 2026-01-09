@@ -4,7 +4,7 @@ This is a template for creating enterprise-grade business applications with Spri
 
 ## Features
 
-### Backend (Spring Boot 3.4.0)
+### Backend (Spring Boot 4.0.1)
 - ✅ JWT Authentication
 - ✅ RESTful API with pagination, filtering, sorting
 - ✅ JPA Specifications for dynamic queries

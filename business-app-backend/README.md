@@ -1,6 +1,6 @@
 # Business Application Backend Template
 
-A comprehensive Spring Boot 3.4.0 backend template with **external authentication service integration**.
+A comprehensive Spring Boot 4.0.1 backend template with **external authentication service integration**.
 
 ## 🚀 Quick Start - Generate New Project
 
@@ -48,7 +48,7 @@ This application uses **external auth-service** for authentication:
 
 ## Features
 
-- ✅ **Spring Boot 3.4.0** - Latest Spring Boot version
+- ✅ **Spring Boot 4.0.1** - Latest Spring Boot version
 - ✅ **External Auth Integration** - JWT authentication via auth-service
 - ✅ **Automatic Token Refresh** - 7-day refresh tokens with rotation
 - ✅ **Spring Security** - Stateless JWT validation

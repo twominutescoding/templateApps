@@ -3,7 +3,7 @@
 ## Project Overview
 
 This is a comprehensive business application template with:
-- **Backend**: Spring Boot 3.4.0 (Java 17)
+- **Backend**: Spring Boot 4.0.1 (Java 17)
 - **Frontend**: React 19.2 with TypeScript and Vite
 - **Database**: H2 (in-memory) for development, Oracle for production
 - **Authentication**: External auth-service with JWT tokens and automatic refresh
