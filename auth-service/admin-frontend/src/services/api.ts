@@ -243,6 +243,18 @@ export const authAPI = {
 
 // Admin User API
 export const adminUserAPI = {
+  createUser: async (userData: {
+    username: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    company?: string;
+    password?: string;
+  }): Promise<ApiResponse<UserAdmin>> => {
+    const response = await apiClient.post<ApiResponse<UserAdmin>>('/admin/users', userData);
+    return response.data;
+  },
+
   getAllUsers: async (): Promise<ApiResponse<UserAdmin[]>> => {
     const response = await apiClient.get<ApiResponse<UserAdmin[]>>('/admin/users');
     return response.data;
@@ -260,6 +272,14 @@ export const adminUserAPI = {
 
   updateUserStatus: async (username: string, status: string): Promise<ApiResponse<UserAdmin>> => {
     const response = await apiClient.put<ApiResponse<UserAdmin>>(`/admin/users/${username}/status`, { status });
+    return response.data;
+  },
+
+  resetPassword: async (username: string, newPassword?: string): Promise<ApiResponse<string>> => {
+    const response = await apiClient.post<ApiResponse<string>>(
+      `/admin/users/${username}/reset-password`,
+      newPassword ? { newPassword } : {}
+    );
     return response.data;
   },
 

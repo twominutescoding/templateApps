@@ -1,6 +1,7 @@
 package com.template.business.auth.controller;
 
 import com.template.business.auth.dto.ApiResponse;
+import com.template.business.auth.dto.PasswordResetRequest;
 import com.template.business.auth.dto.UserAdminDTO;
 import com.template.business.auth.dto.UserRoleAssignRequest;
 import com.template.business.auth.dto.UserStatusUpdateRequest;
@@ -28,6 +29,21 @@ import java.util.List;
 public class UserAdminController {
 
     private final UserAdminService userAdminService;
+
+    /**
+     * Create new user
+     */
+    @PostMapping
+    public ResponseEntity<ApiResponse<UserAdminDTO>> createUser(@Valid @RequestBody UserUpdateRequest request) {
+        try {
+            UserAdminDTO user = userAdminService.createUser(request);
+            return ResponseEntity.ok(ApiResponse.success("User created successfully", user));
+        } catch (Exception e) {
+            log.error("Failed to create user: {}", e.getMessage());
+            return ResponseEntity.status(400)
+                    .body(ApiResponse.error(e.getMessage()));
+        }
+    }
 
     /**
      * Get all users
@@ -88,6 +104,31 @@ public class UserAdminController {
             return ResponseEntity.ok(ApiResponse.success("User status updated successfully", user));
         } catch (Exception e) {
             log.error("Failed to update user {} status: {}", username, e.getMessage());
+            return ResponseEntity.status(400)
+                    .body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    /**
+     * Reset user password (admin can reset any user's password)
+     * If newPassword is provided in request body, it will be set.
+     * Otherwise, a temporary password will be auto-generated.
+     */
+    @PostMapping("/{username}/reset-password")
+    public ResponseEntity<ApiResponse<String>> resetPassword(
+            @PathVariable String username,
+            @RequestBody(required = false) PasswordResetRequest request) {
+        try {
+            String newPassword = request != null ? request.getNewPassword() : null;
+            String resultPassword = userAdminService.resetPassword(username, newPassword);
+
+            if (newPassword != null && !newPassword.isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.success("Password set successfully", "Password updated"));
+            } else {
+                return ResponseEntity.ok(ApiResponse.success("Password reset successfully. Temporary password: " + resultPassword, resultPassword));
+            }
+        } catch (Exception e) {
+            log.error("Failed to reset password for user {}: {}", username, e.getMessage());
             return ResponseEntity.status(400)
                     .body(ApiResponse.error(e.getMessage()));
         }

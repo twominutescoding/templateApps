@@ -1,16 +1,68 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Box } from '@mui/material';
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  IconButton,
+  Tooltip,
+  Alert,
+  Snackbar,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Chip,
+} from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import LockResetIcon from '@mui/icons-material/LockReset';
+import AddCircleIcon from '@mui/icons-material/AddCircle';
+import DeleteIcon from '@mui/icons-material/Delete';
 import AdvancedDataTable from '../../components/table/AdvancedDataTable';
 import type { Column } from '../../components/table/AdvancedDataTable';
-import { adminUserAPI } from '../../services/api';
-import type { UserAdmin } from '../../services/api';
+import { adminUserAPI, adminRoleAPI } from '../../services/api';
+import type { UserAdmin, RoleAdmin } from '../../services/api';
 import StatusChip from '../../components/common/StatusChip';
 import { useDateFormat } from '../../context/DateFormatContext';
+import { CreateUserDialog, AddRoleDialog, ResetPasswordDialog } from './UserManagementDialogs';
 
 const UsersPage = () => {
   const [data, setData] = useState<UserAdmin[]>([]);
   const [loading, setLoading] = useState(false);
+  const [availableRoles, setAvailableRoles] = useState<RoleAdmin[]>([]);
   const { formatTimestamp } = useDateFormat();
+
+  // Create User Dialog
+  const [createUserOpen, setCreateUserOpen] = useState(false);
+  const [newUser, setNewUser] = useState({
+    username: '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    company: '',
+    password: '',
+  });
+
+  // Reset Password Dialog
+  const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
+  const [resetPasswordUsername, setResetPasswordUsername] = useState('');
+  const [resetPasswordValue, setResetPasswordValue] = useState('');
+
+  // Add Role Dialog
+  const [addRoleOpen, setAddRoleOpen] = useState(false);
+  const [selectedUsername, setSelectedUsername] = useState('');
+  const [selectedRole, setSelectedRole] = useState('');
+  const [selectedEntity, setSelectedEntity] = useState('');
+
+  // Snackbar
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error' | 'info';
+  }>({ open: false, message: '', severity: 'success' });
 
   const fetchData = useCallback(async () => {
     try {
@@ -24,9 +76,19 @@ const UsersPage = () => {
     }
   }, []);
 
+  const fetchRoles = useCallback(async () => {
+    try {
+      const response = await adminRoleAPI.getAllRoles();
+      setAvailableRoles(response.data);
+    } catch (error) {
+      console.error('Failed to fetch roles:', error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+    fetchRoles();
+  }, [fetchData, fetchRoles]);
 
   const handleSave = async (row: UserAdmin) => {
     try {
@@ -47,8 +109,109 @@ const UsersPage = () => {
     try {
       await adminUserAPI.updateUserStatus(username, newStatus);
       fetchData();
+      setSnackbar({ open: true, message: 'User status updated successfully', severity: 'success' });
     } catch (error) {
       console.error('Failed to update user status:', error);
+      setSnackbar({ open: true, message: 'Failed to update user status', severity: 'error' });
+    }
+  };
+
+  const handleCreateUser = async () => {
+    try {
+      const response = await adminUserAPI.createUser(newUser);
+      if (newUser.password) {
+        setSnackbar({
+          open: true,
+          message: `User created successfully with custom password.`,
+          severity: 'success',
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: `User created successfully. Check server logs for temporary password.`,
+          severity: 'success',
+        });
+      }
+      setCreateUserOpen(false);
+      setNewUser({ username: '', firstName: '', lastName: '', email: '', company: '', password: '' });
+      fetchData();
+    } catch (error: any) {
+      console.error('Failed to create user:', error);
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || 'Failed to create user',
+        severity: 'error',
+      });
+    }
+  };
+
+  const handleOpenResetPassword = (username: string) => {
+    setResetPasswordUsername(username);
+    setResetPasswordValue('');
+    setResetPasswordOpen(true);
+  };
+
+  const handleResetPassword = async () => {
+    try {
+      const response = await adminUserAPI.resetPassword(resetPasswordUsername, resetPasswordValue || undefined);
+      if (resetPasswordValue) {
+        setSnackbar({
+          open: true,
+          message: `Password set successfully for ${resetPasswordUsername}`,
+          severity: 'success',
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: `Password reset. Temporary password: ${response.data}`,
+          severity: 'info',
+        });
+      }
+      setResetPasswordOpen(false);
+      setResetPasswordValue('');
+    } catch (error) {
+      console.error('Failed to reset password:', error);
+      setSnackbar({ open: true, message: 'Failed to reset password', severity: 'error' });
+    }
+  };
+
+  const handleOpenAddRole = (username: string) => {
+    setSelectedUsername(username);
+    setSelectedRole('');
+    setSelectedEntity('');
+    setAddRoleOpen(true);
+  };
+
+  const handleAddRole = async () => {
+    try {
+      await adminUserAPI.assignRole(selectedUsername, selectedRole, selectedEntity);
+      setSnackbar({ open: true, message: 'Role assigned successfully', severity: 'success' });
+      setAddRoleOpen(false);
+      fetchData();
+    } catch (error: any) {
+      console.error('Failed to assign role:', error);
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || 'Failed to assign role',
+        severity: 'error',
+      });
+    }
+  };
+
+  const handleRemoveRole = async (username: string, role: string, entity: string) => {
+    if (confirm(`Remove role ${role} (${entity}) from ${username}?`)) {
+      try {
+        await adminUserAPI.removeRole(username, role, entity);
+        setSnackbar({ open: true, message: 'Role removed successfully', severity: 'success' });
+        fetchData();
+      } catch (error: any) {
+        console.error('Failed to remove role:', error);
+        setSnackbar({
+          open: true,
+          message: error.response?.data?.message || 'Failed to remove role',
+          severity: 'error',
+        });
+      }
     }
   };
 
@@ -101,9 +264,20 @@ const UsersPage = () => {
         id: 'roles',
         label: 'Roles',
         editable: false,
-        minWidth: 200,
-        render: (row: UserAdmin) =>
-          row.roles?.map((r) => `${r.role} (${r.entity})`).join(', ') || 'No roles',
+        minWidth: 250,
+        render: (row: UserAdmin) => (
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+            {row.roles?.map((r) => (
+              <Chip
+                key={`${r.role}-${r.entity}`}
+                label={`${r.role} (${r.entity})`}
+                size="small"
+                onDelete={() => handleRemoveRole(row.username, r.role, r.entity)}
+              />
+            ))}
+            {(!row.roles || row.roles.length === 0) && <span>No roles</span>}
+          </Box>
+        ),
       },
       {
         id: 'createDate',
@@ -112,12 +286,39 @@ const UsersPage = () => {
         minWidth: 180,
         render: (row: UserAdmin) => formatTimestamp(row.createDate),
       },
+      {
+        id: 'actions',
+        label: 'Actions',
+        editable: false,
+        minWidth: 150,
+        render: (row: UserAdmin) => (
+          <Box sx={{ display: 'flex', gap: 0.5 }}>
+            <Tooltip title="Reset Password">
+              <IconButton size="small" color="warning" onClick={() => handleOpenResetPassword(row.username)}>
+                <LockResetIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Add Role">
+              <IconButton size="small" color="primary" onClick={() => handleOpenAddRole(row.username)}>
+                <AddCircleIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        ),
+      },
     ],
-    [formatTimestamp]
+    [formatTimestamp, handleStatusChange, handleOpenResetPassword, handleOpenAddRole, handleRemoveRole]
   );
 
   return (
     <Box sx={{ p: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Box />
+        <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => setCreateUserOpen(true)}>
+          Add New User
+        </Button>
+      </Box>
+
       <AdvancedDataTable
         columns={columns}
         data={data}
@@ -128,6 +329,49 @@ const UsersPage = () => {
         enableSelection={false}
         enableBulkEdit={false}
       />
+
+      <CreateUserDialog
+        open={createUserOpen}
+        newUser={newUser}
+        onClose={() => {
+          setCreateUserOpen(false);
+          setNewUser({ username: '', firstName: '', lastName: '', email: '', company: '', password: '' });
+        }}
+        onChange={(field, value) => setNewUser({ ...newUser, [field]: value })}
+        onSubmit={handleCreateUser}
+      />
+
+      <ResetPasswordDialog
+        open={resetPasswordOpen}
+        username={resetPasswordUsername}
+        newPassword={resetPasswordValue}
+        onClose={() => setResetPasswordOpen(false)}
+        onPasswordChange={setResetPasswordValue}
+        onSubmit={handleResetPassword}
+      />
+
+      <AddRoleDialog
+        open={addRoleOpen}
+        username={selectedUsername}
+        availableRoles={availableRoles}
+        selectedRole={selectedRole}
+        selectedEntity={selectedEntity}
+        onClose={() => setAddRoleOpen(false)}
+        onRoleChange={setSelectedRole}
+        onEntityChange={setSelectedEntity}
+        onSubmit={handleAddRole}
+      />
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

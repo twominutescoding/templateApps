@@ -16,6 +16,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UserUpdateRequest {
 
+    // Username only required for creating new users (not for updates)
+    private String username;
+
+    // Password - if provided, will be set; if null, auto-generated for new users
+    private String password;
+
     @NotBlank(message = "First name is required")
     private String firstName;
 
