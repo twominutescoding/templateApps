@@ -89,6 +89,37 @@ const Dashboard = () => {
           </Card>
         </Grid>
 
+        {/* Sessions by Entity */}
+        <Grid size={{ xs: 12 }}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Active Sessions by Entity
+            </Typography>
+            <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+              {stats?.sessionsByEntity && stats.sessionsByEntity.length > 0 ? (
+                stats.sessionsByEntity.map((entityStat, index) => (
+                  <Card key={index} sx={{ minWidth: 200, flex: '1 1 200px' }}>
+                    <CardContent>
+                      <Typography variant="h6" color="primary" gutterBottom>
+                        {entityStat.entity}
+                      </Typography>
+                      <Typography variant="h4">{entityStat.activeSessions}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Active Sessions
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        {entityStat.totalUsers} unique users
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <Typography color="text.secondary">No active sessions</Typography>
+              )}
+            </Box>
+          </Paper>
+        </Grid>
+
         {/* Recent Activity */}
         <Grid size={{ xs: 12 }}>
           <Paper sx={{ p: 3 }}>

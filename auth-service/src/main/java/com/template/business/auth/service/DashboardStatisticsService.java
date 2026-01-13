@@ -7,9 +7,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Service for dashboard statistics (ADMIN only)
@@ -60,6 +59,23 @@ public class DashboardStatisticsService {
                 .totalRefreshTokens(totalRefreshTokens)
                 .build();
 
+        // Sessions grouped by entity
+        Map<String, List<com.template.business.auth.entity.RefreshToken>> sessionsByEntity =
+            refreshTokenRepository.findAllActiveTokens(now).stream()
+                .collect(Collectors.groupingBy(com.template.business.auth.entity.RefreshToken::getEntity));
+
+        List<DashboardStatsDTO.EntitySessionStats> entitySessionStats = sessionsByEntity.entrySet().stream()
+                .map(entry -> DashboardStatsDTO.EntitySessionStats.builder()
+                        .entity(entry.getKey())
+                        .activeSessions(entry.getValue().size())
+                        .totalUsers(entry.getValue().stream()
+                                .map(com.template.business.auth.entity.RefreshToken::getUsername)
+                                .distinct()
+                                .count())
+                        .build())
+                .sorted(Comparator.comparing(DashboardStatsDTO.EntitySessionStats::getEntity))
+                .toList();
+
         // Recent activity (last 10 login sessions - exclude token refreshes)
         List<DashboardStatsDTO.RecentActivity> recentActivity = refreshTokenRepository.findAll().stream()
                 .filter(token -> "LOGIN".equals(token.getCreationType())) // Only show actual logins, not token refreshes
@@ -76,6 +92,7 @@ public class DashboardStatisticsService {
         return DashboardStatsDTO.builder()
                 .userStats(userStats)
                 .sessionStats(sessionStats)
+                .sessionsByEntity(entitySessionStats)
                 .recentActivity(recentActivity)
                 .build();
     }

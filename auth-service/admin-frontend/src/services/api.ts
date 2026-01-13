@@ -215,6 +215,11 @@ export interface DashboardStats {
     sessionsLast24Hours: number;
     totalRefreshTokens: number;
   };
+  sessionsByEntity: Array<{
+    entity: string;
+    activeSessions: number;
+    totalUsers: number;
+  }>;
   recentActivity: Array<{
     username: string;
     action: string;

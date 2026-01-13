@@ -17,6 +17,7 @@ import java.util.List;
 public class DashboardStatsDTO {
     private UserStats userStats;
     private SessionStats sessionStats;
+    private List<EntitySessionStats> sessionsByEntity;
     private List<RecentActivity> recentActivity;
 
     @Data
@@ -37,6 +38,16 @@ public class DashboardStatsDTO {
         private long totalActiveSessions;
         private long sessionsLast24Hours;
         private long totalRefreshTokens;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class EntitySessionStats {
+        private String entity;
+        private long activeSessions;
+        private long totalUsers;
     }
 
     @Data
