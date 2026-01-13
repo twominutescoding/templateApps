@@ -113,6 +113,13 @@ public class RefreshToken {
     private String createUser;
 
     /**
+     * How this token was created: LOGIN or REFRESH
+     * LOGIN = initial authentication, REFRESH = token rotation
+     */
+    @Column(name = "CREATION_TYPE", length = 20)
+    private String creationType;
+
+    /**
      * Many-to-one relationship with User entity
      */
     @ManyToOne(fetch = FetchType.LAZY)

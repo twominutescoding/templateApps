@@ -30,9 +30,11 @@ A Spring Boot 4.0.1 microservice providing centralized JWT-based authentication.
 - **Spring Boot 4.0.1**: Latest version with enhanced modularization and Java 25 support
 - **Dual Authentication Strategy**: Active Directory LDAP (optional) with database fallback
 - **Multi-application Support**: Entity-based role filtering via `applicationCode`
-- **JWT Tokens**: HS256 algorithm with configurable expiration (JJWT 0.12.6)
+- **JWT Tokens**: HS256 algorithm with 15-minute expiration (JJWT 0.12.6)
+- **Refresh Tokens**: 7-day expiration with automatic rotation
 - **Database Support**: H2 (dev) and Oracle (prod)
 - **SpringDoc OpenAPI 2.8.14**: Spring Boot 4.0 compatible API documentation
+- **Admin Frontend**: React 19 admin panel for user/role/session management
 
 ### Authentication Flow
 1. If LDAP enabled: Attempts AD authentication first, falls back to database if LDAP fails
@@ -121,6 +123,39 @@ The service uses `ActiveDirectoryLdapAuthenticationProvider`:
   - JDBC URL: `jdbc:h2:mem:authdb`
   - Username: `sa`
   - Password: (empty)
+
+### Admin Frontend (`admin-frontend/`)
+
+**React 19 admin panel for managing users, roles, and sessions**
+
+**Features**:
+- Dashboard with user/session statistics
+- User management (view, edit, activate/deactivate)
+- Role management (view, edit)
+- Session management (view, revoke)
+- Dark mode and theme customization
+- Date format configuration
+
+**Running Admin Frontend**:
+```bash
+cd auth-service/admin-frontend
+npm install
+npm run dev
+# Starts on http://localhost:5174
+```
+
+**Login**: Use admin credentials (username: `admin`, password: `password`)
+
+**Tech Stack**: React 19.2, TypeScript, Material-UI v7, Vite
+**Based on**: business-app-backend/frontend (minimal code differences)
+
+**Admin API Endpoints** (all require ADMIN role):
+- User Management: `/admin/users/**`
+- Role Management: `/admin/roles/**`
+- Session Management: `/auth/admin/sessions/**`
+- Dashboard Stats: `/auth/admin/stats/dashboard`
+
+For details, see [auth-service/admin-frontend/README.md](auth-service/admin-frontend/README.md) and [auth-service/docs/ADMIN_FRONTEND.md](auth-service/docs/ADMIN_FRONTEND.md)
 
 ### Building & Testing
 

@@ -56,6 +56,7 @@ public class AuthController {
     private final UserService userService;
     private final JwtUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
+    private final com.template.business.auth.service.DashboardStatisticsService dashboardStatisticsService;
 
     @Value("${ldap.enabled}")
     private boolean ldapEnabled;
@@ -130,7 +131,8 @@ public class AuthController {
             String refreshToken = refreshTokenService.createRefreshToken(
                     request.getUsername(),
                     entityCode,
-                    httpRequest
+                    httpRequest,
+                    "LOGIN" // This is an initial login
             );
 
             // Build response - ALWAYS include all user data from database (if available)
@@ -438,6 +440,27 @@ public class AuthController {
             log.error("Force logout user failed: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Failed to logout user"));
+        }
+    }
+
+    /**
+     * ADMIN: Get dashboard statistics.
+     *
+     * <p>Returns user and session statistics for admin dashboard.
+     * Requires ADMIN role.
+     *
+     * @return {@link ApiResponse} containing {@link com.template.business.auth.dto.DashboardStatsDTO}
+     */
+    @GetMapping("/admin/stats/dashboard")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<com.template.business.auth.dto.DashboardStatsDTO>> getDashboardStats() {
+        try {
+            com.template.business.auth.dto.DashboardStatsDTO stats = dashboardStatisticsService.getDashboardStats();
+            return ResponseEntity.ok(ApiResponse.success("Dashboard statistics retrieved", stats));
+        } catch (Exception e) {
+            log.error("Failed to retrieve dashboard statistics: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to retrieve dashboard statistics"));
         }
     }
 

@@ -60,10 +60,11 @@ public class RefreshTokenService {
      * @param username the username
      * @param entity the application/entity code
      * @param request HTTP request for extracting IP and user agent
+     * @param creationType LOGIN or REFRESH
      * @return the plain refresh token (UUID format)
      */
     @Transactional
-    public String createRefreshToken(String username, String entity, HttpServletRequest request) {
+    public String createRefreshToken(String username, String entity, HttpServletRequest request, String creationType) {
         // Generate random UUID as refresh token
         String tokenValue = UUID.randomUUID().toString();
 
@@ -94,6 +95,7 @@ public class RefreshTokenService {
         refreshToken.setEntity(entity);
         refreshToken.setExpiresAt(new Date(System.currentTimeMillis() + refreshTokenExpiration));
         refreshToken.setRevoked(false);
+        refreshToken.setCreationType(creationType); // LOGIN or REFRESH
 
         // Extract request metadata
         refreshToken.setIpAddress(getClientIp(request));
@@ -149,7 +151,7 @@ public class RefreshTokenService {
         // SECURITY: Validate user status - reject if user is not ACTIVE
         if (!"ACTIVE".equals(user.getStatus())) {
             throw new CustomAuthenticationException(
-                    ErrorCode.AUTHENTICATION_FAILED,
+                    ErrorCode.AUTHENTICATION_ERROR,
                     "User account is not active"
             );
         }
@@ -172,7 +174,8 @@ public class RefreshTokenService {
         String newRefreshToken = createRefreshToken(
                 refreshToken.getUsername(),
                 refreshToken.getEntity(),
-                request
+                request,
+                "REFRESH" // This is a token rotation, not a new login
         );
 
         log.info("Refreshed access token for user: {} entity: {}",

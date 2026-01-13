@@ -230,6 +230,33 @@ Access at: http://localhost:8091/auth/h2-console
 - Username: sa
 - Password: (empty)
 
+## Admin Frontend
+
+A React-based admin panel is available in the `admin-frontend/` directory for managing users, roles, and sessions.
+
+### Features
+- **Dashboard**: View user and session statistics
+- **User Management**: Create, edit, and manage user accounts and roles
+- **Role Management**: Create and manage roles across entities
+- **Session Management**: Monitor and revoke active sessions
+- **Dark Mode**: Toggle between light and dark themes
+
+### Quick Start
+
+```bash
+cd admin-frontend
+npm install
+npm run dev
+```
+
+Admin panel will be available at: http://localhost:5174
+
+**Login**: Use admin credentials (username: `admin`, password: `password`)
+
+**Requirements**: Auth service must be running on port 8091
+
+For detailed instructions, see [admin-frontend/README.md](admin-frontend/README.md)
+
 ## Documentation
 
 Detailed documentation is available in the [`docs/`](docs/) folder:
