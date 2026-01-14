@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Box, Typography, Paper, Alert } from '@mui/material';
+import { Box, Typography, Paper, Alert, IconButton, Tooltip } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
 import AdvancedDataTable from '../../components/table/AdvancedDataTable';
 import StatusChip from '../../components/common/StatusChip';
 import type { StatusType } from '../../components/common/StatusChip';
@@ -195,6 +196,26 @@ const DemoProductsPage = () => {
     }
   }, []);
 
+  // Handle delete product
+  const handleDelete = useCallback(async (id: number, name: string) => {
+    if (confirm(`Are you sure you want to delete product "${name}"? This action cannot be undone.`)) {
+      try {
+        const response = await demoProductAPI.delete(id);
+        if (response.success) {
+          // Remove from local state
+          setData((prev) => prev.filter((item) => item.id !== id));
+          setTotalRecords((prev) => prev - 1);
+          setError(''); // Clear any previous errors
+        } else {
+          setError(response.message || 'Failed to delete product');
+        }
+      } catch (err: any) {
+        console.error('Error deleting product:', err);
+        setError(err.response?.data?.message || err.message || 'Failed to delete product');
+      }
+    }
+  }, []);
+
   // Handle row click - demonstrate master-detail pattern
   const handleRowClick = useCallback((rowId: string | number, rowData: Record<string, any>) => {
     console.log('Row clicked!');
@@ -217,7 +238,7 @@ const DemoProductsPage = () => {
 
       <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
         This table is connected to the Spring Boot backend using <strong>/api/demo/products</strong> endpoints.
-        It demonstrates all advanced features including server-side filtering, sorting, pagination, inline editing, and bulk updates.
+        It demonstrates all advanced features including server-side filtering, sorting, pagination, inline editing, bulk updates, and delete actions.
       </Typography>
 
       {error && (
@@ -240,6 +261,17 @@ const DemoProductsPage = () => {
           onFetchData={fetchData}
           filterTrigger="manual"
           onRowClick={handleRowClick}
+          renderActions={(row: Record<string, any>) => (
+            <Tooltip title="Delete Product">
+              <IconButton
+                size="small"
+                color="error"
+                onClick={() => handleDelete(row.id, row.name)}
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
         />
       </Paper>
 

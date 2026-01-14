@@ -21,6 +21,7 @@ import AddIcon from '@mui/icons-material/Add';
 import LockResetIcon from '@mui/icons-material/LockReset';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import DeleteIcon from '@mui/icons-material/Delete';
+import PersonRemoveIcon from '@mui/icons-material/PersonRemove';
 import AdvancedDataTable from '../../components/table/AdvancedDataTable';
 import type { Column } from '../../components/table/AdvancedDataTable';
 import { adminUserAPI, adminRoleAPI } from '../../services/api';
@@ -215,6 +216,23 @@ const UsersPage = () => {
     }
   };
 
+  const handleDeleteUser = async (username: string) => {
+    if (confirm(`Are you sure you want to delete user ${username}? This action cannot be undone.`)) {
+      try {
+        await adminUserAPI.deleteUser(username);
+        setSnackbar({ open: true, message: 'User deleted successfully', severity: 'success' });
+        fetchData();
+      } catch (error: any) {
+        console.error('Failed to delete user:', error);
+        setSnackbar({
+          open: true,
+          message: error.response?.data?.message || 'Failed to delete user',
+          severity: 'error',
+        });
+      }
+    }
+  };
+
   const columns: Column<UserAdmin>[] = useMemo(
     () => [
       {
@@ -286,28 +304,8 @@ const UsersPage = () => {
         minWidth: 180,
         render: (row: UserAdmin) => formatTimestamp(row.createDate),
       },
-      {
-        id: 'actions',
-        label: 'Actions',
-        editable: false,
-        minWidth: 150,
-        render: (row: UserAdmin) => (
-          <Box sx={{ display: 'flex', gap: 0.5 }}>
-            <Tooltip title="Reset Password">
-              <IconButton size="small" color="warning" onClick={() => handleOpenResetPassword(row.username)}>
-                <LockResetIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Add Role">
-              <IconButton size="small" color="primary" onClick={() => handleOpenAddRole(row.username)}>
-                <AddCircleIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        ),
-      },
     ],
-    [formatTimestamp, handleStatusChange, handleOpenResetPassword, handleOpenAddRole, handleRemoveRole]
+    [formatTimestamp]
   );
 
   return (
@@ -328,6 +326,25 @@ const UsersPage = () => {
         showExport={true}
         enableSelection={false}
         enableBulkEdit={false}
+        renderActions={(row: UserAdmin) => (
+          <>
+            <Tooltip title="Reset Password">
+              <IconButton size="small" color="warning" onClick={() => handleOpenResetPassword(row.username)}>
+                <LockResetIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Add Role">
+              <IconButton size="small" color="primary" onClick={() => handleOpenAddRole(row.username)}>
+                <AddCircleIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Delete User">
+              <IconButton size="small" color="error" onClick={() => handleDeleteUser(row.username)}>
+                <PersonRemoveIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </>
+        )}
       />
 
       <CreateUserDialog

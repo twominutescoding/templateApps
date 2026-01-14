@@ -25,6 +25,7 @@ import {
   Button,
   Checkbox,
   Menu,
+  Tooltip,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -36,6 +37,8 @@ import ViewHeadlineIcon from '@mui/icons-material/ViewHeadline';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { useDateFormat } from '../../context/DateFormatContext';
 
@@ -100,6 +103,19 @@ interface AdvancedDataTableProps {
 
   // Row interaction props
   onRowClick?: (rowId: string | number, rowData: Record<string, any>) => void;  // Callback when row is clicked
+
+  // Actions column props
+  renderActions?: (row: Record<string, any>) => React.ReactNode;  // Custom actions renderer for additional actions
+  showEditAction?: boolean;  // Show/hide built-in edit button (default: true if onSave provided)
+  onDelete?: (row: Record<string, any>) => Promise<void>;  // Built-in delete handler
+  showDeleteAction?: boolean;  // Show/hide built-in delete button (default: true if onDelete provided)
+  deleteConfirmMessage?: (row: Record<string, any>) => string;  // Custom delete confirmation message
+  onAdd?: () => void;  // Built-in add new record handler (shows button in header)
+  addButtonLabel?: string;  // Label for add button (default: 'Add New')
+  actionsLabel?: string;  // Custom label for actions column (default: 'Actions')
+  actionsWidth?: number;  // Custom width for actions column (auto-calculated based on actions)
+  showExport?: boolean;  // Show export button (default: false)
+  enableSelection?: boolean;  // Enable row selection (default: true)
 }
 
 const AdvancedDataTable = ({
@@ -117,6 +133,17 @@ const AdvancedDataTable = ({
   enableBulkEdit = false,
   filterTrigger = 'auto',
   onRowClick,
+  renderActions,
+  showEditAction = true,
+  onDelete,
+  showDeleteAction = true,
+  deleteConfirmMessage,
+  onAdd,
+  addButtonLabel = 'Add New',
+  actionsLabel = 'Actions',
+  actionsWidth,
+  showExport = false,
+  enableSelection = true,
 }: AdvancedDataTableProps) => {
   const { formatDate, dateFormat } = useDateFormat();
   const [order, setOrder] = useState<Order>(defaultSortOrder);
@@ -146,6 +173,17 @@ const AdvancedDataTable = ({
   // Auto-detect modes
   const isServerSide = !!onFetchData;
   const isEditable = !!onSave || !!onBulkSave;
+  const hasEditAction = isEditable && showEditAction && !enableBulkEdit;
+  const hasDeleteAction = !!onDelete && showDeleteAction;
+  const hasCustomActions = !!renderActions;
+  const showActionsColumn = hasEditAction || hasDeleteAction || hasCustomActions;
+
+  // State for deleting
+  const [deleting, setDeleting] = useState<string | number | null>(null);
+
+  // Calculate actions column width based on number of actions
+  const actionCount = (hasEditAction ? 1 : 0) + (hasDeleteAction ? 1 : 0) + (hasCustomActions ? 1 : 0);
+  const calculatedActionsWidth = actionsWidth || (actionCount === 1 ? 100 : actionCount === 2 ? 150 : 250);
 
   // Server-side: Trigger fetch when filters/sort/page changes
   useEffect(() => {
@@ -224,6 +262,48 @@ const AdvancedDataTable = ({
       // You can add error handling/notification here
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Handle delete row
+  const handleDeleteRow = async (row: Record<string, any>) => {
+    if (!onDelete) return;
+
+    const defaultMessage = `Are you sure you want to delete this record? This action cannot be undone.`;
+    const message = deleteConfirmMessage ? deleteConfirmMessage(row) : defaultMessage;
+
+    if (!confirm(message)) return;
+
+    const rowId = row[rowIdField];
+    setDeleting(rowId);
+    try {
+      await onDelete(row);
+
+      // If server-side mode, refetch data
+      if (isServerSide && onFetchData) {
+        const fetchParams: FetchParams = {
+          filters: columnFilters,
+          dateRanges: Object.entries(dateRanges).reduce((acc, [key, value]) => {
+            acc[key] = {
+              from: value.from ? value.from.format('YYYY-MM-DD') : null,
+              to: value.to ? value.to.format('YYYY-MM-DD') : null,
+            };
+            return acc;
+          }, {} as Record<string, { from: string | null; to: string | null }>),
+          sort: {
+            column: orderBy,
+            order: order,
+          },
+          page: page,
+          pageSize: rowsPerPage,
+        };
+        await onFetchData(fetchParams);
+      }
+    } catch (error) {
+      console.error('Failed to delete row:', error);
+      // You can add error handling/notification here
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -894,6 +974,18 @@ const AdvancedDataTable = ({
             </Button>
           )}
 
+          {onAdd && (
+            <Button
+              size="small"
+              variant="contained"
+              color="primary"
+              startIcon={<AddIcon />}
+              onClick={onAdd}
+            >
+              {addButtonLabel}
+            </Button>
+          )}
+
           <Button
             size="small"
             variant="outlined"
@@ -999,9 +1091,9 @@ const AdvancedDataTable = ({
                   )}
                 </TableCell>
               ))}
-              {isEditable && !enableBulkEdit && (
-                <TableCell sx={{ py: 1, fontWeight: 600, width: 120 }}>
-                  Actions
+              {showActionsColumn && (
+                <TableCell sx={{ py: 1, fontWeight: 600, width: calculatedActionsWidth }}>
+                  {actionsLabel}
                 </TableCell>
               )}
             </TableRow>
@@ -1022,7 +1114,7 @@ const AdvancedDataTable = ({
                     {renderFilter(column)}
                   </TableCell>
                 ))}
-                {isEditable && !enableBulkEdit && (
+                {showActionsColumn && (
                   <TableCell sx={{ py: 0.5, px: 1 }} />
                 )}
               </TableRow>
@@ -1031,7 +1123,7 @@ const AdvancedDataTable = ({
           <TableBody>
             {paginatedData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={columns.length + (isEditable && !enableBulkEdit ? 1 : 0) + 1} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={columns.length + (showActionsColumn ? 1 : 0) + 1} align="center" sx={{ py: 4 }}>
                   <Typography variant="body2" color="text.secondary">
                     No results found
                   </Typography>
@@ -1083,41 +1175,62 @@ const AdvancedDataTable = ({
                         )}
                       </TableCell>
                     ))}
-                    {isEditable && !enableBulkEdit && (
+                    {showActionsColumn && (
                       <TableCell onClick={(e) => e.stopPropagation()}>
-                        {isEditing ? (
-                          <Box sx={{ display: 'flex', gap: 0.5 }}>
-                            <Button
-                              size="small"
-                              variant="contained"
-                              color="primary"
-                              startIcon={<SaveIcon />}
-                              onClick={handleSaveRow}
-                              disabled={saving}
-                            >
-                              Save
-                            </Button>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              color="secondary"
-                              startIcon={<CancelIcon />}
-                              onClick={handleCancelEdit}
-                              disabled={saving}
-                            >
-                              Cancel
-                            </Button>
-                          </Box>
-                        ) : (
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={() => handleEditRow(row)}
-                            disabled={editingRowId !== null}
-                          >
-                            <EditIcon />
-                          </IconButton>
-                        )}
+                        <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                          {hasEditAction && (
+                            <>
+                              {isEditing ? (
+                                <>
+                                  <Button
+                                    size="small"
+                                    variant="contained"
+                                    color="primary"
+                                    startIcon={<SaveIcon />}
+                                    onClick={handleSaveRow}
+                                    disabled={saving}
+                                  >
+                                    Save
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    color="secondary"
+                                    startIcon={<CancelIcon />}
+                                    onClick={handleCancelEdit}
+                                    disabled={saving}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </>
+                              ) : (
+                                <Tooltip title="Edit">
+                                  <IconButton
+                                    size="small"
+                                    color="primary"
+                                    onClick={() => handleEditRow(row)}
+                                    disabled={editingRowId !== null}
+                                  >
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+                            </>
+                          )}
+                          {hasDeleteAction && !isEditing && (
+                            <Tooltip title="Delete">
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleDeleteRow(row)}
+                                disabled={deleting === row[rowIdField]}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          {hasCustomActions && !isEditing && renderActions && renderActions(row)}
+                        </Box>
                       </TableCell>
                     )}
                   </TableRow>

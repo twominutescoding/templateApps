@@ -297,6 +297,11 @@ export const adminUserAPI = {
     const response = await apiClient.delete<ApiResponse<string>>(`/admin/users/${username}/roles/${role}/entity/${entity}`);
     return response.data;
   },
+
+  deleteUser: async (username: string): Promise<ApiResponse<string>> => {
+    const response = await apiClient.delete<ApiResponse<string>>(`/admin/users/${username}`);
+    return response.data;
+  },
 };
 
 // Admin Role API

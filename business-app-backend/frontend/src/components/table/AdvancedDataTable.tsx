@@ -25,6 +25,7 @@ import {
   Button,
   Checkbox,
   Menu,
+  Tooltip,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -100,6 +101,14 @@ interface AdvancedDataTableProps {
 
   // Row interaction props
   onRowClick?: (rowId: string | number, rowData: Record<string, any>) => void;  // Callback when row is clicked
+
+  // Actions column props
+  renderActions?: (row: Record<string, any>) => React.ReactNode;  // Custom actions renderer (e.g., delete, custom buttons)
+  showEditAction?: boolean;  // Show/hide built-in edit button (default: true if onSave provided)
+  actionsLabel?: string;  // Custom label for actions column (default: 'Actions')
+  actionsWidth?: number;  // Custom width for actions column (default: 120 for edit only, 200 with custom actions)
+  showExport?: boolean;  // Show export button (default: false)
+  enableSelection?: boolean;  // Enable row selection (default: true)
 }
 
 const AdvancedDataTable = ({
@@ -117,6 +126,12 @@ const AdvancedDataTable = ({
   enableBulkEdit = false,
   filterTrigger = 'auto',
   onRowClick,
+  renderActions,
+  showEditAction = true,
+  actionsLabel = 'Actions',
+  actionsWidth,
+  showExport = false,
+  enableSelection = true,
 }: AdvancedDataTableProps) => {
   const { formatDate, dateFormat } = useDateFormat();
   const [order, setOrder] = useState<Order>(defaultSortOrder);
@@ -146,6 +161,12 @@ const AdvancedDataTable = ({
   // Auto-detect modes
   const isServerSide = !!onFetchData;
   const isEditable = !!onSave || !!onBulkSave;
+  const hasEditAction = isEditable && showEditAction && !enableBulkEdit;
+  const hasCustomActions = !!renderActions;
+  const showActionsColumn = hasEditAction || hasCustomActions;
+
+  // Calculate actions column width
+  const calculatedActionsWidth = actionsWidth || (hasEditAction && hasCustomActions ? 250 : hasEditAction ? 120 : 200);
 
   // Server-side: Trigger fetch when filters/sort/page changes
   useEffect(() => {
@@ -999,9 +1020,9 @@ const AdvancedDataTable = ({
                   )}
                 </TableCell>
               ))}
-              {isEditable && !enableBulkEdit && (
-                <TableCell sx={{ py: 1, fontWeight: 600, width: 120 }}>
-                  Actions
+              {showActionsColumn && (
+                <TableCell sx={{ py: 1, fontWeight: 600, width: calculatedActionsWidth }}>
+                  {actionsLabel}
                 </TableCell>
               )}
             </TableRow>
@@ -1022,7 +1043,7 @@ const AdvancedDataTable = ({
                     {renderFilter(column)}
                   </TableCell>
                 ))}
-                {isEditable && !enableBulkEdit && (
+                {showActionsColumn && (
                   <TableCell sx={{ py: 0.5, px: 1 }} />
                 )}
               </TableRow>
@@ -1031,7 +1052,7 @@ const AdvancedDataTable = ({
           <TableBody>
             {paginatedData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={columns.length + (isEditable && !enableBulkEdit ? 1 : 0) + 1} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={columns.length + (showActionsColumn ? 1 : 0) + 1} align="center" sx={{ py: 4 }}>
                   <Typography variant="body2" color="text.secondary">
                     No results found
                   </Typography>
@@ -1083,41 +1104,50 @@ const AdvancedDataTable = ({
                         )}
                       </TableCell>
                     ))}
-                    {isEditable && !enableBulkEdit && (
+                    {showActionsColumn && (
                       <TableCell onClick={(e) => e.stopPropagation()}>
-                        {isEditing ? (
-                          <Box sx={{ display: 'flex', gap: 0.5 }}>
-                            <Button
-                              size="small"
-                              variant="contained"
-                              color="primary"
-                              startIcon={<SaveIcon />}
-                              onClick={handleSaveRow}
-                              disabled={saving}
-                            >
-                              Save
-                            </Button>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              color="secondary"
-                              startIcon={<CancelIcon />}
-                              onClick={handleCancelEdit}
-                              disabled={saving}
-                            >
-                              Cancel
-                            </Button>
-                          </Box>
-                        ) : (
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={() => handleEditRow(row)}
-                            disabled={editingRowId !== null}
-                          >
-                            <EditIcon />
-                          </IconButton>
-                        )}
+                        <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                          {hasEditAction && (
+                            <>
+                              {isEditing ? (
+                                <>
+                                  <Button
+                                    size="small"
+                                    variant="contained"
+                                    color="primary"
+                                    startIcon={<SaveIcon />}
+                                    onClick={handleSaveRow}
+                                    disabled={saving}
+                                  >
+                                    Save
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    color="secondary"
+                                    startIcon={<CancelIcon />}
+                                    onClick={handleCancelEdit}
+                                    disabled={saving}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </>
+                              ) : (
+                                <Tooltip title="Edit">
+                                  <IconButton
+                                    size="small"
+                                    color="primary"
+                                    onClick={() => handleEditRow(row)}
+                                    disabled={editingRowId !== null}
+                                  >
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+                            </>
+                          )}
+                          {hasCustomActions && !isEditing && renderActions && renderActions(row)}
+                        </Box>
                       </TableCell>
                     )}
                   </TableRow>

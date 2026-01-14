@@ -183,4 +183,19 @@ public class UserAdminController {
                     .body(ApiResponse.error(e.getMessage()));
         }
     }
+
+    /**
+     * Delete user
+     */
+    @DeleteMapping("/{username}")
+    public ResponseEntity<ApiResponse<String>> deleteUser(@PathVariable String username) {
+        try {
+            userAdminService.deleteUser(username);
+            return ResponseEntity.ok(ApiResponse.success("User deleted successfully", "success"));
+        } catch (Exception e) {
+            log.error("Failed to delete user {}: {}", username, e.getMessage());
+            return ResponseEntity.status(400)
+                    .body(ApiResponse.error(e.getMessage()));
+        }
+    }
 }

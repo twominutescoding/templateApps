@@ -260,6 +260,25 @@ public class UserAdminService {
     }
 
     /**
+     * Delete user (admin)
+     */
+    @Transactional
+    public void deleteUser(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND));
+
+        // Prevent admin from deleting themselves
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (username.equals(currentUsername)) {
+            throw new CustomAuthorizationException(ErrorCode.UNAUTHORIZED_SESSION_ACCESS,
+                    "Cannot delete your own account");
+        }
+
+        userRepository.delete(user);
+        log.info("Admin deleted user: {}", username);
+    }
+
+    /**
      * Convert User entity to UserAdminDTO
      */
     private UserAdminDTO convertToDTO(User user) {
