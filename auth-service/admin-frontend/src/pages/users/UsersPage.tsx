@@ -268,52 +268,31 @@ const UsersPage = () => {
         id: 'username',
         label: 'Username',
         editable: false,
-        minWidth: 150,
+        minWidth: 110,
       },
       {
         id: 'firstName',
         label: 'First Name',
         editable: true,
-        minWidth: 150,
+        minWidth: 100,
       },
       {
         id: 'lastName',
         label: 'Last Name',
         editable: true,
-        minWidth: 150,
+        minWidth: 100,
       },
       {
         id: 'email',
         label: 'Email',
         editable: true,
-        minWidth: 200,
+        minWidth: 180,
       },
       {
         id: 'company',
         label: 'Company',
         editable: true,
-        minWidth: 150,
-      },
-      {
-        id: 'theme',
-        label: 'Theme',
-        editable: true,
-        editType: 'select',
-        filterType: 'select',
-        filterOptions: [
-          { label: 'Dark', value: 'dark' },
-          { label: 'Light', value: 'light' },
-        ],
         minWidth: 100,
-        render: (row: UserAdmin) => {
-          return row.theme === 'dark' ? 'Dark' : 'Light';
-        },
-      },
-      {
-        id: 'paletteId',
-        label: 'Palette ID',
-        editable: true,
-        minWidth: 150,
       },
       {
         id: 'status',
@@ -322,7 +301,7 @@ const UsersPage = () => {
         editType: 'select',
         filterType: 'select',
         filterOptions: statusOptions,
-        minWidth: 120,
+        minWidth: 100,
         render: (row: UserAdmin) => {
           const option = statusOptions.find((o) => o.value === row.status);
           return (
@@ -340,7 +319,7 @@ const UsersPage = () => {
         id: 'roles',
         label: 'Roles',
         editable: false,
-        minWidth: 250,
+        minWidth: 200,
         render: (row: UserAdmin) => (
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
             {row.roles?.map((r) => (
@@ -359,7 +338,7 @@ const UsersPage = () => {
         id: 'createDate',
         label: 'Created',
         editable: false,
-        minWidth: 180,
+        minWidth: 140,
         render: (row: UserAdmin) => formatTimestamp(row.createDate),
       },
     ],
@@ -367,7 +346,7 @@ const UsersPage = () => {
   );
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Box />
         <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => setCreateUserOpen(true)}>
