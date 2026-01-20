@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import UsersPage from './pages/users/UsersPage';
 import RolesPage from './pages/roles/RolesPage';
+import EntitiesPage from './pages/entities/EntitiesPage';
 import SessionsPage from './pages/sessions/SessionsPage';
 import Settings from './pages/Settings';
 
@@ -48,6 +49,16 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <RolesPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/entities"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <EntitiesPage />
                   </Layout>
                 </ProtectedRoute>
               }

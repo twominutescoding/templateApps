@@ -18,8 +18,8 @@ import java.util.Set;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(exclude = "userRoles")
-@ToString(exclude = "userRoles")
+@EqualsAndHashCode(exclude = {"userRoles", "userStatus"})
+@ToString(exclude = {"userRoles", "userStatus"})
 public class User {
 
     @Id
@@ -42,6 +42,10 @@ public class User {
     @Column(name = "STATUS", length = 100)
     private String status; // ACTIVE, INACTIVE
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "STATUS", referencedColumnName = "STATUS", insertable = false, updatable = false)
+    private UserStatus userStatus;
+
     @Column(name = "CREATE_DATE")
     @Temporal(TemporalType.TIMESTAMP)
     private Date createDate;
@@ -52,6 +56,9 @@ public class User {
     @Column(name = "THEME", length = 100)
     private String theme; // dark, light
 
+    @Column(name = "PALETTE_ID", length = 100)
+    private String paletteId; // Color palette ID (e.g., ocean-blue, sunset-orange, custom-uuid)
+
     @Lob
     @Column(name = "IMAGE")
     private String image;
@@ -59,7 +66,7 @@ public class User {
     // PASSWORD field for local database authentication (not in original schema)
     // This field is OPTIONAL and only used when LDAP authentication fails
     @JsonIgnore
-    @Column(name = "PASSWORD", length = 255)
+    @Column(name = "PASSWORD", length = 4000)
     private String password;
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
@@ -74,7 +81,10 @@ public class User {
             status = "ACTIVE";
         }
         if (theme == null) {
-            theme = "dark";
+            theme = "light";
+        }
+        if (paletteId == null) {
+            paletteId = "ocean-blue"; // Default palette
         }
         if (company == null) {
             company = "KONZUM";

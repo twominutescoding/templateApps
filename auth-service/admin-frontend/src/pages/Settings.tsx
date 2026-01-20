@@ -87,7 +87,7 @@ const Settings = () => {
                 {user.email}
               </Typography>
               <Chip
-                label={user.role.toUpperCase()}
+                label={user.role?.toUpperCase() || 'USER'}
                 size="small"
                 color={
                   user.role === 'admin' ? 'error' :

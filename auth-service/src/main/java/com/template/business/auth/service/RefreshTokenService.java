@@ -187,6 +187,8 @@ public class RefreshTokenService {
                 .type("Bearer")
                 .username(refreshToken.getUsername())
                 .roles(roles)
+                .theme(user.getTheme() != null ? user.getTheme() : "light")
+                .paletteId(user.getPaletteId() != null ? user.getPaletteId() : "ocean-blue")
                 .build();
     }
 

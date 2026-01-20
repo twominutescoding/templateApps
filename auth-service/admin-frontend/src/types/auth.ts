@@ -10,6 +10,8 @@ export interface User {
   avatar?: string;
   department?: string;
   createdAt: string;
+  theme?: string;
+  paletteId?: string;
 }
 
 export interface AuthTokens {

@@ -20,6 +20,7 @@ export const login = async (credentials: LoginCredentials): Promise<{ user: User
     const response = await authAPI.login({
       username: credentials.email, // Can be either email or username
       password: credentials.password,
+      entityCode: 'AUTH_ADMIN', // Auth Service Admin Frontend entity
     });
 
     if (!response.success) {
@@ -54,7 +55,14 @@ export const login = async (credentials: LoginCredentials): Promise<{ user: User
     // Store tokens in localStorage
     localStorage.setItem('token', loginData.token);
     localStorage.setItem('refreshToken', loginData.refreshToken);
-    localStorage.setItem('user', JSON.stringify(user));
+
+    // Store user with theme and paletteId merged in
+    const userWithTheme = {
+      ...user,
+      theme: loginData.theme,
+      paletteId: loginData.paletteId,
+    };
+    localStorage.setItem('user', JSON.stringify(userWithTheme));
 
     return { user, tokens };
   } catch (error: any) {

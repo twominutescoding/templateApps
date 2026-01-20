@@ -15,8 +15,8 @@ import java.util.Date;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(exclude = {"user", "role"})
-@ToString(exclude = {"user", "role"})
+@EqualsAndHashCode(exclude = {"user", "role", "userStatus"})
+@ToString(exclude = {"user", "role", "userStatus"})
 public class UserRole {
 
     @EmbeddedId
@@ -35,6 +35,10 @@ public class UserRole {
 
     @Column(name = "STATUS", length = 100)
     private String status; // ACTIVE, INACTIVE
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "STATUS", referencedColumnName = "STATUS", insertable = false, updatable = false)
+    private UserStatus userStatus;
 
     @Column(name = "CREATE_DATE")
     @Temporal(TemporalType.TIMESTAMP)

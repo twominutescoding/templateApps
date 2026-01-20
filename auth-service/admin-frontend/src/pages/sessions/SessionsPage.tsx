@@ -118,8 +118,9 @@ const SessionsPage = () => {
         loading={loading}
         title="Active Sessions"
         showExport={true}
-        enableSelection={false}
+        enableSelection={true}
         enableBulkEdit={false}
+        rowIdField="sessionId"
       />
     </Box>
   );

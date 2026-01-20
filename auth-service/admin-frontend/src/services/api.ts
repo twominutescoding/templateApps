@@ -87,11 +87,26 @@ apiClient.interceptors.response.use(
           { refreshToken }
         );
 
-        const { accessToken: newToken, refreshToken: newRefreshToken } = response.data.data;
+        const { accessToken: newToken, refreshToken: newRefreshToken, theme, paletteId } = response.data.data;
 
         // Update tokens in localStorage
         localStorage.setItem('token', newToken);
         localStorage.setItem('refreshToken', newRefreshToken);
+
+        // Update user data in localStorage if theme or paletteId are present
+        if (theme || paletteId) {
+          const userStr = localStorage.getItem('user');
+          if (userStr) {
+            try {
+              const user = JSON.parse(userStr) as LoginResponse;
+              if (theme) user.theme = theme;
+              if (paletteId) user.paletteId = paletteId;
+              localStorage.setItem('user', JSON.stringify(user));
+            } catch (e) {
+              console.error('Failed to update user theme in localStorage:', e);
+            }
+          }
+        }
 
         // Update the authorization header
         if (originalRequest.headers) {
@@ -131,7 +146,7 @@ export interface ApiResponse<T> {
 export interface LoginRequest {
   username: string;
   password: string;
-  applicationCode?: string;
+  entityCode: string;
 }
 
 export interface LoginResponse {
@@ -146,6 +161,7 @@ export interface LoginResponse {
   lastName?: string;
   company?: string;
   theme?: string;
+  paletteId?: string;
   image?: string;
 }
 
@@ -155,6 +171,8 @@ export interface RefreshTokenResponse {
   type: string;
   username: string;
   roles: string[];
+  theme?: string;
+  paletteId?: string;
 }
 
 // Admin types
@@ -166,6 +184,7 @@ export interface UserAdmin {
   company: string;
   status: string;
   theme: string;
+  paletteId: string;
   image?: string;
   createDate: string;
   createUser: string;
@@ -187,6 +206,30 @@ export interface RoleAdmin {
   createDate: string;
   createUser: string;
   userCount: number;
+}
+
+export interface EntityAdmin {
+  id: string;
+  name: string;
+  type: string;
+  description: string;
+  createDate: string;
+  createUser: string;
+}
+
+export interface EntityType {
+  tag: string;
+  type: string;
+  description: string;
+  createDate: string;
+  createUser: string;
+}
+
+export interface UserStatusData {
+  status: string;
+  description: string;
+  createDate: string;
+  createUser: string;
 }
 
 export interface SessionInfo {
@@ -228,6 +271,12 @@ export interface DashboardStats {
   }>;
 }
 
+// Theme Preferences Request
+export interface ThemePreferencesRequest {
+  theme: string;
+  paletteId: string;
+}
+
 // Auth API
 export const authAPI = {
   login: async (credentials: LoginRequest): Promise<ApiResponse<LoginResponse>> => {
@@ -237,6 +286,11 @@ export const authAPI = {
 
   refresh: async (refreshToken: string): Promise<ApiResponse<RefreshTokenResponse>> => {
     const response = await apiClient.post<ApiResponse<RefreshTokenResponse>>('/auth/refresh', { refreshToken });
+    return response.data;
+  },
+
+  updateThemePreferences: async (theme: string, paletteId: string): Promise<ApiResponse<void>> => {
+    const response = await apiClient.put<ApiResponse<void>>('/auth/theme', { theme, paletteId });
     return response.data;
   },
 };
@@ -355,6 +409,50 @@ export const adminSessionAPI = {
 export const adminDashboardAPI = {
   getDashboardStats: async (): Promise<ApiResponse<DashboardStats>> => {
     const response = await apiClient.get<ApiResponse<DashboardStats>>('/auth/admin/stats/dashboard');
+    return response.data;
+  },
+};
+
+// Admin Entity API
+export const adminEntityAPI = {
+  getAllEntities: async (): Promise<ApiResponse<EntityAdmin[]>> => {
+    const response = await apiClient.get<ApiResponse<EntityAdmin[]>>('/admin/entities');
+    return response.data;
+  },
+
+  getEntity: async (id: string): Promise<ApiResponse<EntityAdmin>> => {
+    const response = await apiClient.get<ApiResponse<EntityAdmin>>(`/admin/entities/${id}`);
+    return response.data;
+  },
+
+  createEntity: async (entityData: { id: string; name: string; type: string; description: string }): Promise<ApiResponse<EntityAdmin>> => {
+    const response = await apiClient.post<ApiResponse<EntityAdmin>>('/admin/entities', entityData);
+    return response.data;
+  },
+
+  updateEntity: async (id: string, entityData: { name: string; type: string; description: string }): Promise<ApiResponse<EntityAdmin>> => {
+    const response = await apiClient.put<ApiResponse<EntityAdmin>>(`/admin/entities/${id}`, entityData);
+    return response.data;
+  },
+
+  deleteEntity: async (id: string): Promise<ApiResponse<string>> => {
+    const response = await apiClient.delete<ApiResponse<string>>(`/admin/entities/${id}`);
+    return response.data;
+  },
+};
+
+// Admin Entity Type API
+export const adminEntityTypeAPI = {
+  getAllEntityTypes: async (): Promise<ApiResponse<EntityType[]>> => {
+    const response = await apiClient.get<ApiResponse<EntityType[]>>('/admin/entity-types');
+    return response.data;
+  },
+};
+
+// Admin User Status API
+export const adminUserStatusAPI = {
+  getAllUserStatuses: async (): Promise<ApiResponse<UserStatusData[]>> => {
+    const response = await apiClient.get<ApiResponse<UserStatusData[]>>('/admin/user-status');
     return response.data;
   },
 };

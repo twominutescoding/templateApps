@@ -24,6 +24,7 @@ public class UserAdminDTO {
     private String company;
     private String status;
     private String theme;
+    private String paletteId;
     private String image;
     private Date createDate;
     private String createUser;

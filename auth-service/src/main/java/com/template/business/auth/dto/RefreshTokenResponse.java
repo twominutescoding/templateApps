@@ -23,4 +23,6 @@ public class RefreshTokenResponse {
     private String type = "Bearer";
     private String username;
     private List<String> roles;
+    private String theme;
+    private String paletteId;
 }

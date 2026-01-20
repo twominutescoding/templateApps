@@ -1,13 +1,17 @@
 package com.template.business.auth.config;
 
 import com.template.business.auth.entity.ApplicationEntity;
+import com.template.business.auth.entity.EntityType;
 import com.template.business.auth.entity.Role;
 import com.template.business.auth.entity.User;
 import com.template.business.auth.entity.UserRole;
+import com.template.business.auth.entity.UserStatus;
 import com.template.business.auth.repository.EntityRepository;
+import com.template.business.auth.repository.EntityTypeRepository;
 import com.template.business.auth.repository.RoleRepository;
 import com.template.business.auth.repository.UserRepository;
 import com.template.business.auth.repository.UserRoleRepository;
+import com.template.business.auth.repository.UserStatusRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -60,9 +64,11 @@ import java.util.Date;
 public class DataInitializer {
 
     private final EntityRepository entityRepository;
+    private final EntityTypeRepository entityTypeRepository;
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
+    private final UserStatusRepository userStatusRepository;
     private final PasswordEncoder passwordEncoder;
 
     /**
@@ -93,8 +99,74 @@ public class DataInitializer {
                 // Always initialize for dev environment (H2 recreates on each start with create-drop)
                 log.info("Initializing sample data for development environment...");
 
+                // 0. Create Entity Types (lookup table)
+                log.info("Creating entity types...");
+
+                EntityType webType = new EntityType();
+                webType.setTag("WEB");
+                webType.setType("WEB");
+                webType.setDescription("Web Application");
+                webType.setCreateDate(new Date());
+                webType.setCreateUser("system");
+                entityTypeRepository.save(webType);
+
+                EntityType mobileType = new EntityType();
+                mobileType.setTag("MOB");
+                mobileType.setType("MOBILE");
+                mobileType.setDescription("Mobile Application");
+                mobileType.setCreateDate(new Date());
+                mobileType.setCreateUser("system");
+                entityTypeRepository.save(mobileType);
+
+                EntityType apiType = new EntityType();
+                apiType.setTag("API");
+                apiType.setType("API");
+                apiType.setDescription("API Service");
+                apiType.setCreateDate(new Date());
+                apiType.setCreateUser("system");
+                entityTypeRepository.save(apiType);
+
+                log.info("Created {} entity types", entityTypeRepository.count());
+
+                // 0.1. Create User Status values (lookup table)
+                log.info("Creating user status values...");
+
+                UserStatus activeStatus = new UserStatus();
+                activeStatus.setStatus("ACTIVE");
+                activeStatus.setDescription("Active user account");
+                activeStatus.setCreateDate(new Date());
+                activeStatus.setCreateUser("system");
+                userStatusRepository.save(activeStatus);
+
+                UserStatus inactiveStatus = new UserStatus();
+                inactiveStatus.setStatus("INACTIVE");
+                inactiveStatus.setDescription("Inactive user account");
+                inactiveStatus.setCreateDate(new Date());
+                inactiveStatus.setCreateUser("system");
+                userStatusRepository.save(inactiveStatus);
+
+                UserStatus lockedStatus = new UserStatus();
+                lockedStatus.setStatus("LOCKED");
+                lockedStatus.setDescription("Locked user account");
+                lockedStatus.setCreateDate(new Date());
+                lockedStatus.setCreateUser("system");
+                userStatusRepository.save(lockedStatus);
+
+                log.info("Created {} user status values", userStatusRepository.count());
+
                 // 1. Create Entities (Applications)
                 log.info("Creating entities...");
+
+                // Default entity (used when no entityCode specified)
+                ApplicationEntity defaultEntity = new ApplicationEntity();
+                defaultEntity.setId("DEFAULT");
+                defaultEntity.setName("Default Application");
+                defaultEntity.setType("WEB");
+                defaultEntity.setDescription("Default entity for general access");
+                defaultEntity.setCreateDate(new Date());
+                defaultEntity.setCreateUser("system");
+                entityRepository.save(defaultEntity);
+
                 ApplicationEntity app1 = new ApplicationEntity();
                 app1.setId("APP001");
                 app1.setName("Main Application");
@@ -113,21 +185,43 @@ public class DataInitializer {
                 app2.setCreateUser("system");
                 entityRepository.save(app2);
 
+                // Auth Service Admin Frontend
+                ApplicationEntity authAdmin = new ApplicationEntity();
+                authAdmin.setId("AUTH_ADMIN");
+                authAdmin.setName("Auth Service Admin Frontend");
+                authAdmin.setType("WEB");
+                authAdmin.setDescription("Authentication Service Administration Panel");
+                authAdmin.setCreateDate(new Date());
+                authAdmin.setCreateUser("system");
+                entityRepository.save(authAdmin);
+
                 log.info("Created {} entities", entityRepository.count());
 
                 // 2. Create Roles
                 log.info("Creating roles...");
+                // Roles for DEFAULT entity
+                Role adminDefault = createRole("ADMIN", "DEFAULT", "1", "Administrator role for DEFAULT");
+                Role userDefault = createRole("USER", "DEFAULT", "3", "User role for DEFAULT");
+
                 Role adminApp1 = createRole("ADMIN", "APP001", "1", "Administrator role");
                 Role userApp1 = createRole("USER", "APP001", "3", "Regular user role");
                 Role managerApp1 = createRole("MANAGER", "APP001", "2", "Manager role");
                 Role adminApp2 = createRole("ADMIN", "APP002", "1", "Administrator role for App 2");
                 Role userApp2 = createRole("USER", "APP002", "3", "User role for App 2");
 
+                // Roles for AUTH_ADMIN entity
+                Role adminAuthAdmin = createRole("ADMIN", "AUTH_ADMIN", "1", "Administrator role for Auth Admin");
+                Role userAuthAdmin = createRole("USER", "AUTH_ADMIN", "3", "User role for Auth Admin");
+
+                roleRepository.save(adminDefault);
+                roleRepository.save(userDefault);
                 roleRepository.save(adminApp1);
                 roleRepository.save(userApp1);
                 roleRepository.save(managerApp1);
                 roleRepository.save(adminApp2);
                 roleRepository.save(userApp2);
+                roleRepository.save(adminAuthAdmin);
+                roleRepository.save(userAuthAdmin);
 
                 log.info("Created {} roles", roleRepository.count());
 
@@ -146,10 +240,14 @@ public class DataInitializer {
 
                 // 4. Create User-Role Assignments
                 log.info("Creating user-role assignments...");
+                userRoleRepository.save(createUserRole("admin", "ADMIN", "DEFAULT"));
                 userRoleRepository.save(createUserRole("admin", "ADMIN", "APP001"));
                 userRoleRepository.save(createUserRole("admin", "ADMIN", "APP002"));
+                userRoleRepository.save(createUserRole("admin", "ADMIN", "AUTH_ADMIN"));
+                userRoleRepository.save(createUserRole("user1", "USER", "DEFAULT"));
                 userRoleRepository.save(createUserRole("user1", "USER", "APP001"));
                 userRoleRepository.save(createUserRole("user1", "MANAGER", "APP001"));
+                userRoleRepository.save(createUserRole("user2", "USER", "DEFAULT"));
                 userRoleRepository.save(createUserRole("user2", "USER", "APP001"));
                 userRoleRepository.save(createUserRole("user2", "USER", "APP002"));
 
@@ -157,9 +255,9 @@ public class DataInitializer {
 
                 log.info("Data initialization completed successfully!");
                 log.info("Sample users created:");
-                log.info("  - admin/password (ADMIN in APP001 & APP002)");
-                log.info("  - user1/password (USER & MANAGER in APP001)");
-                log.info("  - user2/password (USER in APP001 & APP002)");
+                log.info("  - admin/password (ADMIN in DEFAULT, APP001, APP002 & AUTH_ADMIN)");
+                log.info("  - user1/password (USER in DEFAULT, USER & MANAGER in APP001)");
+                log.info("  - user2/password (USER in DEFAULT, APP001 & APP002)");
 
             } catch (Exception e) {
                 log.error("Error during data initialization: {}", e.getMessage(), e);

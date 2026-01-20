@@ -16,5 +16,6 @@ public class LoginRequest {
     @NotBlank(message = "Password is required")
     private String password;
 
-    private String entityCode; // Optional: to filter roles by entity (application)
+    @NotBlank(message = "Entity code is required")
+    private String entityCode; // Required: entity (application) code for login
 }

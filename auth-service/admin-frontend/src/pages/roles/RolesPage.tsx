@@ -25,7 +25,7 @@ import type { RoleAdmin } from '../../services/api';
 import { useDateFormat } from '../../context/DateFormatContext';
 
 const RolesPage = () => {
-  const [data, setData] = useState<RoleAdmin[]>([]);
+  const [data, setData] = useState<(RoleAdmin & { id: string })[]>([]);
   const [loading, setLoading] = useState(false);
   const { formatTimestamp } = useDateFormat();
 
@@ -49,7 +49,12 @@ const RolesPage = () => {
     try {
       setLoading(true);
       const response = await adminRoleAPI.getAllRoles();
-      setData(response.data);
+      // Add computed id field (role + entity) for table row identification
+      const dataWithIds = response.data.map(role => ({
+        ...role,
+        id: `${role.role}-${role.entity}`, // Composite key
+      }));
+      setData(dataWithIds);
     } catch (error) {
       console.error('Failed to fetch roles:', error);
     } finally {
@@ -61,7 +66,7 @@ const RolesPage = () => {
     fetchData();
   }, [fetchData]);
 
-  const handleSave = async (row: RoleAdmin) => {
+  const handleSave = async (row: RoleAdmin & { id: string }) => {
     try {
       await adminRoleAPI.updateRole(row.role, row.entity, {
         roleLevel: row.roleLevel,
@@ -117,7 +122,14 @@ const RolesPage = () => {
     return Array.from(new Set(data.map((role) => role.entity)));
   }, [data]);
 
-  const columns: Column<RoleAdmin>[] = useMemo(
+  // Role level options
+  const roleLevelOptions = [
+    { label: '1 - Highest (Admin)', value: '1' },
+    { label: '2 - Medium (Manager)', value: '2' },
+    { label: '3 - Lowest (User)', value: '3' },
+  ];
+
+  const columns: Column<RoleAdmin & { id: string }>[] = useMemo(
     () => [
       {
         id: 'role',
@@ -135,7 +147,14 @@ const RolesPage = () => {
         id: 'roleLevel',
         label: 'Level',
         editable: true,
+        editType: 'select',
+        filterType: 'select',
+        filterOptions: roleLevelOptions,
         minWidth: 120,
+        render: (row: RoleAdmin) => {
+          const option = roleLevelOptions.find((o) => o.value === row.roleLevel);
+          return option?.label || row.roleLevel;
+        },
       },
       {
         id: 'description',
@@ -182,9 +201,10 @@ const RolesPage = () => {
         onSave={handleSave}
         title="Roles"
         showExport={true}
-        enableSelection={false}
+        enableSelection={true}
         enableBulkEdit={false}
-        renderActions={(row: RoleAdmin) => (
+        rowIdField="id"
+        renderActions={(row: RoleAdmin & { id: string }) => (
           <Tooltip title="Delete Role">
             <IconButton size="small" color="error" onClick={() => handleDeleteRole(row.role, row.entity)}>
               <DeleteIcon fontSize="small" />

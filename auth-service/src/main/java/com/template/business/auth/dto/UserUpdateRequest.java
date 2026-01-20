@@ -34,5 +34,6 @@ public class UserUpdateRequest {
 
     private String company;
     private String theme;
+    private String paletteId;
     private String image;
 }

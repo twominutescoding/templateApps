@@ -988,14 +988,16 @@ const AdvancedDataTable = ({
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell padding="checkbox" sx={{ py: 1 }}>
-                <Checkbox
-                  indeterminate={selected.size > 0 && selected.size < paginatedData.length}
-                  checked={paginatedData.length > 0 && selected.size === paginatedData.length}
-                  onChange={handleSelectAllClick}
-                  size="small"
-                />
-              </TableCell>
+              {enableSelection && (
+                <TableCell padding="checkbox" sx={{ py: 1 }}>
+                  <Checkbox
+                    indeterminate={selected.size > 0 && selected.size < paginatedData.length}
+                    checked={paginatedData.length > 0 && selected.size === paginatedData.length}
+                    onChange={handleSelectAllClick}
+                    size="small"
+                  />
+                </TableCell>
+              )}
               {columns.map((column) => (
                 <TableCell
                   key={column.id}
@@ -1028,7 +1030,7 @@ const AdvancedDataTable = ({
             </TableRow>
             {filterMode === 'inline' && (
               <TableRow>
-                <TableCell padding="checkbox" />
+                {enableSelection && <TableCell padding="checkbox" />}
                 {columns.map((column) => (
                   <TableCell
                     key={`filter-${column.id}`}
@@ -1075,16 +1077,18 @@ const AdvancedDataTable = ({
                       '&:hover': onRowClick ? { backgroundColor: 'action.hover' } : {}
                     }}
                   >
-                    <TableCell
-                      padding="checkbox"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Checkbox
-                        checked={isItemSelected}
-                        onChange={() => handleSelectClick(rowId)}
-                        size="small"
-                      />
-                    </TableCell>
+                    {enableSelection && (
+                      <TableCell
+                        padding="checkbox"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Checkbox
+                          checked={isItemSelected}
+                          onChange={() => handleSelectClick(rowId)}
+                          size="small"
+                        />
+                      </TableCell>
+                    )}
                     {columns.map((column) => (
                       <TableCell
                         key={column.id}

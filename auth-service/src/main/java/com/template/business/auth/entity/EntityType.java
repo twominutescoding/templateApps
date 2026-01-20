@@ -3,36 +3,27 @@ package com.template.business.auth.entity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
 
 import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
 
-@jakarta.persistence.Entity
-@Table(name = "D_ENTITIES")
+/**
+ * Entity for D_ENTITY_TYPES table
+ * Lookup table for entity types with TAG prefix for ID generation
+ */
+@Entity
+@Table(name = "D_ENTITY_TYPES")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(exclude = {"roles", "entityType"})
-@ToString(exclude = {"roles", "entityType"})
-public class ApplicationEntity {
+public class EntityType {
+
+    @Column(name = "TAG", length = 3, nullable = false)
+    private String tag;
 
     @Id
-    @Column(name = "ID", length = 100)
-    private String id;
-
-    @Column(name = "NAME", length = 200, nullable = false)
-    private String name;
-
     @Column(name = "TYPE", length = 200, nullable = false)
     private String type;
-
-    @ManyToOne
-    @JoinColumn(name = "TYPE", referencedColumnName = "TYPE", insertable = false, updatable = false)
-    private EntityType entityType;
 
     @Column(name = "DESCRIPTION", length = 1000)
     private String description;
@@ -43,9 +34,6 @@ public class ApplicationEntity {
 
     @Column(name = "CREATE_USER", length = 100)
     private String createUser;
-
-    @OneToMany(mappedBy = "entity", fetch = FetchType.LAZY)
-    private Set<Role> roles = new HashSet<>();
 
     @PrePersist
     protected void onCreate() {

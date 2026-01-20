@@ -19,9 +19,11 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import { useThemeContext } from '../theme/ThemeContext';
 
 const Login = () => {
   const { login } = useAuth();
+  const { loadThemeFromUser } = useThemeContext();
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -35,6 +37,8 @@ const Login = () => {
 
     try {
       await login({ email: username, password });
+      // Reload theme from newly logged in user data
+      loadThemeFromUser();
       navigate('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');

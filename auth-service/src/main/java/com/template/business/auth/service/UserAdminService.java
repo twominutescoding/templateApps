@@ -69,7 +69,8 @@ public class UserAdminService {
         user.setEmail(request.getEmail());
         user.setCompany(request.getCompany());
         user.setStatus("ACTIVE");
-        user.setTheme(request.getTheme() != null ? request.getTheme() : "OCEAN_BLUE");
+        user.setTheme(request.getTheme() != null ? request.getTheme() : "light");
+        user.setPaletteId(request.getPaletteId() != null ? request.getPaletteId() : "ocean-blue");
         user.setImage(request.getImage());
         user.setCreateDate(new Date());
         user.setCreateUser(SecurityContextHolder.getContext().getAuthentication().getName());
@@ -155,6 +156,9 @@ public class UserAdminService {
         }
         if (request.getTheme() != null) {
             user.setTheme(request.getTheme());
+        }
+        if (request.getPaletteId() != null) {
+            user.setPaletteId(request.getPaletteId());
         }
         if (request.getImage() != null) {
             user.setImage(request.getImage());
@@ -299,6 +303,7 @@ public class UserAdminService {
                 .company(user.getCompany())
                 .status(user.getStatus())
                 .theme(user.getTheme())
+                .paletteId(user.getPaletteId())
                 .image(user.getImage())
                 .createDate(user.getCreateDate())
                 .createUser(user.getCreateUser())

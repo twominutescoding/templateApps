@@ -97,4 +97,21 @@ public class UserService {
     public User updateUser(User user) {
         return userRepository.save(user);
     }
+
+    /**
+     * Updates user theme preferences.
+     *
+     * @param username the username of the user
+     * @param theme the theme mode (light or dark)
+     * @param paletteId the color palette ID
+     */
+    @Transactional
+    public void updateThemePreferences(String username, String theme, String paletteId) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+
+        user.setTheme(theme);
+        user.setPaletteId(paletteId);
+        userRepository.save(user);
+    }
 }

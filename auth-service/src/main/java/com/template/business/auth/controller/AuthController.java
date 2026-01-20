@@ -3,6 +3,9 @@ package com.template.business.auth.controller;
 import com.template.business.auth.dto.*;
 import com.template.business.auth.entity.User;
 import com.template.business.auth.entity.UserRole;
+import com.template.business.auth.exception.ErrorCode;
+import com.template.business.auth.exception.ResourceNotFoundException;
+import com.template.business.auth.repository.EntityRepository;
 import com.template.business.auth.security.CustomAuthenticationProvider;
 import com.template.business.auth.security.JwtUtil;
 import com.template.business.auth.service.DatabaseUserDetailsService;
@@ -57,6 +60,7 @@ public class AuthController {
     private final JwtUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
     private final com.template.business.auth.service.DashboardStatisticsService dashboardStatisticsService;
+    private final EntityRepository entityRepository;
 
     @Value("${ldap.enabled}")
     private boolean ldapEnabled;
@@ -81,7 +85,14 @@ public class AuthController {
             @Valid @RequestBody LoginRequest request,
             HttpServletRequest httpRequest) {
         try {
-            log.info("Login attempt for user: {}", request.getUsername());
+            log.info("Login attempt for user: {} with entity: {}", request.getUsername(), request.getEntityCode());
+
+            // Validate that entity exists
+            if (!entityRepository.existsById(request.getEntityCode())) {
+                log.warn("Login failed: Entity {} does not exist", request.getEntityCode());
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(ApiResponse.error("Entity '" + request.getEntityCode() + "' does not exist"));
+            }
 
             // Authenticate using custom provider (LDAP + DB fallback)
             Authentication authentication = authenticationProvider.authenticate(
@@ -100,22 +111,13 @@ public class AuthController {
 
             if (user != null && user.getUserRoles() != null && !user.getUserRoles().isEmpty()) {
                 // LDAP is only for authentication - roles ALWAYS come from database
-                if (request.getEntityCode() != null) {
-                    // Filter roles by specific entity
-                    roles = user.getUserRoles().stream()
-                            .filter(ur -> "ACTIVE".equals(ur.getStatus()))
-                            .filter(ur -> request.getEntityCode().equals(ur.getId().getEntity()))
-                            .map(ur -> ur.getId().getRole())
-                            .distinct()
-                            .collect(Collectors.toList());
-                } else {
-                    // Return all active roles from all entities
-                    roles = user.getUserRoles().stream()
-                            .filter(ur -> "ACTIVE".equals(ur.getStatus()))
-                            .map(ur -> ur.getId().getRole())
-                            .distinct()
-                            .collect(Collectors.toList());
-                }
+                // Filter roles by specific entity (entityCode is mandatory)
+                roles = user.getUserRoles().stream()
+                        .filter(ur -> "ACTIVE".equals(ur.getStatus()))
+                        .filter(ur -> request.getEntityCode().equals(ur.getId().getEntity()))
+                        .map(ur -> ur.getId().getRole())
+                        .distinct()
+                        .collect(Collectors.toList());
             } else {
                 // Fallback to authentication authorities (only if user not in database)
                 roles = authentication.getAuthorities().stream()
@@ -127,10 +129,9 @@ public class AuthController {
             String accessToken = jwtUtil.generateToken(request.getUsername(), roles);
 
             // Generate refresh token (long-lived) and store in database
-            String entityCode = request.getEntityCode() != null ? request.getEntityCode() : "DEFAULT";
             String refreshToken = refreshTokenService.createRefreshToken(
                     request.getUsername(),
-                    entityCode,
+                    request.getEntityCode(),
                     httpRequest,
                     "LOGIN" // This is an initial login
             );
@@ -151,7 +152,8 @@ public class AuthController {
                         .firstName(user.getFirstName())
                         .lastName(user.getLastName())
                         .company(user.getCompany())
-                        .theme(user.getTheme())
+                        .theme(user.getTheme() != null ? user.getTheme() : "light")
+                        .paletteId(user.getPaletteId() != null ? user.getPaletteId() : "ocean-blue")
                         .image(user.getImage());
             }
 
@@ -515,5 +517,23 @@ public class AuthController {
 
         // Default to DATABASE
         return "DATABASE";
+    }
+
+    /**
+     * Update current user's theme preferences
+     * Allows any authenticated user to update their own theme and palette
+     */
+    @PutMapping("/theme")
+    public ResponseEntity<ApiResponse<Void>> updateTheme(@Valid @RequestBody ThemePreferencesRequest request) {
+        try {
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            userService.updateThemePreferences(username, request.getTheme(), request.getPaletteId());
+            log.info("User {} updated theme preferences: theme={}, paletteId={}", username, request.getTheme(), request.getPaletteId());
+            return ResponseEntity.ok(ApiResponse.success("Theme preferences updated successfully", null));
+        } catch (Exception e) {
+            log.error("Failed to update theme preferences: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to update theme preferences"));
+        }
     }
 }

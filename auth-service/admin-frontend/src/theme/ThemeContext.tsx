@@ -5,29 +5,32 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { getDesignTokens, getHeaderGradient } from './theme';
 import type { ColorPalette } from '../types/palette';
 import { predefinedPalettes } from '../types/palette';
+import { authAPI, type LoginResponse } from '../services/api';
 
 type ThemeMode = 'light' | 'dark';
 
 interface ThemeContextType {
   mode: ThemeMode;
-  toggleTheme: () => void;
+  toggleTheme: () => Promise<void>;
   palette: ColorPalette;
-  setPalette: (palette: ColorPalette) => void;
+  setPalette: (palette: ColorPalette) => Promise<void>;
   customPalettes: ColorPalette[];
   addCustomPalette: (palette: ColorPalette) => void;
   removeCustomPalette: (paletteId: string) => void;
   headerGradient: string;
+  loadThemeFromUser: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType>({
   mode: 'light',
-  toggleTheme: () => {},
+  toggleTheme: async () => {},
   palette: predefinedPalettes[0],
-  setPalette: () => {},
+  setPalette: async () => {},
   customPalettes: [],
   addCustomPalette: () => {},
   removeCustomPalette: () => {},
   headerGradient: '',
+  loadThemeFromUser: () => {},
 });
 
 export const useThemeContext = () => useContext(ThemeContext);
@@ -37,26 +40,59 @@ interface ThemeContextProviderProps {
 }
 
 export const ThemeContextProvider = ({ children }: ThemeContextProviderProps) => {
-  // Get initial theme mode from localStorage or default to light
+  // Get initial theme mode from user data or localStorage or default to light
   const [mode, setMode] = useState<ThemeMode>(() => {
+    // First, try to get from logged-in user data
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr) as LoginResponse;
+        if (user.theme && (user.theme === 'dark' || user.theme === 'light')) {
+          return user.theme;
+        }
+      } catch (e) {
+        console.error('Failed to parse user data:', e);
+      }
+    }
+
+    // Fall back to localStorage themeMode
     const savedMode = localStorage.getItem('themeMode');
     return (savedMode === 'dark' || savedMode === 'light') ? savedMode : 'light';
   });
 
-  // Get initial palette from localStorage or default to first predefined palette
+  // Get initial palette from user data or localStorage or default to first predefined palette
   const [palette, setPaletteState] = useState<ColorPalette>(() => {
-    const savedPaletteId = localStorage.getItem('selectedPaletteId');
+    let paletteId: string | undefined;
+
+    // First, try to get from logged-in user data
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr) as LoginResponse;
+        if (user.paletteId) {
+          paletteId = user.paletteId;
+        }
+      } catch (e) {
+        console.error('Failed to parse user data:', e);
+      }
+    }
+
+    // Fall back to localStorage selectedPaletteId
+    if (!paletteId) {
+      paletteId = localStorage.getItem('selectedPaletteId') || undefined;
+    }
+
     const savedCustomPalettes = localStorage.getItem('customPalettes');
 
-    if (savedPaletteId) {
+    if (paletteId) {
       // Check in predefined palettes
-      const predefined = predefinedPalettes.find(p => p.id === savedPaletteId);
+      const predefined = predefinedPalettes.find(p => p.id === paletteId);
       if (predefined) return predefined;
 
       // Check in custom palettes
       if (savedCustomPalettes) {
         const custom = JSON.parse(savedCustomPalettes) as ColorPalette[];
-        const customPalette = custom.find(p => p.id === savedPaletteId);
+        const customPalette = custom.find(p => p.id === paletteId);
         if (customPalette) return customPalette;
       }
     }
@@ -85,12 +121,51 @@ export const ThemeContextProvider = ({ children }: ThemeContextProviderProps) =>
     localStorage.setItem('customPalettes', JSON.stringify(customPalettes));
   }, [customPalettes]);
 
-  const toggleTheme = () => {
-    setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
+  const toggleTheme = async () => {
+    const newMode = mode === 'light' ? 'dark' : 'light';
+    setMode(newMode);
+
+    // Save to backend if user is logged in
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        await authAPI.updateThemePreferences(newMode, palette.id);
+
+        // Update user data in localStorage
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          const user = JSON.parse(userStr) as LoginResponse;
+          user.theme = newMode;
+          localStorage.setItem('user', JSON.stringify(user));
+        }
+      } catch (error) {
+        console.error('Failed to save theme preferences to backend:', error);
+        // Continue anyway - localStorage will persist the change
+      }
+    }
   };
 
-  const setPalette = (newPalette: ColorPalette) => {
+  const setPalette = async (newPalette: ColorPalette) => {
     setPaletteState(newPalette);
+
+    // Save to backend if user is logged in
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        await authAPI.updateThemePreferences(mode, newPalette.id);
+
+        // Update user data in localStorage
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          const user = JSON.parse(userStr) as LoginResponse;
+          user.paletteId = newPalette.id;
+          localStorage.setItem('user', JSON.stringify(user));
+        }
+      } catch (error) {
+        console.error('Failed to save theme preferences to backend:', error);
+        // Continue anyway - localStorage will persist the change
+      }
+    }
   };
 
   const addCustomPalette = (newPalette: ColorPalette) => {
@@ -102,6 +177,45 @@ export const ThemeContextProvider = ({ children }: ThemeContextProviderProps) =>
     // If the removed palette was selected, switch to default
     if (palette.id === paletteId) {
       setPaletteState(predefinedPalettes[0]);
+    }
+  };
+
+  const loadThemeFromUser = () => {
+    // Load theme from user data in localStorage
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr) as LoginResponse;
+
+        // Update theme mode if present
+        if (user.theme && (user.theme === 'dark' || user.theme === 'light')) {
+          setMode(user.theme);
+        }
+
+        // Update palette if present
+        if (user.paletteId) {
+          const savedCustomPalettes = localStorage.getItem('customPalettes');
+
+          // Check in predefined palettes
+          const predefined = predefinedPalettes.find(p => p.id === user.paletteId);
+          if (predefined) {
+            setPaletteState(predefined);
+            return;
+          }
+
+          // Check in custom palettes
+          if (savedCustomPalettes) {
+            const custom = JSON.parse(savedCustomPalettes) as ColorPalette[];
+            const customPalette = custom.find(p => p.id === user.paletteId);
+            if (customPalette) {
+              setPaletteState(customPalette);
+              return;
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load theme from user data:', e);
+      }
     }
   };
 
@@ -117,7 +231,8 @@ export const ThemeContextProvider = ({ children }: ThemeContextProviderProps) =>
       customPalettes,
       addCustomPalette,
       removeCustomPalette,
-      headerGradient
+      headerGradient,
+      loadThemeFromUser
     }}>
       <ThemeProvider theme={theme}>
         <CssBaseline />

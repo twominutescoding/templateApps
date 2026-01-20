@@ -24,8 +24,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import PersonRemoveIcon from '@mui/icons-material/PersonRemove';
 import AdvancedDataTable from '../../components/table/AdvancedDataTable';
 import type { Column } from '../../components/table/AdvancedDataTable';
-import { adminUserAPI, adminRoleAPI } from '../../services/api';
-import type { UserAdmin, RoleAdmin } from '../../services/api';
+import { adminUserAPI, adminRoleAPI, adminUserStatusAPI } from '../../services/api';
+import type { UserAdmin, RoleAdmin, UserStatusData } from '../../services/api';
 import StatusChip from '../../components/common/StatusChip';
 import { useDateFormat } from '../../context/DateFormatContext';
 import { CreateUserDialog, AddRoleDialog, ResetPasswordDialog } from './UserManagementDialogs';
@@ -34,6 +34,7 @@ const UsersPage = () => {
   const [data, setData] = useState<UserAdmin[]>([]);
   const [loading, setLoading] = useState(false);
   const [availableRoles, setAvailableRoles] = useState<RoleAdmin[]>([]);
+  const [userStatuses, setUserStatuses] = useState<UserStatusData[]>([]);
   const { formatTimestamp } = useDateFormat();
 
   // Create User Dialog
@@ -86,19 +87,39 @@ const UsersPage = () => {
     }
   }, []);
 
+  const fetchUserStatuses = useCallback(async () => {
+    try {
+      const response = await adminUserStatusAPI.getAllUserStatuses();
+      setUserStatuses(response.data);
+    } catch (error) {
+      console.error('Failed to fetch user statuses:', error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchData();
     fetchRoles();
-  }, [fetchData, fetchRoles]);
+    fetchUserStatuses();
+  }, [fetchData, fetchRoles, fetchUserStatuses]);
 
   const handleSave = async (row: UserAdmin) => {
     try {
+      // Update user details
       await adminUserAPI.updateUser(row.username, {
         firstName: row.firstName,
         lastName: row.lastName,
         email: row.email,
         company: row.company,
+        theme: row.theme,
+        paletteId: row.paletteId,
       });
+
+      // If status changed, update it separately
+      const originalUser = data.find((u) => u.username === row.username);
+      if (originalUser && originalUser.status !== row.status) {
+        await adminUserAPI.updateUserStatus(row.username, row.status);
+      }
+
       fetchData();
     } catch (error) {
       console.error('Failed to update user:', error);
@@ -233,6 +254,14 @@ const UsersPage = () => {
     }
   };
 
+  // Convert user statuses to dropdown options
+  const statusOptions = useMemo(() => {
+    return userStatuses.map((us) => ({
+      label: us.description,
+      value: us.status,
+    }));
+  }, [userStatuses]);
+
   const columns: Column<UserAdmin>[] = useMemo(
     () => [
       {
@@ -266,17 +295,46 @@ const UsersPage = () => {
         minWidth: 150,
       },
       {
+        id: 'theme',
+        label: 'Theme',
+        editable: true,
+        editType: 'select',
+        filterType: 'select',
+        filterOptions: [
+          { label: 'Dark', value: 'dark' },
+          { label: 'Light', value: 'light' },
+        ],
+        minWidth: 100,
+        render: (row: UserAdmin) => {
+          return row.theme === 'dark' ? 'Dark' : 'Light';
+        },
+      },
+      {
+        id: 'paletteId',
+        label: 'Palette ID',
+        editable: true,
+        minWidth: 150,
+      },
+      {
         id: 'status',
         label: 'Status',
-        editable: false,
+        editable: true,
+        editType: 'select',
+        filterType: 'select',
+        filterOptions: statusOptions,
         minWidth: 120,
-        render: (row: UserAdmin) => (
-          <StatusChip
-            status={row.status}
-            onStatusChange={(newStatus) => handleStatusChange(row.username, newStatus)}
-            allowedStatuses={['ACTIVE', 'INACTIVE']}
-          />
-        ),
+        render: (row: UserAdmin) => {
+          const option = statusOptions.find((o) => o.value === row.status);
+          return (
+            <Chip
+              label={option?.label || row.status}
+              size="small"
+              color={
+                row.status === 'ACTIVE' ? 'success' : row.status === 'INACTIVE' ? 'default' : 'error'
+              }
+            />
+          );
+        },
       },
       {
         id: 'roles',
@@ -305,7 +363,7 @@ const UsersPage = () => {
         render: (row: UserAdmin) => formatTimestamp(row.createDate),
       },
     ],
-    [formatTimestamp]
+    [formatTimestamp, statusOptions, handleRemoveRole]
   );
 
   return (
@@ -324,8 +382,9 @@ const UsersPage = () => {
         onSave={handleSave}
         title="Users"
         showExport={true}
-        enableSelection={false}
+        enableSelection={true}
         enableBulkEdit={false}
+        rowIdField="username"
         renderActions={(row: UserAdmin) => (
           <>
             <Tooltip title="Reset Password">
