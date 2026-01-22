@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeContextProvider } from './theme/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
-import { DateFormatProvider } from './context/DateFormatContext';
+import { DateFormatProvider } from './contexts/DateFormatContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import Layout from './components/layout/Layout';
 import Login from './pages/Login';
@@ -10,6 +10,7 @@ import UsersPage from './pages/users/UsersPage';
 import RolesPage from './pages/roles/RolesPage';
 import EntitiesPage from './pages/entities/EntitiesPage';
 import SessionsPage from './pages/sessions/SessionsPage';
+import MailingsPage from './pages/mailings/MailingsPage';
 import Settings from './pages/Settings';
 
 function App() {
@@ -69,6 +70,16 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <SessionsPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/mailings"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <MailingsPage />
                   </Layout>
                 </ProtectedRoute>
               }

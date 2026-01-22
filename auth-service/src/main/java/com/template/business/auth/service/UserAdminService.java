@@ -8,6 +8,7 @@ import com.template.business.auth.entity.Role;
 import com.template.business.auth.entity.User;
 import com.template.business.auth.entity.UserRole;
 import com.template.business.auth.exception.CustomAuthorizationException;
+import com.template.business.auth.exception.CustomValidationException;
 import com.template.business.auth.exception.ErrorCode;
 import com.template.business.auth.exception.ResourceNotFoundException;
 import com.template.business.auth.repository.RoleRepository;
@@ -45,11 +46,11 @@ public class UserAdminService {
     public UserAdminDTO createUser(UserUpdateRequest request) {
         // Check if username already exists
         if (request.getUsername() == null || request.getUsername().trim().isEmpty()) {
-            throw new IllegalArgumentException("Username is required");
+            throw new CustomValidationException("Username is required");
         }
 
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            throw new IllegalArgumentException("Username already exists: " + request.getUsername());
+            throw new CustomValidationException("Username already exists: " + request.getUsername());
         }
 
         // Use provided password or generate temporary one

@@ -41,7 +41,7 @@ public class RoleAdminController {
             return ResponseEntity.ok(ApiResponse.success("Roles retrieved successfully", roles));
         } catch (Exception e) {
             log.error("Failed to retrieve roles: {}", e.getMessage());
-            return ResponseEntity.status(500)
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Failed to retrieve roles"));
         }
     }
@@ -58,7 +58,7 @@ public class RoleAdminController {
             return ResponseEntity.ok(ApiResponse.success("Role retrieved successfully", roleDTO));
         } catch (Exception e) {
             log.error("Failed to retrieve role {}/{}: {}", role, entity, e.getMessage());
-            return ResponseEntity.status(404)
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(ApiResponse.error(e.getMessage()));
         }
     }
@@ -74,7 +74,7 @@ public class RoleAdminController {
                     .body(ApiResponse.success("Role created successfully", role));
         } catch (Exception e) {
             log.error("Failed to create role: {}", e.getMessage());
-            return ResponseEntity.status(400)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error(e.getMessage()));
         }
     }
@@ -92,7 +92,7 @@ public class RoleAdminController {
             return ResponseEntity.ok(ApiResponse.success("Role updated successfully", updatedRole));
         } catch (Exception e) {
             log.error("Failed to update role {}/{}: {}", role, entity, e.getMessage());
-            return ResponseEntity.status(400)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error(e.getMessage()));
         }
     }
@@ -109,7 +109,7 @@ public class RoleAdminController {
             return ResponseEntity.ok(ApiResponse.success("Role deleted successfully", "success"));
         } catch (Exception e) {
             log.error("Failed to delete role {}/{}: {}", role, entity, e.getMessage());
-            return ResponseEntity.status(400)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error(e.getMessage()));
         }
     }

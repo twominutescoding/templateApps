@@ -4,6 +4,8 @@ import com.template.business.auth.dto.UserRegistrationRequest;
 import com.template.business.auth.entity.User;
 import com.template.business.auth.exception.ApiErrorResponse;
 import com.template.business.auth.exception.CustomValidationException;
+import com.template.business.auth.exception.ErrorCode;
+import com.template.business.auth.exception.ResourceNotFoundException;
 import com.template.business.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -108,7 +110,7 @@ public class UserService {
     @Transactional
     public void updateThemePreferences(String username, String theme, String paletteId) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "User not found: " + username));
 
         user.setTheme(theme);
         user.setPaletteId(paletteId);

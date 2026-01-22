@@ -27,7 +27,7 @@ import type { Column } from '../../components/table/AdvancedDataTable';
 import { adminUserAPI, adminRoleAPI, adminUserStatusAPI } from '../../services/api';
 import type { UserAdmin, RoleAdmin, UserStatusData } from '../../services/api';
 import StatusChip from '../../components/common/StatusChip';
-import { useDateFormat } from '../../context/DateFormatContext';
+import { useDateFormat } from '../../contexts/DateFormatContext';
 import { CreateUserDialog, AddRoleDialog, ResetPasswordDialog } from './UserManagementDialogs';
 
 const UsersPage = () => {

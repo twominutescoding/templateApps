@@ -232,7 +232,20 @@ export interface UserStatusData {
   createUser: string;
 }
 
-export interface SessionInfo {
+export interface MailingAdmin {
+  id: number;
+  subject: string;
+  body: string;
+  attachment: string;
+  sent: string; // Y/N
+  notBefore: string;
+  mailingList: string;
+  mailType: string;
+  createDate: string;
+  createUser: string;
+}
+
+export interface SessionAdmin {
   sessionId: number;
   username: string;
   entity: string;
@@ -247,7 +260,7 @@ export interface SessionInfo {
   revoked: boolean;
 }
 
-export interface DashboardStats {
+export interface DashboardStatsAdmin {
   userStats: {
     totalUsers: number;
     activeUsers: number;
@@ -389,8 +402,8 @@ export const adminRoleAPI = {
 
 // Admin Session API
 export const adminSessionAPI = {
-  getAllSessions: async (): Promise<ApiResponse<SessionInfo[]>> => {
-    const response = await apiClient.get<ApiResponse<SessionInfo[]>>('/auth/admin/sessions');
+  getAllSessions: async (): Promise<ApiResponse<SessionAdmin[]>> => {
+    const response = await apiClient.get<ApiResponse<SessionAdmin[]>>('/auth/admin/sessions');
     return response.data;
   },
 
@@ -407,8 +420,8 @@ export const adminSessionAPI = {
 
 // Admin Dashboard API
 export const adminDashboardAPI = {
-  getDashboardStats: async (): Promise<ApiResponse<DashboardStats>> => {
-    const response = await apiClient.get<ApiResponse<DashboardStats>>('/auth/admin/stats/dashboard');
+  getDashboardStats: async (): Promise<ApiResponse<DashboardStatsAdmin>> => {
+    const response = await apiClient.get<ApiResponse<DashboardStatsAdmin>>('/auth/admin/stats/dashboard');
     return response.data;
   },
 };
@@ -453,6 +466,19 @@ export const adminEntityTypeAPI = {
 export const adminUserStatusAPI = {
   getAllUserStatuses: async (): Promise<ApiResponse<UserStatusData[]>> => {
     const response = await apiClient.get<ApiResponse<UserStatusData[]>>('/admin/user-status');
+    return response.data;
+  },
+};
+
+// Admin Mailing API (read-only)
+export const adminMailingAPI = {
+  getAllMailings: async (): Promise<ApiResponse<MailingAdmin[]>> => {
+    const response = await apiClient.get<ApiResponse<MailingAdmin[]>>('/admin/mailings');
+    return response.data;
+  },
+
+  getMailing: async (id: number): Promise<ApiResponse<MailingAdmin>> => {
+    const response = await apiClient.get<ApiResponse<MailingAdmin>>(`/admin/mailings/${id}`);
     return response.data;
   },
 };

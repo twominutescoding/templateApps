@@ -4,12 +4,12 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AdvancedDataTable from '../../components/table/AdvancedDataTable';
 import type { Column } from '../../components/table/AdvancedDataTable';
 import { adminSessionAPI } from '../../services/api';
-import type { SessionInfo } from '../../services/api';
+import type { SessionAdmin } from '../../services/api';
 import StatusChip from '../../components/common/StatusChip';
-import { useDateFormat } from '../../context/DateFormatContext';
+import { useDateFormat } from '../../contexts/DateFormatContext';
 
 const SessionsPage = () => {
-  const [data, setData] = useState<SessionInfo[]>([]);
+  const [data, setData] = useState<SessionAdmin[]>([]);
   const [loading, setLoading] = useState(false);
   const { formatTimestamp } = useDateFormat();
 
@@ -40,7 +40,7 @@ const SessionsPage = () => {
     }
   };
 
-  const columns: Column<SessionInfo>[] = useMemo(
+  const columns: Column<SessionAdmin>[] = useMemo(
     () => [
       {
         id: 'username',
@@ -71,21 +71,21 @@ const SessionsPage = () => {
         label: 'Created',
         editable: false,
         minWidth: 180,
-        render: (row: SessionInfo) => formatTimestamp(row.createdAt),
+        render: (row: SessionAdmin) => formatTimestamp(row.createdAt),
       },
       {
         id: 'lastUsedAt',
         label: 'Last Used',
         editable: false,
         minWidth: 180,
-        render: (row: SessionInfo) => formatTimestamp(row.lastUsedAt),
+        render: (row: SessionAdmin) => formatTimestamp(row.lastUsedAt),
       },
       {
         id: 'revoked',
         label: 'Status',
         editable: false,
         minWidth: 120,
-        render: (row: SessionInfo) => (
+        render: (row: SessionAdmin) => (
           <StatusChip status={row.revoked ? 'REVOKED' : 'ACTIVE'} />
         ),
       },
@@ -94,7 +94,7 @@ const SessionsPage = () => {
         label: 'Actions',
         editable: false,
         minWidth: 100,
-        render: (row: SessionInfo) => (
+        render: (row: SessionAdmin) => (
           <Tooltip title="Revoke Session">
             <IconButton
               size="small"

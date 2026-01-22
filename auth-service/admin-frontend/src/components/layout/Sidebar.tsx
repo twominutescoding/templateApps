@@ -4,6 +4,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import SecurityIcon from '@mui/icons-material/Security';
 import BusinessIcon from '@mui/icons-material/Business';
 import DevicesIcon from '@mui/icons-material/Devices';
+import EmailIcon from '@mui/icons-material/Email';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -19,6 +20,7 @@ const menuItems = [
   { text: 'Roles', icon: <SecurityIcon />, path: '/roles' },
   { text: 'Entities', icon: <BusinessIcon />, path: '/entities' },
   { text: 'Sessions', icon: <DevicesIcon />, path: '/sessions' },
+  { text: 'Mailings', icon: <EmailIcon />, path: '/mailings' },
 ];
 
 const settingsItems = [

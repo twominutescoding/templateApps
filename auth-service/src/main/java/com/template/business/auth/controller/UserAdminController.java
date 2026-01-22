@@ -10,6 +10,7 @@ import com.template.business.auth.service.UserAdminService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -40,7 +41,7 @@ public class UserAdminController {
             return ResponseEntity.ok(ApiResponse.success("User created successfully", user));
         } catch (Exception e) {
             log.error("Failed to create user: {}", e.getMessage());
-            return ResponseEntity.status(400)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error(e.getMessage()));
         }
     }
@@ -55,7 +56,7 @@ public class UserAdminController {
             return ResponseEntity.ok(ApiResponse.success("Users retrieved successfully", users));
         } catch (Exception e) {
             log.error("Failed to retrieve users: {}", e.getMessage());
-            return ResponseEntity.status(500)
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Failed to retrieve users"));
         }
     }
@@ -70,7 +71,7 @@ public class UserAdminController {
             return ResponseEntity.ok(ApiResponse.success("User retrieved successfully", user));
         } catch (Exception e) {
             log.error("Failed to retrieve user {}: {}", username, e.getMessage());
-            return ResponseEntity.status(404)
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(ApiResponse.error(e.getMessage()));
         }
     }
@@ -87,7 +88,7 @@ public class UserAdminController {
             return ResponseEntity.ok(ApiResponse.success("User updated successfully", user));
         } catch (Exception e) {
             log.error("Failed to update user {}: {}", username, e.getMessage());
-            return ResponseEntity.status(400)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error(e.getMessage()));
         }
     }
@@ -104,7 +105,7 @@ public class UserAdminController {
             return ResponseEntity.ok(ApiResponse.success("User status updated successfully", user));
         } catch (Exception e) {
             log.error("Failed to update user {} status: {}", username, e.getMessage());
-            return ResponseEntity.status(400)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error(e.getMessage()));
         }
     }
@@ -129,7 +130,7 @@ public class UserAdminController {
             }
         } catch (Exception e) {
             log.error("Failed to reset password for user {}: {}", username, e.getMessage());
-            return ResponseEntity.status(400)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error(e.getMessage()));
         }
     }
@@ -144,7 +145,7 @@ public class UserAdminController {
             return ResponseEntity.ok(ApiResponse.success("User roles retrieved successfully", roles));
         } catch (Exception e) {
             log.error("Failed to retrieve roles for user {}: {}", username, e.getMessage());
-            return ResponseEntity.status(404)
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(ApiResponse.error(e.getMessage()));
         }
     }
@@ -161,7 +162,7 @@ public class UserAdminController {
             return ResponseEntity.ok(ApiResponse.success("Role assigned successfully", "success"));
         } catch (Exception e) {
             log.error("Failed to assign role to user {}: {}", username, e.getMessage());
-            return ResponseEntity.status(400)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error(e.getMessage()));
         }
     }
@@ -179,7 +180,7 @@ public class UserAdminController {
             return ResponseEntity.ok(ApiResponse.success("Role removed successfully", "success"));
         } catch (Exception e) {
             log.error("Failed to remove role from user {}: {}", username, e.getMessage());
-            return ResponseEntity.status(400)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error(e.getMessage()));
         }
     }
@@ -194,7 +195,7 @@ public class UserAdminController {
             return ResponseEntity.ok(ApiResponse.success("User deleted successfully", "success"));
         } catch (Exception e) {
             log.error("Failed to delete user {}: {}", username, e.getMessage());
-            return ResponseEntity.status(400)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error(e.getMessage()));
         }
     }

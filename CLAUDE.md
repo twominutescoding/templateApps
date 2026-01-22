@@ -114,6 +114,12 @@ The service uses `ActiveDirectoryLdapAuthenticationProvider`:
 - `users` - User accounts (username PK, BCrypt passwords)
 - `roles` - Roles with application_code (composite PK: role_name, application_code)
 - `user_roles` - User-role associations (composite PK: username, role_name, application_code)
+- `application_entity` - Applications/entities that can be accessed
+- `entity_type` - Types of entities (enum)
+- `entity_attribute` - Entity attributes/metadata
+- `refresh_token` - JWT refresh tokens for session management
+- `t_mailing` - Email/notification queue system
+- `user_status` - User status definitions
 
 ### Access Points
 - API: http://localhost:8091/auth/api/v1/auth
@@ -132,7 +138,9 @@ The service uses `ActiveDirectoryLdapAuthenticationProvider`:
 - Dashboard with user/session statistics
 - User management (view, edit, activate/deactivate)
 - Role management (view, edit)
+- Entity management (applications/entities)
 - Session management (view, revoke)
+- Mailings management (read-only view of email queue)
 - Dark mode and theme customization
 - Date format configuration
 
@@ -152,7 +160,9 @@ npm run dev
 **Admin API Endpoints** (all require ADMIN role):
 - User Management: `/admin/users/**`
 - Role Management: `/admin/roles/**`
+- Entity Management: `/admin/entities/**`
 - Session Management: `/auth/admin/sessions/**`
+- Mailings Management (read-only): `/admin/mailings/**`
 - Dashboard Stats: `/auth/admin/stats/dashboard`
 
 For details, see [auth-service/admin-frontend/README.md](auth-service/admin-frontend/README.md) and [auth-service/docs/ADMIN_FRONTEND.md](auth-service/docs/ADMIN_FRONTEND.md)
@@ -454,6 +464,40 @@ Each application has detailed README files:
 - `business-app-backend/README.md` - Business app backend documentation
 - `business-app-backend/claude.md` - Detailed session notes and patterns
 - `business-app-backend/TEMPLATE_README.md` - Template generation guide
+
+## Integration Architecture Documentation (Hrvatski)
+
+Comprehensive documentation for building OSB-replacement integration systems using Spring Boot:
+
+📚 **[INTEGRACIJE_README.md](./INTEGRACIJE_README.md)** - Start here for overview and navigation
+
+**Detailed Documentation:**
+- **[INTEGRACIJE.md](./INTEGRACIJE.md)** (Dio 1) - Uvod, arhitektura, pregled sustava
+  - Integracijske potrebe
+  - TRC-STG model (Tracing-Staging)
+  - Arhitektura sustava i komponente
+  - Error handling i logging strategije
+  - Scheduling i polling mehanizam
+
+- **[INTEGRACIJE_DIO2.md](./INTEGRACIJE_DIO2.md)** (Dio 2) - Spring Boot implementacija
+  - Controllers, Services, Repositories
+  - DTO i validacija
+  - Exception handling
+  - Kod primjeri i best practices
+
+- **[INTEGRACIJE_DIO3.md](./INTEGRACIJE_DIO3.md)** (Dio 3) - Deployment i održavanje
+  - Docker i Kubernetes deployment
+  - Testing strategije (Unit, Integration, Performance)
+  - Swagger/OpenAPI dokumentacija
+  - Monitoring i troubleshooting
+
+- **[INTEGRACIJE_SQL_SKRIPTE.md](./INTEGRACIJE_SQL_SKRIPTE.md)** - Database setup
+  - TRC i STG tablice (DDL)
+  - Oracle packages (TAFR - Transform And Forward)
+  - Split logika i business pravila
+  - Testni podatci i monitoring queries
+
+**Use Case:** Asinkrona integracija između sustava putem baze podataka, zamjena za Oracle Service Bus (OSB)
 
 ## Known Limitations
 

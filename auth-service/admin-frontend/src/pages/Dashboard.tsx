@@ -4,10 +4,10 @@ import PeopleIcon from '@mui/icons-material/People';
 import DevicesIcon from '@mui/icons-material/Devices';
 import SecurityIcon from '@mui/icons-material/Security';
 import { adminDashboardAPI } from '../services/api';
-import type { DashboardStats } from '../services/api';
+import type { DashboardStatsAdmin } from '../services/api';
 
 const Dashboard = () => {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [stats, setStats] = useState<DashboardStatsAdmin | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

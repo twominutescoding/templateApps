@@ -1,0 +1,67 @@
+package com.template.business.auth.service;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+
+import com.template.business.auth.dto.MailingDTO;
+import com.template.business.auth.entity.Mailing;
+import com.template.business.auth.exception.ErrorCode;
+import com.template.business.auth.exception.ResourceNotFoundException;
+import com.template.business.auth.repository.MailingRepository;
+
+/**
+ * Service for mailing administration (read-only) (ADMIN only)
+ */
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class MailingAdminService {
+
+    private final MailingRepository mailingRepository;
+
+    /**
+     * Get all mailings
+     */
+    public List<MailingDTO> getAllMailings() {
+        List<Mailing> mailings = mailingRepository.findAll();
+        log.info("Admin {} retrieved {} mailings",
+                SecurityContextHolder.getContext().getAuthentication().getName(),
+                mailings.size());
+        return mailings.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get mailing by ID
+     */
+    public MailingDTO getMailingById(Long id) {
+        Mailing mailing = mailingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.ENTITY_NOT_FOUND, "Mailing not found: " + id));
+        return convertToDTO(mailing);
+    }
+
+    /**
+     * Convert mailing entity to DTO
+     */
+    private MailingDTO convertToDTO(Mailing mailing) {
+        return MailingDTO.builder()
+                .id(mailing.getId())
+                .subject(mailing.getSubject())
+                .body(mailing.getBody())
+                .attachment(mailing.getAttachment())
+                .sent(mailing.getSent())
+                .notBefore(mailing.getNotBefore())
+                .mailingList(mailing.getMailingList())
+                .mailType(mailing.getMailType())
+                .createDate(mailing.getCreateDate())
+                .createUser(mailing.getCreateUser())
+                .build();
+    }
+}
