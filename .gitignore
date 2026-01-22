@@ -1,6 +1,7 @@
 # Claude Code
 .claude/
 *.local.json
+*.cwd
 
 # IDE
 .idea/
