@@ -250,7 +250,7 @@ java -jar target/business-app-backend-1.0.0.jar
 - Wrap callbacks (`onFetchData`, `onSave`, `onBulkSave`) in `useCallback`
 - Move helper functions outside component to prevent recreation
 
-**Date/Timestamp Formatting** (`frontend/src/context/DateFormatContext.tsx`):
+**Date/Timestamp Formatting** (`frontend/src/contexts/DateFormatContext.tsx`):
 - User-configurable date and timestamp formats
 - Available formats:
   - Date: DD.MM.YYYY (default), MM/DD/YYYY, YYYY-MM-DD
@@ -451,47 +451,55 @@ Add dependency to `pom.xml`:
 
 ## Project Generation
 
-The `business-app-backend` includes scripts to generate new projects:
-- `./create-new-project.sh` (Bash - Linux/Mac)
-- `node create-project.js` (Node.js - Cross-platform)
+Scripts to generate new projects from templates:
 
-These scripts create new projects with custom names, updating all package names and configurations.
+**Auth Service:**
+- `cd auth-service && node create-auth-project.js` - Create new auth microservice
+
+**Business App (Full-stack):**
+- `cd business-app-backend && node create-project.js` - Create full-stack app with React frontend
+
+**Business App (Backend Only):**
+- `cd business-app-backend && node create-backend-only-project.js` - Create backend-only API
+
+See `PROJECT_SCRIPTS_TUTORIAL.md` for detailed usage instructions.
 
 ## Reference Documentation
 
 Each application has detailed README files:
 - `auth-service/README.md` - Authentication service documentation
 - `business-app-backend/README.md` - Business app backend documentation
-- `business-app-backend/claude.md` - Detailed session notes and patterns
+- `business-app-backend/CLAUDE.md` - Detailed session notes and patterns
 - `business-app-backend/TEMPLATE_README.md` - Template generation guide
+- `PROJECT_SCRIPTS_TUTORIAL.md` - Tutorial for project generator scripts
 
 ## Integration Architecture Documentation (Hrvatski)
 
 Comprehensive documentation for building OSB-replacement integration systems using Spring Boot:
 
-📚 **[INTEGRACIJE_README.md](./INTEGRACIJE_README.md)** - Start here for overview and navigation
+📚 **[docs/integrations/INTEGRACIJE_README.md](./docs/integrations/INTEGRACIJE_README.md)** - Start here for overview and navigation
 
 **Detailed Documentation:**
-- **[INTEGRACIJE.md](./INTEGRACIJE.md)** (Dio 1) - Uvod, arhitektura, pregled sustava
+- **[INTEGRACIJE.md](./docs/integrations/INTEGRACIJE.md)** (Dio 1) - Uvod, arhitektura, pregled sustava
   - Integracijske potrebe
   - TRC-STG model (Tracing-Staging)
   - Arhitektura sustava i komponente
   - Error handling i logging strategije
   - Scheduling i polling mehanizam
 
-- **[INTEGRACIJE_DIO2.md](./INTEGRACIJE_DIO2.md)** (Dio 2) - Spring Boot implementacija
+- **[INTEGRACIJE_DIO2.md](./docs/integrations/INTEGRACIJE_DIO2.md)** (Dio 2) - Spring Boot implementacija
   - Controllers, Services, Repositories
   - DTO i validacija
   - Exception handling
   - Kod primjeri i best practices
 
-- **[INTEGRACIJE_DIO3.md](./INTEGRACIJE_DIO3.md)** (Dio 3) - Deployment i održavanje
+- **[INTEGRACIJE_DIO3.md](./docs/integrations/INTEGRACIJE_DIO3.md)** (Dio 3) - Deployment i održavanje
   - Docker i Kubernetes deployment
   - Testing strategije (Unit, Integration, Performance)
   - Swagger/OpenAPI dokumentacija
   - Monitoring i troubleshooting
 
-- **[INTEGRACIJE_SQL_SKRIPTE.md](./INTEGRACIJE_SQL_SKRIPTE.md)** - Database setup
+- **[INTEGRACIJE_SQL_SKRIPTE.md](./docs/integrations/INTEGRACIJE_SQL_SKRIPTE.md)** - Database setup
   - TRC i STG tablice (DDL)
   - Oracle packages (TAFR - Transform And Forward)
   - Split logika i business pravila

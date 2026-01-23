@@ -59,7 +59,7 @@ function replaceInFile(filePath, replacements) {
   fs.writeFileSync(filePath, content, 'utf8');
 }
 
-function replaceInAllFiles(dir, replacements, extensions = ['.java', '.properties', '.json', '.html', '.md', '.xml']) {
+function replaceInAllFiles(dir, replacements, extensions = ['.java', '.properties', '.json', '.html', '.md', '.xml', '.ts', '.tsx', '.js', '.jsx']) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
 
   for (let entry of entries) {
@@ -125,6 +125,9 @@ async function main() {
       /^\.git$/,
       /\.log$/,
       /^\.env$/,
+      /^node_modules$/,
+      /^dist$/,
+      /^\.vite$/,
       /^create-auth-project\.js$/,
     ];
 

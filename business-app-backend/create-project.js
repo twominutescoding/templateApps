@@ -143,11 +143,13 @@ async function main() {
       /^target$/,
       /^node_modules$/,
       /^dist$/,
+      /^\.vite$/,
       /^\.git$/,
       /\.log$/,
       /^\.env$/,
       /^create-new-project\.sh$/,
       /^create-project\.js$/,
+      /^create-backend-only-project\.js$/,
       /^TEMPLATE_README\.md$/
     ];
 

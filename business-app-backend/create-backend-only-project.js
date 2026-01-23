@@ -158,6 +158,7 @@ async function main() {
       /^target$/,
       /^node_modules$/,
       /^dist$/,
+      /^\.vite$/,
       /^\.git$/,
       /\.log$/,
       /^\.env$/,
