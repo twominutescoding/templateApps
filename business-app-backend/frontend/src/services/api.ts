@@ -48,7 +48,8 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Handle both 401 (Unauthorized) and 403 (Forbidden) for expired tokens
+    if ((error.response?.status === 401 || error.response?.status === 403) && !originalRequest._retry) {
       if (isRefreshing) {
         // If token is already being refreshed, queue this request
         return new Promise((resolve, reject) => {
@@ -152,6 +153,14 @@ export interface LoginResponse {
   roles: string[];
 }
 
+export interface RefreshTokenResponse {
+  token: string;
+  refreshToken: string;
+  type?: string;
+  username?: string;
+  roles?: string[];
+}
+
 export interface User {
   id: number;
   username: string;
@@ -192,8 +201,8 @@ export const authAPI = {
     return response.data;
   },
 
-  refresh: async (refreshToken: string): Promise<ApiResponse<LoginResponse>> => {
-    const response = await apiClient.post<ApiResponse<LoginResponse>>('/auth/refresh', { refreshToken });
+  refresh: async (refreshToken: string): Promise<ApiResponse<RefreshTokenResponse>> => {
+    const response = await apiClient.post<ApiResponse<RefreshTokenResponse>>('/auth/refresh', { refreshToken });
     return response.data;
   },
 

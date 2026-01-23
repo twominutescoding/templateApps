@@ -1,8 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeContextProvider } from './theme/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
-import { DateFormatProvider } from './context/DateFormatContext';
-import ProtectedRoute from './components/common/ProtectedRoute';
+import { DateFormatProvider } from './contexts/DateFormatContext';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 import Layout from './components/layout/Layout';
 import Login from './pages/Login';
 import Components from './pages/Components';
