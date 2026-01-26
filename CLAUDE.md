@@ -477,33 +477,16 @@ Each application has detailed README files:
 
 Comprehensive documentation for building OSB-replacement integration systems using Spring Boot:
 
-📚 **[docs/integrations/INTEGRACIJE_README.md](./docs/integrations/INTEGRACIJE_README.md)** - Start here for overview and navigation
+📚 **[docs/integrations/INTEGRACIJE_KOMPLETNA_DOKUMENTACIJA.md](./docs/integrations/INTEGRACIJE_KOMPLETNA_DOKUMENTACIJA.md)** - Kompletna dokumentacija
 
-**Detailed Documentation:**
-- **[INTEGRACIJE.md](./docs/integrations/INTEGRACIJE.md)** (Dio 1) - Uvod, arhitektura, pregled sustava
-  - Integracijske potrebe
-  - TRC-STG model (Tracing-Staging)
-  - Arhitektura sustava i komponente
-  - Error handling i logging strategije
-  - Scheduling i polling mehanizam
-
-- **[INTEGRACIJE_DIO2.md](./docs/integrations/INTEGRACIJE_DIO2.md)** (Dio 2) - Spring Boot implementacija
-  - Controllers, Services, Repositories
-  - DTO i validacija
-  - Exception handling
-  - Kod primjeri i best practices
-
-- **[INTEGRACIJE_DIO3.md](./docs/integrations/INTEGRACIJE_DIO3.md)** (Dio 3) - Deployment i održavanje
-  - Docker i Kubernetes deployment
-  - Testing strategije (Unit, Integration, Performance)
-  - Swagger/OpenAPI dokumentacija
-  - Monitoring i troubleshooting
-
-- **[INTEGRACIJE_SQL_SKRIPTE.md](./docs/integrations/INTEGRACIJE_SQL_SKRIPTE.md)** - Database setup
-  - TRC i STG tablice (DDL)
-  - Oracle packages (TAFR - Transform And Forward)
-  - Split logika i business pravila
-  - Testni podatci i monitoring queries
+**Sadržaj:**
+- Uvod i arhitektura sustava
+- TRC-STG model (Tracing-Staging) s sufix konvencijom (*_TRC, *_STG)
+- Spring Boot implementacija (Controllers, Services, Repositories)
+- SQL skripte za Oracle (Schema: SWISSLOG_INT)
+- Oracle packages (TAFR - Transform And Forward)
+- Deployment i održavanje (Tomcat, Docker, Kubernetes)
+- Testing strategije i monitoring
 
 **Use Case:** Asinkrona integracija između sustava putem baze podataka, zamjena za Oracle Service Bus (OSB)
 
