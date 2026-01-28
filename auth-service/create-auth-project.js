@@ -152,7 +152,7 @@ async function main() {
       'Auth Service': displayName,
       'authdb': `${serviceNameSnake}db`,
       'server\\.port=8091': `server.port=${serverPort}`,
-      'server\\.servlet\\.context-path=/auth': `server.context-path=${contextPath}`,
+      'server\\.servlet\\.context-path=/auth': `server.servlet.context-path=${contextPath}`,
       '<groupId>com\\.template</groupId>': `<groupId>${basePackage}</groupId>`,
       '<artifactId>auth-service</artifactId>': `<artifactId>${serviceNameKebab}</artifactId>`,
       '<name>auth-service</name>': `<name>${serviceNameKebab}</name>`,
