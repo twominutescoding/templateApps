@@ -1,6 +1,7 @@
 package com.template.business.auth.repository;
 
 import com.template.business.auth.entity.ApplicationEntity;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -10,4 +11,6 @@ import java.util.Optional;
 public interface EntityRepository extends JpaRepository<ApplicationEntity, String> {
 
     Optional<ApplicationEntity> findById(String id);
+
+    Optional<ApplicationEntity> findByName(@NotBlank(message = "Entity code is required") String entityCode);
 }

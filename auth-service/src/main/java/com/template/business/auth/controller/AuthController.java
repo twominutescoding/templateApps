@@ -1,10 +1,8 @@
 package com.template.business.auth.controller;
 
 import com.template.business.auth.dto.*;
+import com.template.business.auth.entity.ApplicationEntity;
 import com.template.business.auth.entity.User;
-import com.template.business.auth.entity.UserRole;
-import com.template.business.auth.exception.ErrorCode;
-import com.template.business.auth.exception.ResourceNotFoundException;
 import com.template.business.auth.repository.EntityRepository;
 import com.template.business.auth.security.CustomAuthenticationProvider;
 import com.template.business.auth.security.JwtUtil;
@@ -87,8 +85,10 @@ public class AuthController {
         try {
             log.info("Login attempt for user: {} with entity: {}", request.getUsername(), request.getEntityCode());
 
+            String entityId = entityRepository.findByName(request.getEntityCode()).orElseGet(ApplicationEntity::new).getId();
+
             // Validate that entity exists
-            if (!entityRepository.existsById(request.getEntityCode())) {
+            if (!entityRepository.existsById(entityId)) {
                 log.warn("Login failed: Entity {} does not exist", request.getEntityCode());
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(ApiResponse.error("Entity '" + request.getEntityCode() + "' does not exist"));
@@ -96,7 +96,7 @@ public class AuthController {
 
             // Authenticate using custom provider (LDAP + DB fallback)
             Authentication authentication = authenticationProvider.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
             );
 
             // Determine which authentication method was used
@@ -109,12 +109,13 @@ public class AuthController {
             // Extract roles - prioritize database roles if user exists
             List<String> roles;
 
+            System.out.println("entityId " + entityId);
             if (user != null && user.getUserRoles() != null && !user.getUserRoles().isEmpty()) {
                 // LDAP is only for authentication - roles ALWAYS come from database
                 // Filter roles by specific entity (entityCode is mandatory)
                 roles = user.getUserRoles().stream()
                         .filter(ur -> "ACTIVE".equals(ur.getStatus()))
-                        .filter(ur -> request.getEntityCode().equals(ur.getId().getEntity()))
+                        .filter(ur -> entityId.equals(ur.getId().getEntity()))
                         .map(ur -> ur.getId().getRole())
                         .distinct()
                         .collect(Collectors.toList());
