@@ -34,9 +34,8 @@
    - 5.1 [TRC tablice](#51-trc-tracing-tablice)
    - 5.2 [STG tablice](#52-stg-staging-tablice)
    - 5.3 [Config tablice](#53-config-tablice)
-   - 5.4 [Oracle Package - Transformacija](#54-oracle-package---transformacija-tafr)
-   - 5.5 [Oracle Package - Split logika](#55-oracle-package---split-logika)
-   - 5.6 [Testni podatci i monitoring](#56-testni-podatci-i-monitoring)
+   - 5.4 [Napomena o Transformaciji i Split Logici](#54-napomena-o-transformaciji-i-split-logici)
+   - 5.5 [Testni podatci i monitoring](#55-testni-podatci-i-monitoring)
 
 ---
 
@@ -224,25 +223,32 @@ Zamijeniti OSB funkcionalnost sa **Spring Boot mikroservisima** koji će:
 
 ### 2.3.1 Baza Podataka (Oracle)
 
-**TRC Tablice - Struktura**
+**TRC Tablice - Struktura (sufiks konvencija: *_TRC)**
 
 ```sql
-CREATE TABLE TRC_ORDERS (
-    ID                NUMBER PRIMARY KEY,
-    ORDER_NUMBER      VARCHAR2(50) NOT NULL,
-    CUSTOMER_ID       VARCHAR2(20),
-    ORDER_DATA        CLOB, -- JSON ili XML
-    SOURCE_SYSTEM     VARCHAR2(50),
-    TARGET_SYSTEMS    VARCHAR2(200), -- Comma separated lista
-    STATUS            VARCHAR2(20) DEFAULT 'NEW',
-    ERROR_MESSAGE     VARCHAR2(4000),
-    RETRY_COUNT       NUMBER DEFAULT 0,
-    CREATE_DATE       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PROCESS_DATE      TIMESTAMP,
-    COMPLETE_DATE     TIMESTAMP
+CREATE TABLE "SWISSLOG_INT"."ORDERS_TRC" (
+    "ROW_NUMBER"              NUMBER(19,0) NOT NULL ENABLE,  -- PK (sekvenca)
+    "CONTROL_STATUS"          VARCHAR2(1 BYTE),              -- N/M/D/U
+    -- Business polja
+    "ORDER_NUMBER"            VARCHAR2(50 BYTE) NOT NULL,
+    "CUSTOMER_ID"             VARCHAR2(20 BYTE),
+    "ORDER_DATA"              CLOB,                          -- JSON ili XML
+    "SOURCE_SYSTEM"           VARCHAR2(50 BYTE),
+    -- Split destination polje (CSV format)
+    "DEST_UNIT"               VARCHAR2(200 BYTE),            -- "All", "WMS", "ORD", "WMS, ORD"
+    -- Tehnička polja
+    "ROW_STATUS"              VARCHAR2(1 BYTE),              -- N/P/E/S
+    "ROW_STATUS_CODE"         VARCHAR2(3 BYTE),              -- HTTP status kod
+    "ROW_ERROR_DESCRIPTION"   VARCHAR2(4000 BYTE),
+    "ROW_UPDATE_DATETIME"     TIMESTAMP(6),
+    "ROW_UPDATE_USER"         VARCHAR2(100 BYTE),
+    "ROW_CREATE_DATETIME"     TIMESTAMP(6),
+    "ROW_CREATE_USER"         VARCHAR2(100 BYTE),
+    CONSTRAINT "PK_ORDERS_TRC" PRIMARY KEY ("ROW_NUMBER")
 );
 
--- Status vrijednosti: NEW, PROCESSING, COMPLETED, ERROR, RETRY
+-- CONTROL_STATUS: N=NEW, M=MODIFIED, D=DELETED, U=UNMODIFIED
+-- ROW_STATUS: N=NEW (čeka obradu), P=PROCESSED, E=ERROR, S=SKIPPED
 ```
 
 ### 2.3.2 Spring Boot Aplikacija
@@ -300,28 +306,40 @@ integration-service/
 ### Error Handling Strategija
 
 ```java
+/**
+ * ROW_STATUS vrijednosti:
+ * N = NEW (novi zapis, čeka obradu)
+ * P = PROCESSED (uspješno obrađeno)
+ * E = ERROR (greška u obradi)
+ * S = SKIPPED (preskočeno, npr. UNMODIFIED zapis)
+ */
+public enum RowStatus {
+    N, P, E, S
+}
+
 @Transactional
 public void processTrcRecord(TrcOrder trcOrder) {
     try {
-        // 1. Postavi status na PROCESSING
-        trcOrder.setStatus(TrcStatus.PROCESSING);
-        trcOrder.setProcessDate(new Date());
+        // 1. Postavi ROW_STATUS na 'P' (Processing/Processed će biti na kraju)
+        // Za vrijeme obrade možemo koristiti pomoćno polje ili ostaviti 'N'
+        trcOrder.setRowUpdateDatetime(LocalDateTime.now());
         trcOrdersRepository.save(trcOrder);
 
-        // 2. Transformacija
+        // 2. Transformacija (Java/DTO)
         TransformationResultDTO result = transformationService.transform(trcOrder);
 
-        // 3. Split logika
-        List<String> targetSystems = splitService.determineTargets(trcOrder);
+        // 3. Split logika - parsiranje DEST_UNIT polja
+        List<String> targetSystems = splitService.parseDestinationUnits(trcOrder.getDestUnit());
 
-        // 4. Upis u STG tablice
+        // 4. Upis u STG tablice za svaki ciljni sustav
         for (String system : targetSystems) {
             stagingService.writeToStaging(result, system);
         }
 
-        // 5. Uspješno - postavi status COMPLETED
-        trcOrder.setStatus(TrcStatus.COMPLETED);
-        trcOrder.setCompleteDate(new Date());
+        // 5. Uspješno - postavi ROW_STATUS='P', ROW_STATUS_CODE='200'
+        trcOrder.setRowStatus(RowStatus.P);
+        trcOrder.setRowStatusCode("200");
+        trcOrder.setRowUpdateDatetime(LocalDateTime.now());
         trcOrdersRepository.save(trcOrder);
 
     } catch (TransformationException e) {
@@ -332,16 +350,11 @@ public void processTrcRecord(TrcOrder trcOrder) {
 }
 
 private void handleTransformationError(TrcOrder trcOrder, TransformationException e) {
-    trcOrder.setRetryCount(trcOrder.getRetryCount() + 1);
-
-    if (trcOrder.getRetryCount() >= maxRetryAttempts) {
-        trcOrder.setStatus(TrcStatus.ERROR);
-        trcOrder.setErrorMessage("Max retry attempts reached: " + e.getMessage());
-    } else {
-        trcOrder.setStatus(TrcStatus.RETRY);
-        trcOrder.setErrorMessage(e.getMessage());
-    }
-
+    // Greška - postavi ROW_STATUS='E', ROW_STATUS_CODE='500'
+    trcOrder.setRowStatus(RowStatus.E);
+    trcOrder.setRowStatusCode("500");
+    trcOrder.setRowErrorDescription(e.getMessage());
+    trcOrder.setRowUpdateDatetime(LocalDateTime.now());
     trcOrdersRepository.save(trcOrder);
 }
 ```
@@ -387,14 +400,18 @@ public class HealthCheckController {
     public ResponseEntity<HealthStatus> getHealthStatus() {
         HealthStatus status = new HealthStatus();
 
-        long errorCount = trcRepository.countByStatus(TrcStatus.ERROR);
+        // ROW_STATUS: N=NEW, P=PROCESSED, E=ERROR, S=SKIPPED
+        long errorCount = trcRepository.countByRowStatus(RowStatus.E);
         status.setErrorRecords(errorCount);
 
-        long processingCount = trcRepository.countByStatus(TrcStatus.PROCESSING);
-        status.setProcessingRecords(processingCount);
+        long processedCount = trcRepository.countByRowStatus(RowStatus.P);
+        status.setProcessedRecords(processedCount);
 
-        long pendingCount = trcRepository.countByStatus(TrcStatus.NEW);
+        long pendingCount = trcRepository.countByRowStatus(RowStatus.N);
         status.setPendingRecords(pendingCount);
+
+        long skippedCount = trcRepository.countByRowStatus(RowStatus.S);
+        status.setSkippedRecords(skippedCount);
 
         status.setStatus(errorCount > 100 ? "UNHEALTHY" : "HEALTHY");
 
@@ -412,18 +429,18 @@ public class HealthCheckController {
 **CONFIG_INTERFACE Tablica**
 
 ```sql
-INSERT INTO CONFIG_INTERFACE VALUES (
+INSERT INTO SWISSLOG_INT.CONFIG_INTERFACE VALUES (
     'ORD_TO_SYSTEM_A',
     'Orders Integration to System A',
     'TRC_STG',
-    'TRC_ORDERS',
-    'STG_ORDERS_SYSTEM_A',
+    'ORDERS_TRC',                           -- Sufiks konvencija: *_TRC
+    'ORDERS_STG',                           -- Sufiks konvencija: *_STG
     'Y', -- enabled
     30,  -- poll every 30 seconds
     100, -- batch size
     3,   -- retry attempts
-    'PKG_TRANSFORM_ORDERS.TRANSFORM_FOR_SYSTEM_A',
-    'PKG_SPLIT_ORDERS.DETERMINE_TARGETS',
+    'JAVA:DefaultTransformationStrategy',   -- Transformacija u Javi
+    NULL,                                   -- Split logika koristi DEST_UNIT polje
     'Integration for order synchronization',
     SYSDATE
 );
@@ -503,11 +520,11 @@ public class IntegrationScheduler {
     private TrcPollingService trcPollingService;
 
     /**
-     * Poll TRC_ORDERS table every 30 seconds
+     * Poll *_TRC tablice every 30 seconds
      */
     @Scheduled(fixedDelayString = "${integration.polling.interval:30000}")
-    public void pollTrcOrders() {
-        log.info("Starting TRC_ORDERS polling");
+    public void pollTrcTables() {
+        log.info("Starting *_TRC tables polling");
         trcPollingService.pollAndProcess();
     }
 
@@ -624,16 +641,14 @@ public class TrcPollingService {
     @Value("${integration.batch.size:100}")
     private int batchSize;
 
-    @Value("${integration.retry.max-attempts:3}")
-    private int maxRetryAttempts;
-
     /**
-     * Glavni polling proces - čita NEW zapise iz TRC tablice
+     * Glavni polling proces - čita zapise s ROW_STATUS='N' (NEW) iz TRC tablice
      */
     @Transactional
     public void pollAndProcess() {
+        // ROW_STATUS='N' znači novi zapis koji čeka obradu
         List<TrcOrder> newRecords = trcOrdersRepository
-                .findByStatusOrderByCreateDateAsc(TrcStatus.NEW)
+                .findByRowStatusOrderByRowCreateDatetimeAsc(RowStatus.N)
                 .stream()
                 .limit(batchSize)
                 .toList();
@@ -649,67 +664,72 @@ public class TrcPollingService {
             try {
                 processTrcRecord(trcOrder);
             } catch (Exception e) {
-                log.error("Critical error processing TRC ID {}: {}",
-                          trcOrder.getId(), e.getMessage(), e);
+                log.error("Critical error processing TRC ROW_NUMBER {}: {}",
+                          trcOrder.getRowNumber(), e.getMessage(), e);
             }
         }
     }
 
     /**
      * Procesiranje pojedinačnog TRC zapisa
+     *
+     * ROW_STATUS vrijednosti:
+     * N = NEW (novi, čeka obradu)
+     * P = PROCESSED (uspješno obrađeno)
+     * E = ERROR (greška)
+     * S = SKIPPED (preskočeno)
      */
     @Transactional
     public void processTrcRecord(TrcOrder trcOrder) {
-        log.info("Processing TRC record: ID={}, OrderNumber={}",
-                 trcOrder.getId(), trcOrder.getOrderNumber());
+        log.info("Processing TRC record: ROW_NUMBER={}, OrderNumber={}",
+                 trcOrder.getRowNumber(), trcOrder.getOrderNumber());
 
         try {
-            // 1. Postavi status na PROCESSING
-            trcOrder.setStatus(TrcStatus.PROCESSING);
-            trcOrder.setProcessDate(LocalDateTime.now());
+            // 1. Ažuriraj ROW_UPDATE_DATETIME
+            trcOrder.setRowUpdateDatetime(LocalDateTime.now());
+            trcOrder.setRowUpdateUser("INTEGRATION_SERVICE");
             trcOrdersRepository.save(trcOrder);
 
-            // 2. Transformacija podataka
+            // 2. Transformacija podataka (Java/DTO)
             TransformationResultDTO transformedData =
                 transformationService.transform(trcOrder);
 
             // 3. Split logika - parsira DEST_UNIT polje i određuje ciljne sustave
             List<String> targetSystems = splitService.parseDestinationUnits(trcOrder.getDestUnit());
 
-            // 4. Upis u STG tablice za svaki ciljni sustav
+            // 4. Upis u STG tablice za svaki ciljni sustav (multi-datasource)
             for (String targetSystem : targetSystems) {
-                stagingService.writeToStaging(trcOrder.getId(),
+                stagingService.writeToStaging(trcOrder.getRowNumber(),
                                                transformedData,
                                                targetSystem);
             }
 
-            // 5. Označi kao COMPLETED
-            trcOrder.setStatus(TrcStatus.COMPLETED);
-            trcOrder.setCompleteDate(LocalDateTime.now());
+            // 5. Uspješno - postavi ROW_STATUS='P', ROW_STATUS_CODE='200'
+            trcOrder.setRowStatus(RowStatus.P);
+            trcOrder.setRowStatusCode("200");
+            trcOrder.setRowUpdateDatetime(LocalDateTime.now());
             trcOrdersRepository.save(trcOrder);
 
-            log.info("Successfully completed TRC record ID: {}", trcOrder.getId());
+            log.info("Successfully processed TRC ROW_NUMBER: {}", trcOrder.getRowNumber());
 
         } catch (TransformationException e) {
-            handleError(trcOrder, "Transformation error: " + e.getMessage());
+            handleError(trcOrder, "500", "Transformation error: " + e.getMessage());
         } catch (Exception e) {
-            handleError(trcOrder, "Error: " + e.getMessage());
+            handleError(trcOrder, "500", "Error: " + e.getMessage());
         }
     }
 
-    private void handleError(TrcOrder trcOrder, String errorMessage) {
-        trcOrder.setRetryCount(trcOrder.getRetryCount() + 1);
-
-        if (trcOrder.getRetryCount() >= maxRetryAttempts) {
-            trcOrder.setStatus(TrcStatus.ERROR);
-            log.error("TRC record {} moved to ERROR status", trcOrder.getId());
-        } else {
-            trcOrder.setStatus(TrcStatus.RETRY);
-            log.warn("TRC record {} marked for RETRY", trcOrder.getId());
-        }
-
-        trcOrder.setErrorMessage(errorMessage);
+    private void handleError(TrcOrder trcOrder, String statusCode, String errorMessage) {
+        // Greška - postavi ROW_STATUS='E'
+        trcOrder.setRowStatus(RowStatus.E);
+        trcOrder.setRowStatusCode(statusCode);
+        trcOrder.setRowErrorDescription(errorMessage);
+        trcOrder.setRowUpdateDatetime(LocalDateTime.now());
+        trcOrder.setRowUpdateUser("INTEGRATION_SERVICE");
         trcOrdersRepository.save(trcOrder);
+
+        log.error("TRC ROW_NUMBER {} moved to ERROR status: {}",
+                  trcOrder.getRowNumber(), errorMessage);
     }
 }
 ```
@@ -1063,6 +1083,180 @@ public class MultiDataSourceConfig {
 }
 ```
 
+### JPA EntityManagerFactory konfiguracija za Multi-Datasource
+
+Za korištenje JPA s više datasource-a, potrebno je konfigurirati zasebne `EntityManagerFactory` i `TransactionManager` bean-ove za svaki datasource.
+
+```java
+@Configuration
+@EnableJpaRepositories(
+    basePackages = "com.template.integration.repository.wms",
+    entityManagerFactoryRef = "wmsEntityManagerFactory",
+    transactionManagerRef = "wmsTransactionManager"
+)
+public class WmsJpaConfig {
+
+    @Autowired
+    @Qualifier("wmsDataSource")
+    private DataSource wmsDataSource;
+
+    @Bean(name = "wmsEntityManagerFactory")
+    public LocalContainerEntityManagerFactoryBean wmsEntityManagerFactory(
+            EntityManagerFactoryBuilder builder) {
+        return builder
+                .dataSource(wmsDataSource)
+                .packages("com.template.integration.entity.stg")  // STG entiteti
+                .persistenceUnit("wms")
+                .properties(jpaProperties())
+                .build();
+    }
+
+    @Bean(name = "wmsTransactionManager")
+    public PlatformTransactionManager wmsTransactionManager(
+            @Qualifier("wmsEntityManagerFactory") EntityManagerFactory entityManagerFactory) {
+        return new JpaTransactionManager(entityManagerFactory);
+    }
+
+    private Map<String, Object> jpaProperties() {
+        Map<String, Object> props = new HashMap<>();
+        props.put("hibernate.dialect", "org.hibernate.dialect.OracleDialect");
+        props.put("hibernate.hbm2ddl.auto", "validate");
+        props.put("hibernate.show_sql", false);
+        return props;
+    }
+}
+
+@Configuration
+@EnableJpaRepositories(
+    basePackages = "com.template.integration.repository.ordering",
+    entityManagerFactoryRef = "orderingEntityManagerFactory",
+    transactionManagerRef = "orderingTransactionManager"
+)
+public class OrderingJpaConfig {
+
+    @Autowired
+    @Qualifier("orderingDataSource")
+    private DataSource orderingDataSource;
+
+    @Bean(name = "orderingEntityManagerFactory")
+    public LocalContainerEntityManagerFactoryBean orderingEntityManagerFactory(
+            EntityManagerFactoryBuilder builder) {
+        return builder
+                .dataSource(orderingDataSource)
+                .packages("com.template.integration.entity.stg")
+                .persistenceUnit("ordering")
+                .properties(jpaProperties())
+                .build();
+    }
+
+    @Bean(name = "orderingTransactionManager")
+    public PlatformTransactionManager orderingTransactionManager(
+            @Qualifier("orderingEntityManagerFactory") EntityManagerFactory entityManagerFactory) {
+        return new JpaTransactionManager(entityManagerFactory);
+    }
+
+    private Map<String, Object> jpaProperties() {
+        Map<String, Object> props = new HashMap<>();
+        props.put("hibernate.dialect", "org.hibernate.dialect.OracleDialect");
+        props.put("hibernate.hbm2ddl.auto", "validate");
+        props.put("hibernate.show_sql", false);
+        return props;
+    }
+}
+
+// Default JPA Config (za TRC tablice - source)
+@Configuration
+@EnableJpaRepositories(
+    basePackages = "com.template.integration.repository.trc",
+    entityManagerFactoryRef = "defaultEntityManagerFactory",
+    transactionManagerRef = "defaultTransactionManager"
+)
+public class DefaultJpaConfig {
+
+    @Autowired
+    @Qualifier("defaultDataSource")
+    private DataSource defaultDataSource;
+
+    @Primary
+    @Bean(name = "defaultEntityManagerFactory")
+    public LocalContainerEntityManagerFactoryBean defaultEntityManagerFactory(
+            EntityManagerFactoryBuilder builder) {
+        return builder
+                .dataSource(defaultDataSource)
+                .packages("com.template.integration.entity.trc")  // TRC entiteti
+                .persistenceUnit("default")
+                .properties(jpaProperties())
+                .build();
+    }
+
+    @Primary
+    @Bean(name = "defaultTransactionManager")
+    public PlatformTransactionManager defaultTransactionManager(
+            @Qualifier("defaultEntityManagerFactory") EntityManagerFactory entityManagerFactory) {
+        return new JpaTransactionManager(entityManagerFactory);
+    }
+
+    private Map<String, Object> jpaProperties() {
+        Map<String, Object> props = new HashMap<>();
+        props.put("hibernate.dialect", "org.hibernate.dialect.OracleDialect");
+        props.put("hibernate.hbm2ddl.auto", "validate");
+        props.put("hibernate.show_sql", true);
+        return props;
+    }
+}
+```
+
+### DestinationResolver - JPA verzija
+
+```java
+@Component
+@Slf4j
+public class DestinationResolver {
+
+    private final Map<String, EntityManagerFactory> entityManagerFactories;
+
+    public DestinationResolver(
+            @Qualifier("wmsEntityManagerFactory") EntityManagerFactory wmsEmf,
+            @Qualifier("orderingEntityManagerFactory") EntityManagerFactory orderingEmf,
+            @Qualifier("defaultEntityManagerFactory") EntityManagerFactory defaultEmf) {
+
+        this.entityManagerFactories = Map.of(
+            "WMS", wmsEmf,
+            "ORD", orderingEmf,
+            "DEFAULT", defaultEmf
+        );
+    }
+
+    /**
+     * Vraća EntityManager za ciljni sustav
+     */
+    public EntityManager getEntityManager(String targetSystem) {
+        EntityManagerFactory emf = entityManagerFactories.get(targetSystem.toUpperCase());
+
+        if (emf == null) {
+            log.warn("No EntityManagerFactory for system '{}', using DEFAULT", targetSystem);
+            emf = entityManagerFactories.get("DEFAULT");
+        }
+
+        return emf.createEntityManager();
+    }
+
+    /**
+     * Vraća EntityManagerFactory za ciljni sustav
+     */
+    public EntityManagerFactory getEntityManagerFactory(String targetSystem) {
+        EntityManagerFactory emf = entityManagerFactories.get(targetSystem.toUpperCase());
+
+        if (emf == null) {
+            log.warn("No EntityManagerFactory for system '{}', using DEFAULT", targetSystem);
+            return entityManagerFactories.get("DEFAULT");
+        }
+
+        return emf;
+    }
+}
+```
+
 ### application.properties - Multi-Datasource
 
 ```properties
@@ -1099,7 +1293,106 @@ spring.datasource.sap.hikari.maximum-pool-size=10
 spring.datasource.sap.hikari.minimum-idle=2
 ```
 
-### StagingService - Upis u STG Tablice s Multi-Datasource
+### STG Entity - JPA Entitet
+
+```java
+@Entity
+@Table(name = "PRODUCTS_STG", schema = "SWISSLOG_INT")
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ProductsStg {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "products_stg_seq")
+    @SequenceGenerator(name = "products_stg_seq",
+                       sequenceName = "SWISSLOG_INT.PRODUCTS_STG_SEQ",
+                       allocationSize = 1)
+    @Column(name = "ROW_NUMBER")
+    private Long rowNumber;
+
+    @Column(name = "CONTROL_STATUS", length = 1)
+    private String controlStatus;
+
+    @Column(name = "PRODUCT_ID", length = 30)
+    private String productId;
+
+    @Column(name = "PRODUCT_NAME", length = 200)
+    private String productName;
+
+    @Column(name = "CATEGORY", length = 50)
+    private String category;
+
+    @Column(name = "UNIT_OF_MEASURE", length = 10)
+    private String unitOfMeasure;
+
+    // Tehnička polja
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ROW_STATUS", length = 1)
+    private RowStatus rowStatus;
+
+    @Column(name = "ROW_STATUS_CODE", length = 3)
+    private String rowStatusCode;
+
+    @Column(name = "ROW_ERROR_DESCRIPTION", length = 4000)
+    private String rowErrorDescription;
+
+    @Column(name = "ROW_CREATE_DATETIME")
+    private LocalDateTime rowCreateDatetime;
+
+    @Column(name = "ROW_CREATE_USER", length = 100)
+    private String rowCreateUser;
+
+    @Column(name = "ROW_UPDATE_DATETIME")
+    private LocalDateTime rowUpdateDatetime;
+
+    @Column(name = "ROW_UPDATE_USER", length = 100)
+    private String rowUpdateUser;
+
+    @PrePersist
+    protected void onCreate() {
+        rowCreateDatetime = LocalDateTime.now();
+        rowCreateUser = "INTEGRATION_SERVICE";
+        if (controlStatus == null) controlStatus = "N";
+        if (rowStatus == null) rowStatus = RowStatus.N;
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        rowUpdateDatetime = LocalDateTime.now();
+        rowUpdateUser = "INTEGRATION_SERVICE";
+    }
+}
+```
+
+### STG Repository - Po Sustavu
+
+```java
+// WMS Repository
+package com.template.integration.repository.wms;
+
+@Repository
+public interface WmsProductsStgRepository extends JpaRepository<ProductsStg, Long> {
+
+    List<ProductsStg> findByRowStatus(RowStatus rowStatus);
+
+    long countByRowStatus(RowStatus rowStatus);
+}
+
+// ORDERING Repository
+package com.template.integration.repository.ordering;
+
+@Repository
+public interface OrderingProductsStgRepository extends JpaRepository<ProductsStg, Long> {
+
+    List<ProductsStg> findByRowStatus(RowStatus rowStatus);
+
+    long countByRowStatus(RowStatus rowStatus);
+}
+```
+
+### StagingService - JPA verzija s Multi-Datasource
 
 ```java
 @Service
@@ -1108,69 +1401,174 @@ spring.datasource.sap.hikari.minimum-idle=2
 public class StagingService {
 
     private final DestinationResolver destinationResolver;
-    private final ObjectMapper objectMapper;
+
+    // Repozitoriji za svaki sustav
+    private final WmsProductsStgRepository wmsRepository;
+    private final OrderingProductsStgRepository orderingRepository;
 
     /**
      * Upisuje transformirane podatke u STG tablicu ciljnog sustava
-     * Koristi odgovarajući DataSource na temelju targetSystem
+     * Koristi JPA i odgovarajući Repository na temelju targetSystem
      */
-    @Transactional
-    public void writeToStaging(Long trcId, TransformationResultDTO data, String targetSystem) {
-        log.info("Writing to staging for system '{}', TRC ID: {}", targetSystem, trcId);
+    public void writeToStaging(Long trcRowNumber, TransformationResultDTO data, String targetSystem) {
+        log.info("Writing to staging for system '{}', TRC ROW_NUMBER: {}", targetSystem, trcRowNumber);
 
-        JdbcTemplate jdbcTemplate = destinationResolver.getJdbcTemplate(targetSystem);
+        // Kreiraj STG entitet iz transformiranih podataka
+        ProductsStg stgEntity = ProductsStg.builder()
+                .controlStatus("N")
+                .productId(data.getOrderId())
+                .productName(data.getCustomerId())
+                .rowStatus(RowStatus.N)
+                .build();
 
-        String sql = """
-            INSERT INTO SWISSLOG_INT.PRODUCTS_STG (
-                ROW_NUMBER, CONTROL_STATUS, PRODUCT_ID, PRODUCT_NAME,
-                ROW_STATUS, ROW_CREATE_DATETIME, ROW_CREATE_USER
-            ) VALUES (
-                SWISSLOG_INT.PRODUCTS_STG_SEQ.NEXTVAL, 'N', ?, ?,
-                'N', CURRENT_TIMESTAMP, 'INTEGRATION_SERVICE'
-            )
-            """;
+        // Spremi u odgovarajući repository na temelju ciljnog sustava
+        saveToTargetSystem(stgEntity, targetSystem);
 
-        jdbcTemplate.update(sql, data.getOrderId(), data.getCustomerId());
-
-        log.info("Successfully written to {} staging table", targetSystem);
+        log.info("Successfully written to {} staging table via JPA", targetSystem);
     }
 
     /**
-     * Batch upis u STG tablice
+     * Batch upis u STG tablice korištenjem JPA
      */
-    @Transactional
     public void writeToStagingBatch(List<TransformationResultDTO> dataList, String targetSystem) {
-        log.info("Batch writing {} records to staging for system '{}'",
+        log.info("Batch writing {} records to staging for system '{}' via JPA",
                  dataList.size(), targetSystem);
 
-        JdbcTemplate jdbcTemplate = destinationResolver.getJdbcTemplate(targetSystem);
+        List<ProductsStg> entities = dataList.stream()
+                .map(data -> ProductsStg.builder()
+                        .controlStatus("N")
+                        .productId(data.getOrderId())
+                        .productName(data.getCustomerId())
+                        .rowStatus(RowStatus.N)
+                        .build())
+                .collect(Collectors.toList());
 
-        String sql = """
-            INSERT INTO SWISSLOG_INT.PRODUCTS_STG (
-                ROW_NUMBER, CONTROL_STATUS, PRODUCT_ID, PRODUCT_NAME,
-                ROW_STATUS, ROW_CREATE_DATETIME, ROW_CREATE_USER
-            ) VALUES (
-                SWISSLOG_INT.PRODUCTS_STG_SEQ.NEXTVAL, 'N', ?, ?,
-                'N', CURRENT_TIMESTAMP, 'INTEGRATION_SERVICE'
-            )
-            """;
+        saveAllToTargetSystem(entities, targetSystem);
 
-        jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement ps, int i) throws SQLException {
+        log.info("Successfully batch written {} records to {} staging via JPA",
+                 dataList.size(), targetSystem);
+    }
+
+    private void saveToTargetSystem(ProductsStg entity, String targetSystem) {
+        switch (targetSystem.toUpperCase()) {
+            case "WMS" -> wmsRepository.save(entity);
+            case "ORD" -> orderingRepository.save(entity);
+            default -> {
+                log.warn("Unknown target system '{}', using WMS as default", targetSystem);
+                wmsRepository.save(entity);
+            }
+        }
+    }
+
+    private void saveAllToTargetSystem(List<ProductsStg> entities, String targetSystem) {
+        switch (targetSystem.toUpperCase()) {
+            case "WMS" -> wmsRepository.saveAll(entities);
+            case "ORD" -> orderingRepository.saveAll(entities);
+            default -> {
+                log.warn("Unknown target system '{}', using WMS as default", targetSystem);
+                wmsRepository.saveAll(entities);
+            }
+        }
+    }
+}
+```
+
+### Alternativa: Dinamički EntityManager pristup
+
+Ako ne želite imati zasebne repozitorije za svaki sustav, možete koristiti dinamički `EntityManager`:
+
+```java
+@Service
+@Slf4j
+@RequiredArgsConstructor
+public class DynamicStagingService {
+
+    private final DestinationResolver destinationResolver;
+
+    /**
+     * Upisuje u STG tablicu korištenjem dinamički odabranog EntityManager-a
+     */
+    public void writeToStaging(Long trcRowNumber, TransformationResultDTO data, String targetSystem) {
+        log.info("Writing to staging for system '{}', TRC ROW_NUMBER: {}", targetSystem, trcRowNumber);
+
+        EntityManager em = destinationResolver.getEntityManager(targetSystem);
+        EntityTransaction tx = em.getTransaction();
+
+        try {
+            tx.begin();
+
+            ProductsStg stgEntity = ProductsStg.builder()
+                    .controlStatus("N")
+                    .productId(data.getOrderId())
+                    .productName(data.getCustomerId())
+                    .rowStatus(RowStatus.N)
+                    .rowCreateDatetime(LocalDateTime.now())
+                    .rowCreateUser("INTEGRATION_SERVICE")
+                    .build();
+
+            em.persist(stgEntity);
+            tx.commit();
+
+            log.info("Successfully written to {} staging table, ROW_NUMBER: {}",
+                     targetSystem, stgEntity.getRowNumber());
+
+        } catch (Exception e) {
+            if (tx.isActive()) {
+                tx.rollback();
+            }
+            log.error("Failed to write to {} staging: {}", targetSystem, e.getMessage());
+            throw new StagingException("Failed to write to staging", e);
+        } finally {
+            em.close();
+        }
+    }
+
+    /**
+     * Batch upis korištenjem dinamičkog EntityManager-a
+     */
+    public void writeToStagingBatch(List<TransformationResultDTO> dataList, String targetSystem) {
+        log.info("Batch writing {} records to {} staging", dataList.size(), targetSystem);
+
+        EntityManager em = destinationResolver.getEntityManager(targetSystem);
+        EntityTransaction tx = em.getTransaction();
+
+        try {
+            tx.begin();
+
+            int batchSize = 50;
+            for (int i = 0; i < dataList.size(); i++) {
                 TransformationResultDTO data = dataList.get(i);
-                ps.setString(1, data.getOrderId());
-                ps.setString(2, data.getCustomerId());
+
+                ProductsStg stgEntity = ProductsStg.builder()
+                        .controlStatus("N")
+                        .productId(data.getOrderId())
+                        .productName(data.getCustomerId())
+                        .rowStatus(RowStatus.N)
+                        .rowCreateDatetime(LocalDateTime.now())
+                        .rowCreateUser("INTEGRATION_SERVICE")
+                        .build();
+
+                em.persist(stgEntity);
+
+                // Flush and clear batch for memory optimization
+                if (i > 0 && i % batchSize == 0) {
+                    em.flush();
+                    em.clear();
+                }
             }
 
-            @Override
-            public int getBatchSize() {
-                return dataList.size();
-            }
-        });
+            tx.commit();
+            log.info("Successfully batch written {} records to {} staging", dataList.size(), targetSystem);
 
-        log.info("Successfully batch written {} records to {} staging",
-                 dataList.size(), targetSystem);
+        } catch (Exception e) {
+            if (tx.isActive()) {
+                tx.rollback();
+            }
+            log.error("Failed batch write to {} staging: {}", targetSystem, e.getMessage());
+            throw new StagingException("Failed batch write to staging", e);
+        } finally {
+            em.close();
+        }
     }
 }
 ```
@@ -1185,19 +1583,22 @@ public class StagingService {
 @Repository
 public interface TrcOrdersRepository extends JpaRepository<TrcOrder, Long> {
 
-    List<TrcOrder> findByStatusOrderByCreateDateAsc(TrcStatus status);
+    // ROW_STATUS: N=NEW, P=PROCESSED, E=ERROR, S=SKIPPED
+    List<TrcOrder> findByRowStatusOrderByRowCreateDatetimeAsc(RowStatus rowStatus);
 
-    long countByStatus(TrcStatus status);
+    long countByRowStatus(RowStatus rowStatus);
 
     @Modifying
-    @Query("DELETE FROM TrcOrder t WHERE t.status = :status AND t.completeDate < :before")
-    long deleteByStatusAndCompleteDateBefore(
-        @Param("status") TrcStatus status,
+    @Query("DELETE FROM TrcOrder t WHERE t.rowStatus = :rowStatus " +
+           "AND t.rowUpdateDatetime < :before")
+    long deleteByRowStatusAndRowUpdateDatetimeBefore(
+        @Param("rowStatus") RowStatus rowStatus,
         @Param("before") LocalDateTime before);
 
-    @Query("SELECT t FROM TrcOrder t WHERE t.status = 'PROCESSING' " +
-           "AND t.processDate < :threshold")
-    List<TrcOrder> findStuckProcessingRecords(@Param("threshold") LocalDateTime threshold);
+    // Pronađi zapise koji su dugo u obradi (potencijalno zaglavljeni)
+    @Query("SELECT t FROM TrcOrder t WHERE t.rowStatus = 'N' " +
+           "AND t.rowCreateDatetime < :threshold")
+    List<TrcOrder> findStuckRecords(@Param("threshold") LocalDateTime threshold);
 }
 ```
 
@@ -1813,7 +2214,7 @@ INSERT INTO SWISSLOG_INT.CONFIG_INTERFACE (
     'RECEIPT_TO_WMS', 'Receipt Integration to WMS', 'TRC_STG',
     'RECEIPT_TRC', 'PRODUCTS_STG', 'Y',
     30, 100, 3,
-    'PKG_TRANSFORM_RECEIPT.TRANSFORM_FOR_WMS',
+    'JAVA:DefaultTransformationStrategy',  -- Transformacija u Javi, ne u DB proceduri
     'Integracija prijema robe za WMS sustav',
     'SYSTEM'
 );
@@ -1823,145 +2224,40 @@ COMMIT;
 
 ---
 
-## 5.4 Oracle Package - Transformacija (TAFR)
+## 5.4 Napomena o Transformaciji i Split Logici
 
-```sql
-CREATE OR REPLACE PACKAGE SWISSLOG_INT.PKG_TRANSFORM_RECEIPT AS
-    /*
-    Package: PKG_TRANSFORM_RECEIPT
-    Opis: Transformacija podataka prijema za različite ciljne sustave (TAFR)
-    Autor: IT Department
-    Datum: 2026-01-21
-    */
+> **VAŽNO:** Transformacija i Split logika se rade **isključivo u Javi**, ne u Oracle procedurama.
 
-    PROCEDURE TRANSFORM_FOR_WMS(
-        p_row_number IN NUMBER,
-        p_status OUT VARCHAR2,
-        p_status_code OUT VARCHAR2,
-        p_error_desc OUT VARCHAR2
-    );
+### Transformacija (Java)
 
-END PKG_TRANSFORM_RECEIPT;
-/
+Transformacija se implementira putem:
+- `TransformationService` - glavni servis za transformaciju
+- `TransformationStrategy` interface - omogućuje različite strategije za različite izvore
+- DTO klase - definiraju format transformiranih podataka
 
-CREATE OR REPLACE PACKAGE BODY SWISSLOG_INT.PKG_TRANSFORM_RECEIPT AS
+Pogledajte sekciju **3.2 Servisni Sloj** za potpunu implementaciju.
 
-    PROCEDURE TRANSFORM_FOR_WMS(
-        p_row_number IN NUMBER,
-        p_status OUT VARCHAR2,
-        p_status_code OUT VARCHAR2,
-        p_error_desc OUT VARCHAR2
-    ) IS
-        v_receipt_id VARCHAR2(30);
-        v_supplier_id VARCHAR2(20);
-    BEGIN
-        -- Dohvati podatke iz TRC tablice
-        SELECT receipt_id, supplier_id
-        INTO v_receipt_id, v_supplier_id
-        FROM SWISSLOG_INT.RECEIPT_TRC
-        WHERE row_number = p_row_number
-        AND row_status = 'N';
+### Split Logika (Java)
 
-        -- Transformacija i upis u STG tablicu
-        INSERT INTO SWISSLOG_INT.PRODUCTS_STG (
-            ROW_NUMBER, CONTROL_STATUS, PRODUCT_ID,
-            ROW_STATUS, ROW_CREATE_DATETIME, ROW_CREATE_USER
-        ) VALUES (
-            SWISSLOG_INT.PRODUCTS_STG_SEQ.NEXTVAL, 'N', v_receipt_id,
-            'N', CURRENT_TIMESTAMP, 'INTEGRATION_SERVICE'
-        );
+Split logika koristi `DEST_UNIT` polje iz TRC tablica:
+- `SplitService` - parsira `DEST_UNIT` polje (CSV format)
+- `DestinationResolver` - određuje DataSource na temelju ciljnog sustava
+- `MultiDataSourceConfig` - konfiguracija više datasource-a
 
-        -- Ažuriraj TRC status
-        UPDATE SWISSLOG_INT.RECEIPT_TRC
-        SET ROW_STATUS = 'P',
-            ROW_STATUS_CODE = '200',
-            ROW_UPDATE_DATETIME = CURRENT_TIMESTAMP,
-            ROW_UPDATE_USER = 'INTEGRATION_SERVICE'
-        WHERE ROW_NUMBER = p_row_number;
+**DEST_UNIT vrijednosti:**
+| Vrijednost | Opis |
+|------------|------|
+| `All` | Slanje na sve registrirane sustave |
+| `WMS` | Samo WMS sustav |
+| `ORD` | Samo ORDERING sustav |
+| `WMS, ORD` | WMS i ORDERING sustavi |
+| `SAP, WMS` | SAP i WMS sustavi |
 
-        p_status := 'P';
-        p_status_code := '200';
-        p_error_desc := NULL;
-
-        COMMIT;
-
-    EXCEPTION
-        WHEN NO_DATA_FOUND THEN
-            p_status := 'E';
-            p_status_code := '404';
-            p_error_desc := 'TRC record not found or not in NEW status';
-            ROLLBACK;
-        WHEN OTHERS THEN
-            p_status := 'E';
-            p_status_code := '500';
-            p_error_desc := SQLERRM;
-            ROLLBACK;
-    END TRANSFORM_FOR_WMS;
-
-END PKG_TRANSFORM_RECEIPT;
-/
-```
+Pogledajte sekciju **3.2 Servisni Sloj** za potpunu implementaciju.
 
 ---
 
-## 5.5 Oracle Package - Split Logika
-
-```sql
-CREATE OR REPLACE PACKAGE SWISSLOG_INT.PKG_SPLIT_LOGIC AS
-    /*
-    Package: PKG_SPLIT_LOGIC
-    Opis: Logika za određivanje ciljnih sustava na temelju business pravila
-    */
-
-    TYPE t_string_array IS TABLE OF VARCHAR2(50);
-
-    PROCEDURE DETERMINE_TARGETS(
-        p_row_number IN NUMBER,
-        p_source_table IN VARCHAR2,
-        p_target_systems OUT t_string_array
-    );
-
-END PKG_SPLIT_LOGIC;
-/
-
-CREATE OR REPLACE PACKAGE BODY SWISSLOG_INT.PKG_SPLIT_LOGIC AS
-
-    PROCEDURE DETERMINE_TARGETS(
-        p_row_number IN NUMBER,
-        p_source_table IN VARCHAR2,
-        p_target_systems OUT t_string_array
-    ) IS
-        v_targets t_string_array := t_string_array();
-    BEGIN
-        -- Business pravila za određivanje ciljnih sustava
-        -- Primjer: na temelju source tablice
-
-        IF p_source_table = 'RECEIPT_TRC' THEN
-            v_targets.EXTEND;
-            v_targets(1) := 'PRODUCTS_STG';
-        ELSIF p_source_table = 'ORDER_TRC' THEN
-            v_targets.EXTEND(2);
-            v_targets(1) := 'ORDERS_STG';
-            v_targets(2) := 'INVOICES_STG';
-        ELSE
-            v_targets.EXTEND;
-            v_targets(1) := 'DEFAULT_STG';
-        END IF;
-
-        p_target_systems := v_targets;
-
-    EXCEPTION
-        WHEN OTHERS THEN
-            p_target_systems := t_string_array();
-    END DETERMINE_TARGETS;
-
-END PKG_SPLIT_LOGIC;
-/
-```
-
----
-
-## 5.6 Testni Podatci i Monitoring
+## 5.5 Testni Podatci i Monitoring
 
 ### Insert Testnih Podataka
 
@@ -2036,13 +2332,13 @@ ORDER BY CONTROL_STATUS;
 
 ```sql
 -- Grants za integration service korisnika
+-- NAPOMENA: Oracle packages se ne koriste - transformacija i split su u Javi
+
 GRANT SELECT, INSERT, UPDATE, DELETE ON SWISSLOG_INT.RECEIPT_TRC TO integration_service_user;
 GRANT SELECT, INSERT, UPDATE, DELETE ON SWISSLOG_INT.RECEIPT_DETAILS_TRC TO integration_service_user;
 GRANT SELECT, INSERT, UPDATE, DELETE ON SWISSLOG_INT.PRODUCTS_STG TO integration_service_user;
 GRANT SELECT, INSERT, UPDATE, DELETE ON SWISSLOG_INT.CODES_STG TO integration_service_user;
 GRANT SELECT ON SWISSLOG_INT.CONFIG_INTERFACE TO integration_service_user;
-GRANT EXECUTE ON SWISSLOG_INT.PKG_TRANSFORM_RECEIPT TO integration_service_user;
-GRANT EXECUTE ON SWISSLOG_INT.PKG_SPLIT_LOGIC TO integration_service_user;
 GRANT SELECT ON SWISSLOG_INT.RECEIPT_TRC_SEQ TO integration_service_user;
 GRANT SELECT ON SWISSLOG_INT.PRODUCTS_STG_SEQ TO integration_service_user;
 ```
@@ -2102,11 +2398,33 @@ PRODUCTS_STG (Master)
     └── CODES_STG (Detail) - FK na PRODUCTS_STG.ROW_NUMBER
 ```
 
-## TAFR - Transform And Forward
+## Transformacija i Split (Java)
 
-Koncept gdje Oracle DB procedura:
-1. **Transform** - Transformira podatke iz TRC formata u format ciljnog sustava
-2. **And Forward** - Odmah sprema u STG tablicu (ili vraća podatke za Spring Boot)
+Transformacija i split logika se rade **isključivo u Javi**:
+
+1. **Transformacija** - Putem `TransformationService` i DTO klasa
+   - Različite strategije za različite izvorne sustave
+   - Mapiranje podataka iz TRC formata u format za ciljni sustav
+
+2. **Split logika** - Putem `SplitService` i `DEST_UNIT` polja
+   - Parsiranje CSV vrijednosti iz `DEST_UNIT` polja
+   - Određivanje ciljnih sustava (WMS, ORD, SAP, itd.)
+
+3. **Multi-datasource routing** - Putem `DestinationResolver`
+   - Određivanje datasource-a na temelju ciljnog sustava
+   - Upis u STG tablice odgovarajuće baze
+
+## DEST_UNIT Polje
+
+Polje u TRC tablicama koje određuje ciljne sustave (CSV format):
+
+| Vrijednost | Značenje |
+|------------|----------|
+| `All` | Svi registrirani sustavi |
+| `WMS` | Samo WMS |
+| `ORD` | Samo ORDERING |
+| `WMS, ORD` | WMS i ORDERING |
+| `SAP, WMS, ORD` | SAP, WMS i ORDERING |
 
 ---
 
@@ -2119,10 +2437,13 @@ Ovaj dokument opisuje implementaciju i deployment Spring Boot integracijskog sus
 1. **TRC-STG Model** - Asinkrona komunikacija putem baze podataka
 2. **REST API** - Sinkrona komunikacija za real-time zahtjeve
 3. **Scheduler** - Polling mehanizam za obradu TRC zapisa
-4. **Tomcat Deployment** - WAR file deployment na production servere
-5. **Oracle Database** - Glavna baza podataka sa stored procedures
-6. **Monitoring** - JMX, Actuator, Health checks
-7. **High Availability** - Load balancing, backup/recovery
+4. **Java-only Transformacija** - Transformacija podataka putem DTO-a u Javi
+5. **DEST_UNIT Split Logika** - Parsiranje CSV polja za određivanje ciljnih sustava
+6. **Multi-Datasource** - Podrška za više datasource-a (WMS, ORD, SAP, itd.)
+7. **Tomcat Deployment** - WAR file deployment na production servere
+8. **Oracle Database** - Glavna baza podataka (bez stored procedures za transformaciju)
+9. **Monitoring** - JMX, Actuator, Health checks
+10. **High Availability** - Load balancing, backup/recovery
 
 ---
 
