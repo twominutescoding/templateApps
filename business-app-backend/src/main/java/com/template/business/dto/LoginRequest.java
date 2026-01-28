@@ -15,4 +15,7 @@ public class LoginRequest {
 
     @NotBlank(message = "Password is required")
     private String password;
+
+    @NotBlank(message = "Entity code is required")
+    private String entityCode; // Required: entity (application) code for login
 }

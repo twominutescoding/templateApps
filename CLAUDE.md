@@ -180,7 +180,7 @@ cd auth-service
 A comprehensive full-stack business application template with Spring Boot backend and React frontend.
 
 ### Tech Stack
-- **Backend**: Spring Boot 3.4.0, Java 17, Spring Security, Spring Data JPA
+- **Backend**: Spring Boot 4.0.1, Java 17, Spring Security, Spring Data JPA
 - **Frontend**: React 19.2, TypeScript, Vite, Material-UI v7
 - **Database**: H2 (dev), Oracle (prod)
 - **Authentication**: JWT-based stateless authentication

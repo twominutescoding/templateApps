@@ -3,7 +3,7 @@ package com.template.business.exception;
 import lombok.Getter;
 
 /**
- * Enumeration of error codes used throughout the business application.
+ * Enumeration of error codes used throughout the application.
  *
  * <p>Each error code has a unique numeric code and a default message.
  * These codes are used in {@link ApiErrorResponse} to provide consistent
@@ -36,27 +36,35 @@ public enum ErrorCode {
     // Authorization errors (200-299)
     ACCESS_DENIED("200", "You do not have permission to perform this action."),
     INSUFFICIENT_PERMISSIONS("201", "Insufficient permissions to access this resource."),
+    UNAUTHORIZED_SESSION_ACCESS("202", "You can only manage your own sessions."),
 
     // Resource errors (300-399)
     ENTITY_NOT_FOUND("300", "The requested entity was not found."),
     USER_NOT_FOUND("301", "User not found."),
-    PRODUCT_NOT_FOUND("302", "Product not found."),
-    RESOURCE_ALREADY_EXISTS("304", "The resource already exists."),
+    ROLE_NOT_FOUND("302", "Role not found."),
+    SESSION_NOT_FOUND("303", "Session not found."),
+    USER_ALREADY_EXISTS("304", "A user with this username already exists."),
+    RESOURCE_ALREADY_EXISTS("305", "The resource already exists."),
 
     // Database errors (400-499)
     DATA_INTEGRITY_ERROR("400", "A database constraint was violated."),
     INTERNAL_DATABASE_ERROR("401", "Internal database error."),
     LAZY_INITIALIZATION_ERROR("402", "Failed to load related data from database."),
 
-    // External Service errors (500-599)
-    EXTERNAL_AUTH_ERROR("500", "External authentication service failed."),
-    EXTERNAL_SERVICE_UNAVAILABLE("501", "External service is unavailable."),
-    EXTERNAL_SERVICE_TIMEOUT("502", "External service request timed out."),
+    // External Service / LDAP errors (500-599)
+    LDAP_CONNECTION_ERROR("500", "Failed to connect to LDAP server."),
+    LDAP_AUTHENTICATION_ERROR("501", "LDAP authentication failed."),
+    EXTERNAL_AUTH_ERROR("502", "External authentication service failed."),
+    EXTERNAL_SERVICE_UNAVAILABLE("503", "External service is unavailable."),
+    EXTERNAL_SERVICE_TIMEOUT("504", "External service request timed out."),
 
-    // Business Logic errors (600-699)
-    BUSINESS_RULE_VIOLATION("600", "Business rule validation failed."),
-    INVALID_OPERATION("601", "The requested operation is not valid in the current state."),
-    DUPLICATE_ENTRY("602", "Duplicate entry detected.");
+    // Session / Business Logic errors (600-699)
+    SESSION_LIMIT_EXCEEDED("600", "Maximum number of concurrent sessions exceeded."),
+    SESSION_EXPIRED("601", "Session has expired."),
+    SESSION_REVOKED("602", "Session has been revoked."),
+    BUSINESS_RULE_VIOLATION("603", "Business rule validation failed."),
+    INVALID_OPERATION("604", "The requested operation is not valid in the current state."),
+    DUPLICATE_ENTRY("605", "Duplicate entry detected.");
 
     private final String code;
     private final String defaultMessage;

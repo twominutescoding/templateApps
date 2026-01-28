@@ -3,7 +3,7 @@ package com.template.business.auth.exception;
 import lombok.Getter;
 
 /**
- * Enumeration of error codes used throughout the authentication service.
+ * Enumeration of error codes used throughout the application.
  *
  * <p>Each error code has a unique numeric code and a default message.
  * These codes are used in {@link ApiErrorResponse} to provide consistent
@@ -44,20 +44,27 @@ public enum ErrorCode {
     ROLE_NOT_FOUND("302", "Role not found."),
     SESSION_NOT_FOUND("303", "Session not found."),
     USER_ALREADY_EXISTS("304", "A user with this username already exists."),
+    RESOURCE_ALREADY_EXISTS("305", "The resource already exists."),
 
     // Database errors (400-499)
     DATA_INTEGRITY_ERROR("400", "A database constraint was violated."),
     INTERNAL_DATABASE_ERROR("401", "Internal database error."),
     LAZY_INITIALIZATION_ERROR("402", "Failed to load related data from database."),
 
-    // LDAP errors (500-599)
+    // External Service / LDAP errors (500-599)
     LDAP_CONNECTION_ERROR("500", "Failed to connect to LDAP server."),
     LDAP_AUTHENTICATION_ERROR("501", "LDAP authentication failed."),
+    EXTERNAL_AUTH_ERROR("502", "External authentication service failed."),
+    EXTERNAL_SERVICE_UNAVAILABLE("503", "External service is unavailable."),
+    EXTERNAL_SERVICE_TIMEOUT("504", "External service request timed out."),
 
-    // Session errors (600-699)
+    // Session / Business Logic errors (600-699)
     SESSION_LIMIT_EXCEEDED("600", "Maximum number of concurrent sessions exceeded."),
     SESSION_EXPIRED("601", "Session has expired."),
-    SESSION_REVOKED("602", "Session has been revoked.");
+    SESSION_REVOKED("602", "Session has been revoked."),
+    BUSINESS_RULE_VIOLATION("603", "Business rule validation failed."),
+    INVALID_OPERATION("604", "The requested operation is not valid in the current state."),
+    DUPLICATE_ENTRY("605", "Duplicate entry detected.");
 
     private final String code;
     private final String defaultMessage;
