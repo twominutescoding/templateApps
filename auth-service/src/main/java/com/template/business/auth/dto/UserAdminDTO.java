@@ -25,7 +25,6 @@ public class UserAdminDTO {
     private String status;
     private String theme;
     private String paletteId;
-    private String image;
     private Date createDate;
     private String createUser;
     private List<UserRoleDTO> roles;

@@ -8,6 +8,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -51,20 +52,43 @@ public class SpecificationBuilder {
                     SearchRequest.DateRange dateRange = entry.getValue();
 
                     try {
-                        if (dateRange.getFrom() != null && !dateRange.getFrom().isEmpty()) {
-                            LocalDate fromDate = LocalDate.parse(dateRange.getFrom(), DATE_FORMATTER);
-                            LocalDateTime fromDateTime = fromDate.atStartOfDay();
-                            predicates.add(criteriaBuilder.greaterThanOrEqualTo(
-                                    root.get(field), fromDateTime
-                            ));
-                        }
+                        // Check if the field is of type Date or LocalDateTime
+                        Class<?> fieldType = root.get(field).getJavaType();
 
-                        if (dateRange.getTo() != null && !dateRange.getTo().isEmpty()) {
-                            LocalDate toDate = LocalDate.parse(dateRange.getTo(), DATE_FORMATTER);
-                            LocalDateTime toDateTime = toDate.atTime(23, 59, 59);
-                            predicates.add(criteriaBuilder.lessThanOrEqualTo(
-                                    root.get(field), toDateTime
-                            ));
+                        if (Date.class.isAssignableFrom(fieldType)) {
+                            // Handle java.util.Date
+                            if (dateRange.getFrom() != null && !dateRange.getFrom().isEmpty()) {
+                                LocalDate fromDate = LocalDate.parse(dateRange.getFrom(), DATE_FORMATTER);
+                                Date fromDateValue = java.sql.Timestamp.valueOf(fromDate.atStartOfDay());
+                                predicates.add(criteriaBuilder.greaterThanOrEqualTo(
+                                        root.get(field), fromDateValue
+                                ));
+                            }
+
+                            if (dateRange.getTo() != null && !dateRange.getTo().isEmpty()) {
+                                LocalDate toDate = LocalDate.parse(dateRange.getTo(), DATE_FORMATTER);
+                                Date toDateValue = java.sql.Timestamp.valueOf(toDate.atTime(23, 59, 59));
+                                predicates.add(criteriaBuilder.lessThanOrEqualTo(
+                                        root.get(field), toDateValue
+                                ));
+                            }
+                        } else {
+                            // Handle LocalDateTime
+                            if (dateRange.getFrom() != null && !dateRange.getFrom().isEmpty()) {
+                                LocalDate fromDate = LocalDate.parse(dateRange.getFrom(), DATE_FORMATTER);
+                                LocalDateTime fromDateTime = fromDate.atStartOfDay();
+                                predicates.add(criteriaBuilder.greaterThanOrEqualTo(
+                                        root.get(field), fromDateTime
+                                ));
+                            }
+
+                            if (dateRange.getTo() != null && !dateRange.getTo().isEmpty()) {
+                                LocalDate toDate = LocalDate.parse(dateRange.getTo(), DATE_FORMATTER);
+                                LocalDateTime toDateTime = toDate.atTime(23, 59, 59);
+                                predicates.add(criteriaBuilder.lessThanOrEqualTo(
+                                        root.get(field), toDateTime
+                                ));
+                            }
                         }
                     } catch (Exception e) {
                         // If date parsing fails or field doesn't exist, skip

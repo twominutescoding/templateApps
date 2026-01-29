@@ -42,7 +42,7 @@ export const login = async (credentials: LoginCredentials): Promise<{ user: User
       name: `${loginData.firstName || ''} ${loginData.lastName || ''}`.trim() || loginData.username,
       role: 'admin', // Admin panel only for admins
       roles: loginData.roles,
-      avatar: loginData.image || '',
+      avatar: '',
       department: loginData.company || '',
       createdAt: new Date().toISOString(),
     };

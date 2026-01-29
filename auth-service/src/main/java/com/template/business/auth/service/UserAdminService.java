@@ -80,7 +80,6 @@ public class UserAdminService {
         user.setStatus("ACTIVE");
         user.setTheme(request.getTheme() != null ? request.getTheme() : "light");
         user.setPaletteId(request.getPaletteId() != null ? request.getPaletteId() : "ocean-blue");
-        user.setImage(request.getImage());
         user.setCreateDate(new Date());
         user.setCreateUser(SecurityContextHolder.getContext().getAuthentication().getName());
 
@@ -192,9 +191,6 @@ public class UserAdminService {
         }
         if (request.getPaletteId() != null) {
             user.setPaletteId(request.getPaletteId());
-        }
-        if (request.getImage() != null) {
-            user.setImage(request.getImage());
         }
 
         User updatedUser = userRepository.save(user);
@@ -337,7 +333,6 @@ public class UserAdminService {
                 .status(user.getStatus())
                 .theme(user.getTheme())
                 .paletteId(user.getPaletteId())
-                .image(user.getImage())
                 .createDate(user.getCreateDate())
                 .createUser(user.getCreateUser())
                 .roles(roles)

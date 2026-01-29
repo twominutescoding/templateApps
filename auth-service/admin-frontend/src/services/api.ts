@@ -162,7 +162,6 @@ export interface LoginResponse {
   company?: string;
   theme?: string;
   paletteId?: string;
-  image?: string;
 }
 
 export interface RefreshTokenResponse {
@@ -185,7 +184,6 @@ export interface UserAdmin {
   status: string;
   theme: string;
   paletteId: string;
-  image?: string;
   createDate: string;
   createUser: string;
   roles: UserRole[];

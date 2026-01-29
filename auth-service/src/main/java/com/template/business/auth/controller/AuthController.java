@@ -156,8 +156,7 @@ public class AuthController {
                         .lastName(user.getLastName())
                         .company(user.getCompany())
                         .theme(user.getTheme() != null ? user.getTheme() : "light")
-                        .paletteId(user.getPaletteId() != null ? user.getPaletteId() : "ocean-blue")
-                        .image(user.getImage());
+                        .paletteId(user.getPaletteId() != null ? user.getPaletteId() : "ocean-blue");
             }
 
             LoginResponse loginResponse = responseBuilder.build();
