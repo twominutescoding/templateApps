@@ -19,13 +19,14 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import AdvancedDataTable from '../../components/table/AdvancedDataTable';
-import type { Column } from '../../components/table/AdvancedDataTable';
+import type { Column, FetchParams } from '../../components/table/AdvancedDataTable';
 import { adminRoleAPI } from '../../services/api';
-import type { RoleAdmin } from '../../services/api';
+import type { RoleAdmin, SearchRequest } from '../../services/api';
 import { useDateFormat } from '../../contexts/DateFormatContext';
 
 const RolesPage = () => {
   const [data, setData] = useState<(RoleAdmin & { id: string })[]>([]);
+  const [totalRecords, setTotalRecords] = useState(0);
   const [loading, setLoading] = useState(false);
   const { formatTimestamp } = useDateFormat();
 
@@ -45,16 +46,30 @@ const RolesPage = () => {
     severity: 'success' | 'error';
   }>({ open: false, message: '', severity: 'success' });
 
-  const fetchData = useCallback(async () => {
+  // Server-side fetch with pagination
+  const fetchData = useCallback(async (params: FetchParams) => {
     try {
       setLoading(true);
-      const response = await adminRoleAPI.getAllRoles();
+      const searchRequest: SearchRequest = {
+        filters: params.filters,
+        dateRanges: Object.entries(params.dateRanges).reduce((acc, [key, value]) => {
+          if (value.from || value.to) {
+            acc[key] = { from: value.from || undefined, to: value.to || undefined };
+          }
+          return acc;
+        }, {} as Record<string, { from?: string; to?: string }>),
+        sort: params.sort,
+        page: params.page,
+        pageSize: params.pageSize,
+      };
+      const response = await adminRoleAPI.searchRoles(searchRequest);
       // Add computed id field (role + entity) for table row identification
-      const dataWithIds = response.data.map(role => ({
+      const dataWithIds = response.data.content.map(role => ({
         ...role,
         id: `${role.role}-${role.entity}`, // Composite key
       }));
       setData(dataWithIds);
+      setTotalRecords(response.data.totalElements);
     } catch (error) {
       console.error('Failed to fetch roles:', error);
     } finally {
@@ -62,22 +77,22 @@ const RolesPage = () => {
     }
   }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  // Refetch trigger
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
+  const triggerRefetch = useCallback(() => setRefetchTrigger((prev) => prev + 1), []);
 
-  const handleSave = async (row: RoleAdmin & { id: string }) => {
+  const handleSave = useCallback(async (row: RoleAdmin & { id: string }) => {
     try {
       await adminRoleAPI.updateRole(row.role, row.entity, {
         roleLevel: row.roleLevel,
         description: row.description,
       });
-      fetchData();
+      triggerRefetch();
     } catch (error) {
       console.error('Failed to update role:', error);
       throw error;
     }
-  };
+  }, [triggerRefetch]);
 
   const handleCreateRole = async () => {
     try {
@@ -89,7 +104,7 @@ const RolesPage = () => {
       });
       setCreateRoleOpen(false);
       setNewRole({ role: '', entity: '', roleLevel: '', description: '' });
-      fetchData();
+      triggerRefetch();
     } catch (error: any) {
       console.error('Failed to create role:', error);
       setSnackbar({
@@ -100,12 +115,12 @@ const RolesPage = () => {
     }
   };
 
-  const handleDeleteRole = async (role: string, entity: string) => {
+  const handleDeleteRole = useCallback(async (role: string, entity: string) => {
     if (confirm(`Are you sure you want to delete role ${role} (${entity})? This action cannot be undone.`)) {
       try {
         await adminRoleAPI.deleteRole(role, entity);
         setSnackbar({ open: true, message: 'Role deleted successfully', severity: 'success' });
-        fetchData();
+        triggerRefetch();
       } catch (error: any) {
         console.error('Failed to delete role:', error);
         setSnackbar({
@@ -115,7 +130,7 @@ const RolesPage = () => {
         });
       }
     }
-  };
+  }, [triggerRefetch]);
 
   // Get unique entities from existing roles
   const uniqueEntities = useMemo(() => {
@@ -198,12 +213,15 @@ const RolesPage = () => {
         columns={columns}
         data={data}
         loading={loading}
+        onFetchData={fetchData}
+        totalRecords={totalRecords}
         onSave={handleSave}
         title="Roles"
         showExport={true}
         enableSelection={true}
         enableBulkEdit={false}
         rowIdField="id"
+        key={refetchTrigger}
         renderActions={(row: RoleAdmin & { id: string }) => (
           <Tooltip title="Delete Role">
             <IconButton size="small" color="error" onClick={() => handleDeleteRole(row.role, row.entity)}>

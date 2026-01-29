@@ -1,23 +1,42 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Box, IconButton, Tooltip } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AdvancedDataTable from '../../components/table/AdvancedDataTable';
-import type { Column } from '../../components/table/AdvancedDataTable';
+import type { Column, FetchParams } from '../../components/table/AdvancedDataTable';
 import { adminSessionAPI } from '../../services/api';
-import type { SessionAdmin } from '../../services/api';
+import type { SessionAdmin, SearchRequest } from '../../services/api';
 import StatusChip from '../../components/common/StatusChip';
 import { useDateFormat } from '../../contexts/DateFormatContext';
 
 const SessionsPage = () => {
   const [data, setData] = useState<SessionAdmin[]>([]);
+  const [totalRecords, setTotalRecords] = useState(0);
   const [loading, setLoading] = useState(false);
   const { formatTimestamp } = useDateFormat();
 
-  const fetchData = useCallback(async () => {
+  // Refetch trigger
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
+  const triggerRefetch = useCallback(() => setRefetchTrigger((prev) => prev + 1), []);
+
+  // Server-side fetch with pagination
+  const fetchData = useCallback(async (params: FetchParams) => {
     try {
       setLoading(true);
-      const response = await adminSessionAPI.getAllSessions();
-      setData(response.data);
+      const searchRequest: SearchRequest = {
+        filters: params.filters,
+        dateRanges: Object.entries(params.dateRanges).reduce((acc, [key, value]) => {
+          if (value.from || value.to) {
+            acc[key] = { from: value.from || undefined, to: value.to || undefined };
+          }
+          return acc;
+        }, {} as Record<string, { from?: string; to?: string }>),
+        sort: params.sort,
+        page: params.page,
+        pageSize: params.pageSize,
+      };
+      const response = await adminSessionAPI.searchSessions(searchRequest);
+      setData(response.data.content);
+      setTotalRecords(response.data.totalElements);
     } catch (error) {
       console.error('Failed to fetch sessions:', error);
     } finally {
@@ -25,20 +44,16 @@ const SessionsPage = () => {
     }
   }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const handleRevokeSession = async (sessionId: number) => {
+  const handleRevokeSession = useCallback(async (sessionId: number) => {
     if (confirm('Are you sure you want to revoke this session?')) {
       try {
         await adminSessionAPI.revokeSession(sessionId);
-        fetchData();
+        triggerRefetch();
       } catch (error) {
         console.error('Failed to revoke session:', error);
       }
     }
-  };
+  }, [triggerRefetch]);
 
   const columns: Column<SessionAdmin>[] = useMemo(
     () => [
@@ -116,11 +131,14 @@ const SessionsPage = () => {
         columns={columns}
         data={data}
         loading={loading}
+        onFetchData={fetchData}
+        totalRecords={totalRecords}
         title="Active Sessions"
         showExport={true}
         enableSelection={true}
         enableBulkEdit={false}
         rowIdField="sessionId"
+        key={refetchTrigger}
       />
     </Box>
   );

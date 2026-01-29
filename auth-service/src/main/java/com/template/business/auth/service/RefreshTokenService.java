@@ -1,6 +1,8 @@
 package com.template.business.auth.service;
 
+import com.template.business.auth.dto.PageResponse;
 import com.template.business.auth.dto.RefreshTokenResponse;
+import com.template.business.auth.dto.SearchRequest;
 import com.template.business.auth.dto.SessionDTO;
 import com.template.business.auth.entity.RefreshToken;
 import com.template.business.auth.entity.User;
@@ -12,16 +14,24 @@ import com.template.business.auth.exception.InternalApiException;
 import com.template.business.auth.exception.ResourceNotFoundException;
 import com.template.business.auth.repository.RefreshTokenRepository;
 import com.template.business.auth.security.JwtUtil;
+import jakarta.persistence.criteria.Predicate;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -313,6 +323,137 @@ public class RefreshTokenService {
                         .revoked(token.getRevoked())
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+    /**
+     * Search sessions with pagination, filtering, and sorting (ADMIN only)
+     *
+     * @param request search request with filters, pagination, and sorting
+     * @return paginated list of sessions
+     */
+    public PageResponse<SessionDTO> searchSessions(SearchRequest request) {
+        Specification<RefreshToken> spec = buildSessionSpecification(request);
+        Sort sort = buildSessionSort(request.getSort());
+        Pageable pageable = PageRequest.of(request.getPage(), request.getPageSize(), sort);
+
+        Page<RefreshToken> page = refreshTokenRepository.findAll(spec, pageable);
+        Page<SessionDTO> dtoPage = page.map(token -> SessionDTO.builder()
+                .sessionId(token.getId())
+                .username(token.getUsername())
+                .entity(token.getEntity())
+                .deviceName(token.getDeviceName())
+                .ipAddress(token.getIpAddress())
+                .location(token.getLocation())
+                .userAgent(token.getUserAgent())
+                .createdAt(token.getCreateDate())
+                .lastUsedAt(token.getLastUsedAt())
+                .expiresAt(token.getExpiresAt())
+                .current(false)
+                .revoked(token.getRevoked())
+                .build());
+
+        return PageResponse.of(dtoPage);
+    }
+
+    private Specification<RefreshToken> buildSessionSpecification(SearchRequest request) {
+        return (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            // Always filter active sessions by default (not revoked, not expired)
+            Date now = new Date();
+            predicates.add(criteriaBuilder.equal(root.get("revoked"), false));
+            predicates.add(criteriaBuilder.greaterThan(root.get("expiresAt"), now));
+
+            if (request.getFilters() != null) {
+                for (Map.Entry<String, String> entry : request.getFilters().entrySet()) {
+                    String field = entry.getKey();
+                    String value = entry.getValue();
+
+                    if (value != null && !value.isEmpty()) {
+                        try {
+                            // Map frontend field names to entity field names
+                            String mappedField = mapSessionField(field);
+                            if (mappedField != null) {
+                                predicates.add(criteriaBuilder.like(
+                                        criteriaBuilder.lower(root.get(mappedField).as(String.class)),
+                                        "%" + value.toLowerCase() + "%"
+                                ));
+                            }
+                        } catch (Exception e) {
+                            // Skip invalid fields
+                        }
+                    }
+                }
+            }
+
+            // Handle date range filters
+            if (request.getDateRanges() != null) {
+                for (Map.Entry<String, SearchRequest.DateRange> entry : request.getDateRanges().entrySet()) {
+                    String field = entry.getKey();
+                    SearchRequest.DateRange dateRange = entry.getValue();
+
+                    try {
+                        String mappedField = mapSessionDateField(field);
+                        if (mappedField != null) {
+                            if (dateRange.getFrom() != null && !dateRange.getFrom().isEmpty()) {
+                                LocalDate fromDate = LocalDate.parse(dateRange.getFrom(), DATE_FORMATTER);
+                                Date fromDateValue = java.sql.Timestamp.valueOf(fromDate.atStartOfDay());
+                                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get(mappedField), fromDateValue));
+                            }
+
+                            if (dateRange.getTo() != null && !dateRange.getTo().isEmpty()) {
+                                LocalDate toDate = LocalDate.parse(dateRange.getTo(), DATE_FORMATTER);
+                                Date toDateValue = java.sql.Timestamp.valueOf(toDate.atTime(23, 59, 59));
+                                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get(mappedField), toDateValue));
+                            }
+                        }
+                    } catch (Exception e) {
+                        // Skip invalid date ranges
+                    }
+                }
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+
+    private String mapSessionField(String field) {
+        return switch (field) {
+            case "username" -> "username";
+            case "entity" -> "entity";
+            case "deviceName" -> "deviceName";
+            case "ipAddress" -> "ipAddress";
+            case "location" -> "location";
+            default -> null;
+        };
+    }
+
+    private String mapSessionDateField(String field) {
+        return switch (field) {
+            case "createdAt" -> "createDate";
+            case "lastUsedAt" -> "lastUsedAt";
+            case "expiresAt" -> "expiresAt";
+            default -> null;
+        };
+    }
+
+    private Sort buildSessionSort(SearchRequest.SortInfo sortInfo) {
+        if (sortInfo == null || sortInfo.getColumn() == null || sortInfo.getColumn().isEmpty()) {
+            return Sort.by(Sort.Direction.DESC, "lastUsedAt");
+        }
+        Sort.Direction direction = "desc".equalsIgnoreCase(sortInfo.getOrder())
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+
+        // Map frontend field names to entity field names
+        String column = sortInfo.getColumn();
+        if ("createdAt".equals(column)) {
+            column = "createDate";
+        }
+
+        return Sort.by(direction, column);
     }
 
     /**

@@ -1,8 +1,10 @@
 package com.template.business.auth.controller;
 
 import com.template.business.auth.dto.ApiResponse;
+import com.template.business.auth.dto.PageResponse;
 import com.template.business.auth.dto.RoleAdminDTO;
 import com.template.business.auth.dto.RoleCreateRequest;
+import com.template.business.auth.dto.SearchRequest;
 import com.template.business.auth.service.RoleAdminService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +45,21 @@ public class RoleAdminController {
             log.error("Failed to retrieve roles: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Failed to retrieve roles"));
+        }
+    }
+
+    /**
+     * Search roles with pagination, filtering, and sorting
+     */
+    @PostMapping("/search")
+    public ResponseEntity<ApiResponse<PageResponse<RoleAdminDTO>>> searchRoles(@RequestBody SearchRequest request) {
+        try {
+            PageResponse<RoleAdminDTO> response = roleAdminService.searchRoles(request);
+            return ResponseEntity.ok(ApiResponse.success("Roles retrieved successfully", response));
+        } catch (Exception e) {
+            log.error("Failed to search roles: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to search roles"));
         }
     }
 

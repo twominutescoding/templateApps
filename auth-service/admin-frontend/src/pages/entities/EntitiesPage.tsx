@@ -20,18 +20,23 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AdvancedDataTable from '../../components/table/AdvancedDataTable';
-import type { Column } from '../../components/table/AdvancedDataTable';
+import type { Column, FetchParams } from '../../components/table/AdvancedDataTable';
 import { adminEntityAPI, adminEntityTypeAPI } from '../../services/api';
-import type { EntityAdmin, EntityType } from '../../services/api';
+import type { EntityAdmin, EntityType, SearchRequest } from '../../services/api';
 import { useDateFormat } from '../../contexts/DateFormatContext';
 
 const EntitiesPage = () => {
   const [data, setData] = useState<EntityAdmin[]>([]);
+  const [totalRecords, setTotalRecords] = useState(0);
   const [loading, setLoading] = useState(false);
   const { formatTimestamp } = useDateFormat();
 
   // Entity Types for dropdown
   const [entityTypes, setEntityTypes] = useState<EntityType[]>([]);
+
+  // Refetch trigger
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
+  const triggerRefetch = useCallback(() => setRefetchTrigger((prev) => prev + 1), []);
 
   // Create Entity Dialog
   const [createEntityOpen, setCreateEntityOpen] = useState(false);
@@ -49,11 +54,25 @@ const EntitiesPage = () => {
     severity: 'success' | 'error' | 'info';
   }>({ open: false, message: '', severity: 'success' });
 
-  const fetchData = useCallback(async () => {
+  // Server-side fetch with pagination
+  const fetchData = useCallback(async (params: FetchParams) => {
     try {
       setLoading(true);
-      const response = await adminEntityAPI.getAllEntities();
-      setData(response.data);
+      const searchRequest: SearchRequest = {
+        filters: params.filters,
+        dateRanges: Object.entries(params.dateRanges).reduce((acc, [key, value]) => {
+          if (value.from || value.to) {
+            acc[key] = { from: value.from || undefined, to: value.to || undefined };
+          }
+          return acc;
+        }, {} as Record<string, { from?: string; to?: string }>),
+        sort: params.sort,
+        page: params.page,
+        pageSize: params.pageSize,
+      };
+      const response = await adminEntityAPI.searchEntities(searchRequest);
+      setData(response.data.content);
+      setTotalRecords(response.data.totalElements);
     } catch (error) {
       console.error('Failed to fetch entities:', error);
     } finally {
@@ -71,23 +90,22 @@ const EntitiesPage = () => {
   }, []);
 
   useEffect(() => {
-    fetchData();
     fetchEntityTypes();
-  }, [fetchData, fetchEntityTypes]);
+  }, [fetchEntityTypes]);
 
-  const handleSave = async (row: EntityAdmin) => {
+  const handleSave = useCallback(async (row: EntityAdmin) => {
     try {
       await adminEntityAPI.updateEntity(row.id, {
         name: row.name,
         type: row.type,
         description: row.description,
       });
-      fetchData();
+      triggerRefetch();
     } catch (error) {
       console.error('Failed to update entity:', error);
       throw error;
     }
-  };
+  }, [triggerRefetch]);
 
   const handleCreateEntity = async () => {
     try {
@@ -99,7 +117,7 @@ const EntitiesPage = () => {
       });
       setCreateEntityOpen(false);
       setNewEntity({ id: '', name: '', type: 'WEB', description: '' });
-      fetchData();
+      triggerRefetch();
     } catch (error: any) {
       console.error('Failed to create entity:', error);
       setSnackbar({
@@ -110,12 +128,12 @@ const EntitiesPage = () => {
     }
   };
 
-  const handleDeleteEntity = async (id: string) => {
+  const handleDeleteEntity = useCallback(async (id: string) => {
     if (confirm(`Are you sure you want to delete entity ${id}? This action cannot be undone.`)) {
       try {
         await adminEntityAPI.deleteEntity(id);
         setSnackbar({ open: true, message: 'Entity deleted successfully', severity: 'success' });
-        fetchData();
+        triggerRefetch();
       } catch (error: any) {
         console.error('Failed to delete entity:', error);
         setSnackbar({
@@ -125,7 +143,7 @@ const EntitiesPage = () => {
         });
       }
     }
-  };
+  }, [triggerRefetch]);
 
   // Convert entity types to dropdown options
   const typeOptions = useMemo(() => {
@@ -198,12 +216,15 @@ const EntitiesPage = () => {
         columns={columns}
         data={data}
         loading={loading}
+        onFetchData={fetchData}
+        totalRecords={totalRecords}
         onSave={handleSave}
         title="Application Entities"
         showExport={true}
         enableSelection={true}
         enableBulkEdit={false}
         rowIdField="id"
+        key={refetchTrigger}
         renderActions={(row: EntityAdmin) => (
           <Tooltip title="Delete Entity">
             <IconButton size="small" color="error" onClick={() => handleDeleteEntity(row.id)}>

@@ -1,6 +1,8 @@
 package com.template.business.auth.controller;
 
 import com.template.business.auth.dto.*;
+import com.template.business.auth.dto.PageResponse;
+import com.template.business.auth.dto.SearchRequest;
 import com.template.business.auth.entity.ApplicationEntity;
 import com.template.business.auth.entity.User;
 import com.template.business.auth.repository.EntityRepository;
@@ -383,6 +385,28 @@ public class AuthController {
             log.error("Get all sessions failed: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Failed to retrieve sessions"));
+        }
+    }
+
+    /**
+     * ADMIN: Search sessions with pagination, filtering, and sorting.
+     *
+     * <p>Returns paginated list of sessions for monitoring and administration.
+     * Requires ADMIN role.
+     *
+     * @param request search request with filters, pagination, and sorting
+     * @return {@link ApiResponse} containing paginated {@link SessionDTO} list
+     */
+    @PostMapping("/admin/sessions/search")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<PageResponse<SessionDTO>>> searchSessions(@RequestBody SearchRequest request) {
+        try {
+            PageResponse<SessionDTO> response = refreshTokenService.searchSessions(request);
+            return ResponseEntity.ok(ApiResponse.success("Sessions retrieved successfully", response));
+        } catch (Exception e) {
+            log.error("Failed to search sessions: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to search sessions"));
         }
     }
 

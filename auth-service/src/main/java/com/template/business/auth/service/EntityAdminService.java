@@ -4,9 +4,17 @@ import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.template.business.auth.dto.PageResponse;
+import com.template.business.auth.dto.SearchRequest;
+import com.template.business.auth.util.SpecificationBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +47,30 @@ public class EntityAdminService {
         return entities.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Search entities with pagination, filtering, and sorting
+     */
+    public PageResponse<EntityAdminDTO> searchEntities(SearchRequest request) {
+        Specification<ApplicationEntity> spec = SpecificationBuilder.buildSpecification(request);
+        Sort sort = buildSort(request.getSort());
+        Pageable pageable = PageRequest.of(request.getPage(), request.getPageSize(), sort);
+
+        Page<ApplicationEntity> page = entityRepository.findAll(spec, pageable);
+        Page<EntityAdminDTO> dtoPage = page.map(this::convertToDTO);
+
+        return PageResponse.of(dtoPage);
+    }
+
+    private Sort buildSort(SearchRequest.SortInfo sortInfo) {
+        if (sortInfo == null || sortInfo.getColumn() == null || sortInfo.getColumn().isEmpty()) {
+            return Sort.by(Sort.Direction.ASC, "id");
+        }
+        Sort.Direction direction = "desc".equalsIgnoreCase(sortInfo.getOrder())
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+        return Sort.by(direction, sortInfo.getColumn());
     }
 
     /**

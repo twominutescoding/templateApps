@@ -20,7 +20,7 @@ export const login = async (credentials: LoginCredentials): Promise<{ user: User
     const response = await authAPI.login({
       username: credentials.email, // Can be either email or username
       password: credentials.password,
-      entityCode: 'AUTH_ADMIN', // Auth Service Admin Frontend entity
+      entityCode: 'MINT_AUTH_SERVICE', // Auth Service Admin Frontend entity
     });
 
     if (!response.success) {

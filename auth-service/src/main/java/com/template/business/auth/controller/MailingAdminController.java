@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.*;
 
 import com.template.business.auth.dto.ApiResponse;
 import com.template.business.auth.dto.MailingDTO;
+import com.template.business.auth.dto.PageResponse;
+import com.template.business.auth.dto.SearchRequest;
 import com.template.business.auth.exception.ResourceNotFoundException;
 import com.template.business.auth.service.MailingAdminService;
 
@@ -39,6 +41,21 @@ public class MailingAdminController {
             log.error("Failed to retrieve mailings: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Failed to retrieve mailings"));
+        }
+    }
+
+    /**
+     * Search mailings with pagination, filtering, and sorting
+     */
+    @PostMapping("/search")
+    public ResponseEntity<ApiResponse<PageResponse<MailingDTO>>> searchMailings(@RequestBody SearchRequest request) {
+        try {
+            PageResponse<MailingDTO> response = mailingAdminService.searchMailings(request);
+            return ResponseEntity.ok(ApiResponse.success("Mailings retrieved successfully", response));
+        } catch (Exception e) {
+            log.error("Failed to search mailings: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to search mailings"));
         }
     }
 

@@ -290,6 +290,36 @@ export interface ThemePreferencesRequest {
   paletteId: string;
 }
 
+// Search/Pagination types
+export interface SearchRequest {
+  filters?: Record<string, string>;
+  dateRanges?: Record<string, DateRange>;
+  sort?: SortInfo;
+  page: number;
+  pageSize: number;
+}
+
+export interface DateRange {
+  from?: string;
+  to?: string;
+}
+
+export interface SortInfo {
+  column: string;
+  order: 'asc' | 'desc';
+}
+
+export interface PageResponse<T> {
+  content: T[];
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+}
+
 // Auth API
 export const authAPI = {
   login: async (credentials: LoginRequest): Promise<ApiResponse<LoginResponse>> => {
@@ -324,6 +354,11 @@ export const adminUserAPI = {
 
   getAllUsers: async (): Promise<ApiResponse<UserAdmin[]>> => {
     const response = await apiClient.get<ApiResponse<UserAdmin[]>>('/admin/users');
+    return response.data;
+  },
+
+  searchUsers: async (searchRequest: SearchRequest): Promise<ApiResponse<PageResponse<UserAdmin>>> => {
+    const response = await apiClient.post<ApiResponse<PageResponse<UserAdmin>>>('/admin/users/search', searchRequest);
     return response.data;
   },
 
@@ -379,6 +414,11 @@ export const adminRoleAPI = {
     return response.data;
   },
 
+  searchRoles: async (searchRequest: SearchRequest): Promise<ApiResponse<PageResponse<RoleAdmin>>> => {
+    const response = await apiClient.post<ApiResponse<PageResponse<RoleAdmin>>>('/admin/roles/search', searchRequest);
+    return response.data;
+  },
+
   getRole: async (role: string, entity: string): Promise<ApiResponse<RoleAdmin>> => {
     const response = await apiClient.get<ApiResponse<RoleAdmin>>(`/admin/roles/${role}/entity/${entity}`);
     return response.data;
@@ -407,6 +447,11 @@ export const adminSessionAPI = {
     return response.data;
   },
 
+  searchSessions: async (searchRequest: SearchRequest): Promise<ApiResponse<PageResponse<SessionAdmin>>> => {
+    const response = await apiClient.post<ApiResponse<PageResponse<SessionAdmin>>>('/auth/admin/sessions/search', searchRequest);
+    return response.data;
+  },
+
   revokeSession: async (sessionId: number): Promise<ApiResponse<string>> => {
     const response = await apiClient.post<ApiResponse<string>>('/auth/admin/sessions/revoke', { sessionId });
     return response.data;
@@ -430,6 +475,11 @@ export const adminDashboardAPI = {
 export const adminEntityAPI = {
   getAllEntities: async (): Promise<ApiResponse<EntityAdmin[]>> => {
     const response = await apiClient.get<ApiResponse<EntityAdmin[]>>('/admin/entities');
+    return response.data;
+  },
+
+  searchEntities: async (searchRequest: SearchRequest): Promise<ApiResponse<PageResponse<EntityAdmin>>> => {
+    const response = await apiClient.post<ApiResponse<PageResponse<EntityAdmin>>>('/admin/entities/search', searchRequest);
     return response.data;
   },
 
@@ -474,6 +524,11 @@ export const adminUserStatusAPI = {
 export const adminMailingAPI = {
   getAllMailings: async (): Promise<ApiResponse<MailingAdmin[]>> => {
     const response = await apiClient.get<ApiResponse<MailingAdmin[]>>('/admin/mailings');
+    return response.data;
+  },
+
+  searchMailings: async (searchRequest: SearchRequest): Promise<ApiResponse<PageResponse<MailingAdmin>>> => {
+    const response = await apiClient.post<ApiResponse<PageResponse<MailingAdmin>>>('/admin/mailings/search', searchRequest);
     return response.data;
   },
 

@@ -3,9 +3,17 @@ package com.template.business.auth.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.template.business.auth.dto.PageResponse;
+import com.template.business.auth.dto.SearchRequest;
+import com.template.business.auth.util.SpecificationBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -36,6 +44,30 @@ public class MailingAdminService {
         return mailings.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Search mailings with pagination, filtering, and sorting
+     */
+    public PageResponse<MailingDTO> searchMailings(SearchRequest request) {
+        Specification<Mailing> spec = SpecificationBuilder.buildSpecification(request);
+        Sort sort = buildSort(request.getSort());
+        Pageable pageable = PageRequest.of(request.getPage(), request.getPageSize(), sort);
+
+        Page<Mailing> page = mailingRepository.findAll(spec, pageable);
+        Page<MailingDTO> dtoPage = page.map(this::convertToDTO);
+
+        return PageResponse.of(dtoPage);
+    }
+
+    private Sort buildSort(SearchRequest.SortInfo sortInfo) {
+        if (sortInfo == null || sortInfo.getColumn() == null || sortInfo.getColumn().isEmpty()) {
+            return Sort.by(Sort.Direction.DESC, "createDate");
+        }
+        Sort.Direction direction = "desc".equalsIgnoreCase(sortInfo.getOrder())
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+        return Sort.by(direction, sortInfo.getColumn());
     }
 
     /**

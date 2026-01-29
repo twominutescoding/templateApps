@@ -1,5 +1,7 @@
 package com.template.business.auth.service;
 
+import com.template.business.auth.dto.PageResponse;
+import com.template.business.auth.dto.SearchRequest;
 import com.template.business.auth.dto.UserAdminDTO;
 import com.template.business.auth.dto.UserRoleAssignRequest;
 import com.template.business.auth.dto.UserStatusUpdateRequest;
@@ -14,8 +16,14 @@ import com.template.business.auth.exception.ResourceNotFoundException;
 import com.template.business.auth.repository.RoleRepository;
 import com.template.business.auth.repository.UserRepository;
 import com.template.business.auth.repository.UserRoleRepository;
+import com.template.business.auth.util.SpecificationBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -129,6 +137,30 @@ public class UserAdminService {
         return users.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Search users with pagination, filtering, and sorting
+     */
+    public PageResponse<UserAdminDTO> searchUsers(SearchRequest request) {
+        Specification<User> spec = SpecificationBuilder.buildSpecification(request);
+        Sort sort = buildSort(request.getSort());
+        Pageable pageable = PageRequest.of(request.getPage(), request.getPageSize(), sort);
+
+        Page<User> page = userRepository.findAll(spec, pageable);
+        Page<UserAdminDTO> dtoPage = page.map(this::convertToDTO);
+
+        return PageResponse.of(dtoPage);
+    }
+
+    private Sort buildSort(SearchRequest.SortInfo sortInfo) {
+        if (sortInfo == null || sortInfo.getColumn() == null || sortInfo.getColumn().isEmpty()) {
+            return Sort.by(Sort.Direction.ASC, "username");
+        }
+        Sort.Direction direction = "desc".equalsIgnoreCase(sortInfo.getOrder())
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+        return Sort.by(direction, sortInfo.getColumn());
     }
 
     /**

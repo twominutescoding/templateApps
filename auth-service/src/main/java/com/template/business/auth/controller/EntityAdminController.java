@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 
 import com.template.business.auth.dto.ApiResponse;
 import com.template.business.auth.dto.EntityAdminDTO;
+import com.template.business.auth.dto.PageResponse;
+import com.template.business.auth.dto.SearchRequest;
 import com.template.business.auth.exception.CustomValidationException;
 import com.template.business.auth.exception.ResourceNotFoundException;
 import com.template.business.auth.service.EntityAdminService;
@@ -42,6 +44,21 @@ public class EntityAdminController {
             log.error("Failed to retrieve entities: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Failed to retrieve entities"));
+        }
+    }
+
+    /**
+     * Search entities with pagination, filtering, and sorting
+     */
+    @PostMapping("/search")
+    public ResponseEntity<ApiResponse<PageResponse<EntityAdminDTO>>> searchEntities(@RequestBody SearchRequest request) {
+        try {
+            PageResponse<EntityAdminDTO> response = entityAdminService.searchEntities(request);
+            return ResponseEntity.ok(ApiResponse.success("Entities retrieved successfully", response));
+        } catch (Exception e) {
+            log.error("Failed to search entities: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to search entities"));
         }
     }
 

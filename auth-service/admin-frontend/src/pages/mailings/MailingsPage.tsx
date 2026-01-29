@@ -1,31 +1,42 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Box, Chip } from '@mui/material';
 import AdvancedDataTable from '../../components/table/AdvancedDataTable';
-import type { Column } from '../../components/table/AdvancedDataTable';
+import type { Column, FetchParams } from '../../components/table/AdvancedDataTable';
 import { adminMailingAPI } from '../../services/api';
-import type { MailingAdmin } from '../../services/api';
+import type { MailingAdmin, SearchRequest } from '../../services/api';
 import { useDateFormat } from '../../contexts/DateFormatContext';
 
 const MailingsPage = () => {
   const [data, setData] = useState<MailingAdmin[]>([]);
+  const [totalRecords, setTotalRecords] = useState(0);
   const [loading, setLoading] = useState(false);
   const { formatTimestamp } = useDateFormat();
 
-  const fetchData = useCallback(async () => {
+  // Server-side fetch with pagination
+  const fetchData = useCallback(async (params: FetchParams) => {
     try {
       setLoading(true);
-      const response = await adminMailingAPI.getAllMailings();
-      setData(response.data);
+      const searchRequest: SearchRequest = {
+        filters: params.filters,
+        dateRanges: Object.entries(params.dateRanges).reduce((acc, [key, value]) => {
+          if (value.from || value.to) {
+            acc[key] = { from: value.from || undefined, to: value.to || undefined };
+          }
+          return acc;
+        }, {} as Record<string, { from?: string; to?: string }>),
+        sort: params.sort,
+        page: params.page,
+        pageSize: params.pageSize,
+      };
+      const response = await adminMailingAPI.searchMailings(searchRequest);
+      setData(response.data.content);
+      setTotalRecords(response.data.totalElements);
     } catch (error) {
       console.error('Failed to fetch mailings:', error);
     } finally {
       setLoading(false);
     }
   }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
 
   // Sent status options for filtering
   const sentOptions = [
@@ -104,6 +115,8 @@ const MailingsPage = () => {
         columns={columns}
         data={data}
         loading={loading}
+        onFetchData={fetchData}
+        totalRecords={totalRecords}
         title="Mailings (Read-Only)"
         showExport={true}
         enableSelection={false}

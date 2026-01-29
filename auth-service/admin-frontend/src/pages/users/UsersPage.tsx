@@ -23,15 +23,16 @@ import AddCircleIcon from '@mui/icons-material/AddCircle';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PersonRemoveIcon from '@mui/icons-material/PersonRemove';
 import AdvancedDataTable from '../../components/table/AdvancedDataTable';
-import type { Column } from '../../components/table/AdvancedDataTable';
+import type { Column, FetchParams } from '../../components/table/AdvancedDataTable';
 import { adminUserAPI, adminRoleAPI, adminUserStatusAPI } from '../../services/api';
-import type { UserAdmin, RoleAdmin, UserStatusData } from '../../services/api';
+import type { UserAdmin, RoleAdmin, UserStatusData, SearchRequest } from '../../services/api';
 import StatusChip from '../../components/common/StatusChip';
 import { useDateFormat } from '../../contexts/DateFormatContext';
 import { CreateUserDialog, AddRoleDialog, ResetPasswordDialog } from './UserManagementDialogs';
 
 const UsersPage = () => {
   const [data, setData] = useState<UserAdmin[]>([]);
+  const [totalRecords, setTotalRecords] = useState(0);
   const [loading, setLoading] = useState(false);
   const [availableRoles, setAvailableRoles] = useState<RoleAdmin[]>([]);
   const [userStatuses, setUserStatuses] = useState<UserStatusData[]>([]);
@@ -66,17 +67,38 @@ const UsersPage = () => {
     severity: 'success' | 'error' | 'info';
   }>({ open: false, message: '', severity: 'success' });
 
-  const fetchData = useCallback(async () => {
+  // Server-side fetch with pagination
+  const fetchData = useCallback(async (params: FetchParams) => {
     try {
       setLoading(true);
-      const response = await adminUserAPI.getAllUsers();
-      setData(response.data);
+      const searchRequest: SearchRequest = {
+        filters: params.filters,
+        dateRanges: Object.entries(params.dateRanges).reduce((acc, [key, value]) => {
+          if (value.from || value.to) {
+            acc[key] = { from: value.from || undefined, to: value.to || undefined };
+          }
+          return acc;
+        }, {} as Record<string, { from?: string; to?: string }>),
+        sort: params.sort,
+        page: params.page,
+        pageSize: params.pageSize,
+      };
+      const response = await adminUserAPI.searchUsers(searchRequest);
+      setData(response.data.content);
+      setTotalRecords(response.data.totalElements);
     } catch (error) {
       console.error('Failed to fetch users:', error);
     } finally {
       setLoading(false);
     }
   }, []);
+
+  // Simple refresh that triggers the table to refetch
+  const refreshData = useCallback(() => {
+    // This will be called after mutations to trigger a refetch
+    // The table will automatically call fetchData with current params
+    setData([...data]);
+  }, [data]);
 
   const fetchRoles = useCallback(async () => {
     try {
@@ -96,13 +118,16 @@ const UsersPage = () => {
     }
   }, []);
 
+  // Refetch trigger - increment to force table refetch
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
+  const triggerRefetch = useCallback(() => setRefetchTrigger((prev) => prev + 1), []);
+
   useEffect(() => {
-    fetchData();
     fetchRoles();
     fetchUserStatuses();
-  }, [fetchData, fetchRoles, fetchUserStatuses]);
+  }, [fetchRoles, fetchUserStatuses]);
 
-  const handleSave = async (row: UserAdmin) => {
+  const handleSave = useCallback(async (row: UserAdmin) => {
     try {
       // Update user details
       await adminUserAPI.updateUser(row.username, {
@@ -120,17 +145,17 @@ const UsersPage = () => {
         await adminUserAPI.updateUserStatus(row.username, row.status);
       }
 
-      fetchData();
+      triggerRefetch();
     } catch (error) {
       console.error('Failed to update user:', error);
       throw error;
     }
-  };
+  }, [data, triggerRefetch]);
 
   const handleStatusChange = async (username: string, newStatus: string) => {
     try {
       await adminUserAPI.updateUserStatus(username, newStatus);
-      fetchData();
+      triggerRefetch();
       setSnackbar({ open: true, message: 'User status updated successfully', severity: 'success' });
     } catch (error) {
       console.error('Failed to update user status:', error);
@@ -156,7 +181,7 @@ const UsersPage = () => {
       }
       setCreateUserOpen(false);
       setNewUser({ username: '', firstName: '', lastName: '', email: '', company: '', password: '' });
-      fetchData();
+      triggerRefetch();
     } catch (error: any) {
       console.error('Failed to create user:', error);
       setSnackbar({
@@ -209,7 +234,7 @@ const UsersPage = () => {
       await adminUserAPI.assignRole(selectedUsername, selectedRole, selectedEntity);
       setSnackbar({ open: true, message: 'Role assigned successfully', severity: 'success' });
       setAddRoleOpen(false);
-      fetchData();
+      triggerRefetch();
     } catch (error: any) {
       console.error('Failed to assign role:', error);
       setSnackbar({
@@ -220,12 +245,12 @@ const UsersPage = () => {
     }
   };
 
-  const handleRemoveRole = async (username: string, role: string, entity: string) => {
+  const handleRemoveRole = useCallback(async (username: string, role: string, entity: string) => {
     if (confirm(`Remove role ${role} (${entity}) from ${username}?`)) {
       try {
         await adminUserAPI.removeRole(username, role, entity);
         setSnackbar({ open: true, message: 'Role removed successfully', severity: 'success' });
-        fetchData();
+        triggerRefetch();
       } catch (error: any) {
         console.error('Failed to remove role:', error);
         setSnackbar({
@@ -235,14 +260,14 @@ const UsersPage = () => {
         });
       }
     }
-  };
+  }, [triggerRefetch]);
 
-  const handleDeleteUser = async (username: string) => {
+  const handleDeleteUser = useCallback(async (username: string) => {
     if (confirm(`Are you sure you want to delete user ${username}? This action cannot be undone.`)) {
       try {
         await adminUserAPI.deleteUser(username);
         setSnackbar({ open: true, message: 'User deleted successfully', severity: 'success' });
-        fetchData();
+        triggerRefetch();
       } catch (error: any) {
         console.error('Failed to delete user:', error);
         setSnackbar({
@@ -252,7 +277,7 @@ const UsersPage = () => {
         });
       }
     }
-  };
+  }, [triggerRefetch]);
 
   // Convert user statuses to dropdown options
   const statusOptions = useMemo(() => {
@@ -358,12 +383,15 @@ const UsersPage = () => {
         columns={columns}
         data={data}
         loading={loading}
+        onFetchData={fetchData}
+        totalRecords={totalRecords}
         onSave={handleSave}
         title="Users"
         showExport={true}
         enableSelection={true}
         enableBulkEdit={false}
         rowIdField="username"
+        key={refetchTrigger}
         renderActions={(row: UserAdmin) => (
           <>
             <Tooltip title="Reset Password">

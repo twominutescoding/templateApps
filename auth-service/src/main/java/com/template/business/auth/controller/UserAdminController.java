@@ -1,7 +1,9 @@
 package com.template.business.auth.controller;
 
 import com.template.business.auth.dto.ApiResponse;
+import com.template.business.auth.dto.PageResponse;
 import com.template.business.auth.dto.PasswordResetRequest;
+import com.template.business.auth.dto.SearchRequest;
 import com.template.business.auth.dto.UserAdminDTO;
 import com.template.business.auth.dto.UserRoleAssignRequest;
 import com.template.business.auth.dto.UserStatusUpdateRequest;
@@ -43,6 +45,21 @@ public class UserAdminController {
             log.error("Failed to create user: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    /**
+     * Search users with pagination, filtering, and sorting
+     */
+    @PostMapping("/search")
+    public ResponseEntity<ApiResponse<PageResponse<UserAdminDTO>>> searchUsers(@RequestBody SearchRequest request) {
+        try {
+            PageResponse<UserAdminDTO> response = userAdminService.searchUsers(request);
+            return ResponseEntity.ok(ApiResponse.success("Users retrieved successfully", response));
+        } catch (Exception e) {
+            log.error("Failed to search users: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to search users"));
         }
     }
 
