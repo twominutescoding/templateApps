@@ -350,6 +350,14 @@ const UsersPage = () => {
                 label={`${r.role} (${r.entityName || r.entity})`}
                 size="small"
                 onDelete={() => handleRemoveRole(row.username, r.role, r.entity)}
+                sx={{
+                  '& .MuiChip-deleteIcon': {
+                    color: 'error.main',
+                    '&:hover': {
+                      color: 'error.dark',
+                    },
+                  },
+                }}
               />
             ))}
             {(!row.roles || row.roles.length === 0) && <span>No roles</span>}
@@ -392,17 +400,47 @@ const UsersPage = () => {
         renderActions={(row: UserAdmin) => (
           <>
             <Tooltip title="Reset Password">
-              <IconButton size="small" color="warning" onClick={() => handleOpenResetPassword(row.username)}>
+              <IconButton
+                size="small"
+                onClick={() => handleOpenResetPassword(row.username)}
+                sx={{
+                  color: 'warning.main',
+                  '&:hover': {
+                    backgroundColor: 'warning.light',
+                    color: 'warning.contrastText',
+                  },
+                }}
+              >
                 <LockResetIcon fontSize="small" />
               </IconButton>
             </Tooltip>
             <Tooltip title="Add Role">
-              <IconButton size="small" color="primary" onClick={() => handleOpenAddRole(row.username)}>
+              <IconButton
+                size="small"
+                onClick={() => handleOpenAddRole(row.username)}
+                sx={{
+                  color: '#42a5f5',
+                  '&:hover': {
+                    backgroundColor: 'rgba(66, 165, 245, 0.15)',
+                    color: '#64b5f6',
+                  },
+                }}
+              >
                 <AddCircleIcon fontSize="small" />
               </IconButton>
             </Tooltip>
             <Tooltip title="Delete User">
-              <IconButton size="small" color="error" onClick={() => handleDeleteUser(row.username)}>
+              <IconButton
+                size="small"
+                onClick={() => handleDeleteUser(row.username)}
+                sx={{
+                  color: 'error.main',
+                  '&:hover': {
+                    backgroundColor: 'error.light',
+                    color: 'error.contrastText',
+                  },
+                }}
+              >
                 <PersonRemoveIcon fontSize="small" />
               </IconButton>
             </Tooltip>

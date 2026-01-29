@@ -84,15 +84,23 @@ public class EntityAdminService {
 
     /**
      * Create new entity
+     * ID is auto-generated from the name (uppercase, spaces replaced with underscores)
      */
     @Transactional
     public EntityAdminDTO createEntity(EntityAdminDTO dto) {
-        if (entityRepository.existsById(dto.getId())) {
-            throw new CustomValidationException("Entity with ID '" + dto.getId() + "' already exists");
+        // Auto-generate ID from name
+        String generatedId = generateEntityId(dto.getName());
+
+        // Check if ID already exists, if so append a number
+        String finalId = generatedId;
+        int counter = 1;
+        while (entityRepository.existsById(finalId)) {
+            finalId = generatedId + "_" + counter;
+            counter++;
         }
 
         ApplicationEntity entity = new ApplicationEntity();
-        entity.setId(dto.getId());
+        entity.setId(finalId);
         entity.setName(dto.getName());
         entity.setType(dto.getType());
         entity.setDescription(dto.getDescription());
@@ -101,11 +109,28 @@ public class EntityAdminService {
 
         ApplicationEntity saved = entityRepository.save(entity);
 
-        log.info("Admin {} created entity: {}",
+        log.info("Admin {} created entity: {} (ID auto-generated: {})",
                 SecurityContextHolder.getContext().getAuthentication().getName(),
+                dto.getName(),
                 saved.getId());
 
         return convertToDTO(saved);
+    }
+
+    /**
+     * Generate entity ID from name
+     * Converts to uppercase, replaces spaces with underscores, removes special characters
+     */
+    private String generateEntityId(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            throw new CustomValidationException("Entity name is required");
+        }
+        return name.trim()
+                .toUpperCase()
+                .replaceAll("\\s+", "_")           // Replace spaces with underscores
+                .replaceAll("[^A-Z0-9_]", "")      // Remove special characters
+                .replaceAll("_+", "_")             // Replace multiple underscores with single
+                .replaceAll("^_|_$", "");          // Remove leading/trailing underscores
     }
 
     /**

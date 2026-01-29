@@ -10,6 +10,7 @@ import java.util.Date;
 
 /**
  * DTO for entity (application) administration
+ * Note: ID is auto-generated from name during creation
  */
 @Data
 @Builder
@@ -17,8 +18,7 @@ import java.util.Date;
 @AllArgsConstructor
 public class EntityAdminDTO {
 
-    @NotBlank(message = "Entity ID is required")
-    private String id;
+    private String id;  // Auto-generated from name during creation
 
     @NotBlank(message = "Entity name is required")
     private String name;

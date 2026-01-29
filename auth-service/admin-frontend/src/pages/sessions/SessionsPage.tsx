@@ -116,8 +116,15 @@ const SessionsPage = () => {
               size="small"
               onClick={() => handleRevokeSession(row.sessionId)}
               disabled={row.revoked}
+              sx={{
+                color: row.revoked ? 'text.disabled' : 'error.main',
+                '&:hover': {
+                  backgroundColor: 'error.light',
+                  color: 'error.contrastText',
+                },
+              }}
             >
-              <DeleteIcon />
+              <DeleteIcon fontSize="small" />
             </IconButton>
           </Tooltip>
         ),

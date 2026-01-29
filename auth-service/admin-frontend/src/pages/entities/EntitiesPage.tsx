@@ -41,7 +41,6 @@ const EntitiesPage = () => {
   // Create Entity Dialog
   const [createEntityOpen, setCreateEntityOpen] = useState(false);
   const [newEntity, setNewEntity] = useState({
-    id: '',
     name: '',
     type: 'WEB',
     description: '',
@@ -116,7 +115,7 @@ const EntitiesPage = () => {
         severity: 'success',
       });
       setCreateEntityOpen(false);
-      setNewEntity({ id: '', name: '', type: 'WEB', description: '' });
+      setNewEntity({ name: '', type: 'WEB', description: '' });
       triggerRefetch();
     } catch (error: any) {
       console.error('Failed to create entity:', error);
@@ -227,7 +226,17 @@ const EntitiesPage = () => {
         key={refetchTrigger}
         renderActions={(row: EntityAdmin) => (
           <Tooltip title="Delete Entity">
-            <IconButton size="small" color="error" onClick={() => handleDeleteEntity(row.id)}>
+            <IconButton
+              size="small"
+              onClick={() => handleDeleteEntity(row.id)}
+              sx={{
+                color: 'error.main',
+                '&:hover': {
+                  backgroundColor: 'error.light',
+                  color: 'error.contrastText',
+                },
+              }}
+            >
               <DeleteIcon fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -240,17 +249,11 @@ const EntitiesPage = () => {
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             <TextField
-              label="Entity ID"
-              value={newEntity.id}
-              onChange={(e) => setNewEntity({ ...newEntity, id: e.target.value.toUpperCase() })}
-              required
-              helperText="Unique identifier (e.g., APP003, MOBILE_APP)"
-            />
-            <TextField
               label="Name"
               value={newEntity.name}
               onChange={(e) => setNewEntity({ ...newEntity, name: e.target.value })}
               required
+              helperText="Entity ID will be auto-generated from the name"
             />
             <FormControl fullWidth required>
               <InputLabel>Type</InputLabel>
@@ -281,7 +284,7 @@ const EntitiesPage = () => {
           <Button
             onClick={handleCreateEntity}
             variant="contained"
-            disabled={!newEntity.id || !newEntity.name || !newEntity.type}
+            disabled={!newEntity.name || !newEntity.type}
           >
             Create
           </Button>

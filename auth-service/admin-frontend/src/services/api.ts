@@ -489,7 +489,7 @@ export const adminEntityAPI = {
     return response.data;
   },
 
-  createEntity: async (entityData: { id: string; name: string; type: string; description: string }): Promise<ApiResponse<EntityAdmin>> => {
+  createEntity: async (entityData: { name: string; type: string; description: string }): Promise<ApiResponse<EntityAdmin>> => {
     const response = await apiClient.post<ApiResponse<EntityAdmin>>('/admin/entities', entityData);
     return response.data;
   },

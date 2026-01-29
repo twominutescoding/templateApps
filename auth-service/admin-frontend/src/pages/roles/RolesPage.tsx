@@ -227,7 +227,17 @@ const RolesPage = () => {
         key={refetchTrigger}
         renderActions={(row: RoleAdmin & { id: string }) => (
           <Tooltip title="Delete Role">
-            <IconButton size="small" color="error" onClick={() => handleDeleteRole(row.role, row.entity)}>
+            <IconButton
+              size="small"
+              onClick={() => handleDeleteRole(row.role, row.entity)}
+              sx={{
+                color: 'error.main',
+                '&:hover': {
+                  backgroundColor: 'error.light',
+                  color: 'error.contrastText',
+                },
+              }}
+            >
               <DeleteIcon fontSize="small" />
             </IconButton>
           </Tooltip>
