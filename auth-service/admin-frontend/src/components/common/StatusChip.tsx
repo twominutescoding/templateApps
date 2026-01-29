@@ -42,6 +42,7 @@ const StatusChip = ({ status, label, size = 'small', onStatusChange, allowedStat
     switch (statusUpper) {
       case 'ACTIVE':
       case 'SUCCESS':
+      case 'SENT':
         return {
           color: '#4caf50',
           bgColor: 'rgba(76, 175, 80, 0.1)',
@@ -56,6 +57,8 @@ const StatusChip = ({ status, label, size = 'small', onStatusChange, allowedStat
         };
       case 'REVOKED':
       case 'CANCELLED':
+      case 'SKIP':
+      case 'SKIPPED':
         return {
           color: '#607d8b',
           bgColor: 'rgba(96, 125, 139, 0.1)',
@@ -68,6 +71,7 @@ const StatusChip = ({ status, label, size = 'small', onStatusChange, allowedStat
           icon: <WarningIcon />,
         };
       case 'INFO':
+      case 'NEW':
         return {
           color: '#2196f3',
           bgColor: 'rgba(33, 150, 243, 0.1)',

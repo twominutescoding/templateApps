@@ -282,7 +282,7 @@ const UsersPage = () => {
   // Convert user statuses to dropdown options
   const statusOptions = useMemo(() => {
     return userStatuses.map((us) => ({
-      label: us.description,
+      label: us.description || us.status,  // Fall back to status if description is empty
       value: us.status,
     }));
   }, [userStatuses]);
@@ -330,12 +330,9 @@ const UsersPage = () => {
         render: (row: UserAdmin) => {
           const option = statusOptions.find((o) => o.value === row.status);
           return (
-            <Chip
+            <StatusChip
+              status={row.status}
               label={option?.label || row.status}
-              size="small"
-              color={
-                row.status === 'ACTIVE' ? 'success' : row.status === 'INACTIVE' ? 'default' : 'error'
-              }
             />
           );
         },
@@ -350,7 +347,7 @@ const UsersPage = () => {
             {row.roles?.map((r) => (
               <Chip
                 key={`${r.role}-${r.entity}`}
-                label={`${r.role} (${r.entity})`}
+                label={`${r.role} (${r.entityName || r.entity})`}
                 size="small"
                 onDelete={() => handleRemoveRole(row.username, r.role, r.entity)}
               />

@@ -6,6 +6,7 @@ import com.template.business.auth.dto.UserAdminDTO;
 import com.template.business.auth.dto.UserRoleAssignRequest;
 import com.template.business.auth.dto.UserStatusUpdateRequest;
 import com.template.business.auth.dto.UserUpdateRequest;
+import com.template.business.auth.entity.ApplicationEntity;
 import com.template.business.auth.entity.Role;
 import com.template.business.auth.entity.User;
 import com.template.business.auth.entity.UserRole;
@@ -13,6 +14,7 @@ import com.template.business.auth.exception.CustomAuthorizationException;
 import com.template.business.auth.exception.CustomValidationException;
 import com.template.business.auth.exception.ErrorCode;
 import com.template.business.auth.exception.ResourceNotFoundException;
+import com.template.business.auth.repository.EntityRepository;
 import com.template.business.auth.repository.RoleRepository;
 import com.template.business.auth.repository.UserRepository;
 import com.template.business.auth.repository.UserRoleRepository;
@@ -45,6 +47,7 @@ public class UserAdminService {
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
     private final RoleRepository roleRepository;
+    private final EntityRepository entityRepository;
     private final PasswordEncoder passwordEncoder;
 
     /**
@@ -316,12 +319,26 @@ public class UserAdminService {
      */
     private UserAdminDTO convertToDTO(User user) {
         List<UserAdminDTO.UserRoleDTO> roles = user.getUserRoles().stream()
-                .map(ur -> UserAdminDTO.UserRoleDTO.builder()
-                        .role(ur.getId().getRole())
-                        .entity(ur.getId().getEntity())
-                        .description(ur.getRole() != null ? ur.getRole().getDescription() : null)
-                        .status(ur.getStatus())
-                        .build())
+                .map(ur -> {
+                    // Get entity name from the Role's ApplicationEntity relationship or lookup
+                    String entityName = null;
+                    if (ur.getRole() != null && ur.getRole().getEntity() != null) {
+                        entityName = ur.getRole().getEntity().getName();
+                    } else {
+                        // Fallback: lookup entity by ID if relationship not loaded
+                        entityName = entityRepository.findById(ur.getId().getEntity())
+                                .map(ApplicationEntity::getName)
+                                .orElse(ur.getId().getEntity()); // Fallback to ID if not found
+                    }
+
+                    return UserAdminDTO.UserRoleDTO.builder()
+                            .role(ur.getId().getRole())
+                            .entity(ur.getId().getEntity())
+                            .entityName(entityName)
+                            .description(ur.getRole() != null ? ur.getRole().getDescription() : null)
+                            .status(ur.getStatus())
+                            .build();
+                })
                 .collect(Collectors.toList());
 
         return UserAdminDTO.builder()

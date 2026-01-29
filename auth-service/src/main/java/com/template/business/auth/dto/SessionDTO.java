@@ -19,7 +19,8 @@ public class SessionDTO {
 
     private Long sessionId;
     private String username;
-    private String entity;
+    private String entity;        // Entity ID (for API operations)
+    private String entityName;    // Entity Name (for display)
     private String deviceName;
     private String ipAddress;
     private String location;

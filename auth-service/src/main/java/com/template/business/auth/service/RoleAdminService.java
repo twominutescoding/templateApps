@@ -246,9 +246,21 @@ public class RoleAdminService {
     private RoleAdminDTO convertToDTO(Role role) {
         int userCount = role.getUserRoles() != null ? role.getUserRoles().size() : 0;
 
+        // Get entity name from the ApplicationEntity relationship or lookup
+        String entityName = null;
+        if (role.getEntity() != null) {
+            entityName = role.getEntity().getName();
+        } else {
+            // Fallback: lookup entity by ID if relationship not loaded
+            entityName = entityRepository.findById(role.getId().getEntity())
+                    .map(ApplicationEntity::getName)
+                    .orElse(role.getId().getEntity()); // Fallback to ID if not found
+        }
+
         return RoleAdminDTO.builder()
                 .role(role.getId().getRole())
                 .entity(role.getId().getEntity())
+                .entityName(entityName)
                 .roleLevel(role.getRoleLevel())
                 .description(role.getDescription())
                 .createDate(role.getCreateDate())

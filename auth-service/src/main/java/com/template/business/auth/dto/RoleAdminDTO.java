@@ -16,7 +16,8 @@ import java.util.Date;
 @AllArgsConstructor
 public class RoleAdminDTO {
     private String role;
-    private String entity;
+    private String entity;        // Entity ID (for API operations)
+    private String entityName;    // Entity Name (for display)
     private String roleLevel;
     private String description;
     private Date createDate;

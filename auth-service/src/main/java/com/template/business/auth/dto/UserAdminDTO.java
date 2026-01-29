@@ -35,7 +35,8 @@ public class UserAdminDTO {
     @AllArgsConstructor
     public static class UserRoleDTO {
         private String role;
-        private String entity;
+        private String entity;        // Entity ID (for API operations)
+        private String entityName;    // Entity Name (for display)
         private String description;
         private String status;
     }

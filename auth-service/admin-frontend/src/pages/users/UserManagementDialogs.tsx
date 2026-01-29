@@ -112,8 +112,10 @@ export const AddRoleDialog = ({
   onEntityChange,
   onSubmit,
 }: AddRoleDialogProps) => {
-  // Get unique entities from available roles
-  const uniqueEntities = Array.from(new Set(availableRoles.map((r) => r.entity)));
+  // Get unique entities from available roles (with their names)
+  const uniqueEntities = Array.from(
+    new Map(availableRoles.map((r) => [r.entity, { id: r.entity, name: r.entityName || r.entity }])).values()
+  );
 
   // Filter roles by selected entity
   const filteredRoles = selectedEntity
@@ -129,8 +131,8 @@ export const AddRoleDialog = ({
             <InputLabel>Entity</InputLabel>
             <Select value={selectedEntity} onChange={(e) => onEntityChange(e.target.value)} label="Entity">
               {uniqueEntities.map((entity) => (
-                <MenuItem key={entity} value={entity}>
-                  {entity}
+                <MenuItem key={entity.id} value={entity.id}>
+                  {entity.name}
                 </MenuItem>
               ))}
             </Select>

@@ -4,9 +4,11 @@ import com.template.business.auth.dto.PageResponse;
 import com.template.business.auth.dto.RefreshTokenResponse;
 import com.template.business.auth.dto.SearchRequest;
 import com.template.business.auth.dto.SessionDTO;
+import com.template.business.auth.entity.ApplicationEntity;
 import com.template.business.auth.entity.RefreshToken;
 import com.template.business.auth.entity.User;
 import com.template.business.auth.entity.UserRole;
+import com.template.business.auth.repository.EntityRepository;
 import com.template.business.auth.exception.CustomAuthenticationException;
 import com.template.business.auth.exception.CustomAuthorizationException;
 import com.template.business.auth.exception.ErrorCode;
@@ -52,6 +54,7 @@ import java.util.stream.Collectors;
 public class RefreshTokenService {
 
     private final RefreshTokenRepository refreshTokenRepository;
+    private final EntityRepository entityRepository;
     private final DatabaseUserDetailsService databaseUserDetailsService;
     private final JwtUtil jwtUtil;
 
@@ -255,6 +258,7 @@ public class RefreshTokenService {
                         .sessionId(token.getId())
                         .username(token.getUsername())
                         .entity(token.getEntity())
+                        .entityName(getEntityName(token.getEntity()))
                         .deviceName(token.getDeviceName())
                         .ipAddress(token.getIpAddress())
                         .location(token.getLocation())
@@ -285,6 +289,7 @@ public class RefreshTokenService {
                         .sessionId(token.getId())
                         .username(token.getUsername())
                         .entity(token.getEntity())
+                        .entityName(getEntityName(token.getEntity()))
                         .deviceName(token.getDeviceName())
                         .ipAddress(token.getIpAddress())
                         .location(token.getLocation())
@@ -312,6 +317,7 @@ public class RefreshTokenService {
                         .sessionId(token.getId())
                         .username(token.getUsername())
                         .entity(token.getEntity())
+                        .entityName(getEntityName(token.getEntity()))
                         .deviceName(token.getDeviceName())
                         .ipAddress(token.getIpAddress())
                         .location(token.getLocation())
@@ -343,6 +349,7 @@ public class RefreshTokenService {
                 .sessionId(token.getId())
                 .username(token.getUsername())
                 .entity(token.getEntity())
+                .entityName(getEntityName(token.getEntity()))
                 .deviceName(token.getDeviceName())
                 .ipAddress(token.getIpAddress())
                 .location(token.getLocation())
@@ -628,5 +635,18 @@ public class RefreshTokenService {
         }
 
         return browser + " on " + os;
+    }
+
+    /**
+     * Get entity name by entity ID
+     * Falls back to ID if entity not found
+     */
+    private String getEntityName(String entityId) {
+        if (entityId == null) {
+            return null;
+        }
+        return entityRepository.findById(entityId)
+                .map(ApplicationEntity::getName)
+                .orElse(entityId); // Fallback to ID if not found
     }
 }

@@ -80,6 +80,7 @@ const SessionsPage = () => {
         label: 'Entity',
         editable: false,
         minWidth: 120,
+        render: (row: SessionAdmin) => row.entityName || row.entity,
       },
       {
         id: 'createdAt',

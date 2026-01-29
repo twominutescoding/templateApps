@@ -132,9 +132,11 @@ const RolesPage = () => {
     }
   }, [triggerRefetch]);
 
-  // Get unique entities from existing roles
+  // Get unique entities from existing roles (with their names)
   const uniqueEntities = useMemo(() => {
-    return Array.from(new Set(data.map((role) => role.entity)));
+    return Array.from(
+      new Map(data.map((r) => [r.entity, { id: r.entity, name: r.entityName || r.entity }])).values()
+    );
   }, [data]);
 
   // Role level options
@@ -157,6 +159,7 @@ const RolesPage = () => {
         label: 'Entity',
         editable: false,
         minWidth: 120,
+        render: (row: RoleAdmin) => row.entityName || row.entity,
       },
       {
         id: 'roleLevel',
@@ -251,8 +254,8 @@ const RolesPage = () => {
                 label="Entity"
               >
                 {uniqueEntities.map((entity) => (
-                  <MenuItem key={entity} value={entity}>
-                    {entity}
+                  <MenuItem key={entity.id} value={entity.id}>
+                    {entity.name}
                   </MenuItem>
                 ))}
               </Select>

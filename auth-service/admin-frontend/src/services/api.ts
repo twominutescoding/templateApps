@@ -192,6 +192,7 @@ export interface UserAdmin {
 export interface UserRole {
   role: string;
   entity: string;
+  entityName: string;
   description: string;
   status: string;
 }
@@ -199,6 +200,7 @@ export interface UserRole {
 export interface RoleAdmin {
   role: string;
   entity: string;
+  entityName: string;
   roleLevel: string;
   description: string;
   createDate: string;
@@ -247,6 +249,7 @@ export interface SessionAdmin {
   sessionId: number;
   username: string;
   entity: string;
+  entityName: string;
   deviceName: string;
   ipAddress: string;
   location?: string;

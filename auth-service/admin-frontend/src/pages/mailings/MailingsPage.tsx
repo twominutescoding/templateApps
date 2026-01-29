@@ -1,9 +1,10 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Box, Chip } from '@mui/material';
+import { Box } from '@mui/material';
 import AdvancedDataTable from '../../components/table/AdvancedDataTable';
 import type { Column, FetchParams } from '../../components/table/AdvancedDataTable';
 import { adminMailingAPI } from '../../services/api';
 import type { MailingAdmin, SearchRequest } from '../../services/api';
+import StatusChip from '../../components/common/StatusChip';
 import { useDateFormat } from '../../contexts/DateFormatContext';
 
 const MailingsPage = () => {
@@ -38,11 +39,29 @@ const MailingsPage = () => {
     }
   }, []);
 
-  // Sent status options for filtering
-  const sentOptions = [
+  // Mailing status options for filtering
+  const statusOptions = [
+    { label: 'New', value: 'N' },
     { label: 'Sent', value: 'Y' },
-    { label: 'Not Sent', value: 'N' },
+    { label: 'Skip', value: 'S' },
+    { label: 'Error', value: 'E' },
   ];
+
+  // Map status code to display info
+  const getStatusInfo = (code: string) => {
+    switch (code) {
+      case 'Y':
+        return { status: 'SENT', label: 'Sent' };
+      case 'N':
+        return { status: 'NEW', label: 'New' };
+      case 'S':
+        return { status: 'SKIP', label: 'Skip' };
+      case 'E':
+        return { status: 'ERROR', label: 'Error' };
+      default:
+        return { status: 'PENDING', label: code };
+    }
+  };
 
   const columns: Column<MailingAdmin>[] = useMemo(
     () => [
@@ -75,15 +94,17 @@ const MailingsPage = () => {
         label: 'Status',
         editable: false,
         filterType: 'select',
-        filterOptions: sentOptions,
+        filterOptions: statusOptions,
         minWidth: 100,
-        render: (row: MailingAdmin) => (
-          <Chip
-            label={row.sent === 'Y' ? 'Sent' : 'Not Sent'}
-            size="small"
-            color={row.sent === 'Y' ? 'success' : 'warning'}
-          />
-        ),
+        render: (row: MailingAdmin) => {
+          const statusInfo = getStatusInfo(row.sent);
+          return (
+            <StatusChip
+              status={statusInfo.status}
+              label={statusInfo.label}
+            />
+          );
+        },
       },
       {
         id: 'notBefore',
