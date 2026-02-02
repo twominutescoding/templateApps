@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Box, IconButton, Tooltip } from '@mui/material';
+import { Box, IconButton, Tooltip, Snackbar, Alert } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AdvancedDataTable from '../../components/table/AdvancedDataTable';
 import type { Column, FetchParams } from '../../components/table/AdvancedDataTable';
@@ -17,6 +17,13 @@ const SessionsPage = () => {
   // Refetch trigger
   const [refetchTrigger, setRefetchTrigger] = useState(0);
   const triggerRefetch = useCallback(() => setRefetchTrigger((prev) => prev + 1), []);
+
+  // Snackbar
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error';
+  }>({ open: false, message: '', severity: 'success' });
 
   // Server-side fetch with pagination
   const fetchData = useCallback(async (params: FetchParams) => {
@@ -48,9 +55,15 @@ const SessionsPage = () => {
     if (confirm('Are you sure you want to revoke this session?')) {
       try {
         await adminSessionAPI.revokeSession(sessionId);
+        setSnackbar({ open: true, message: 'Session revoked successfully', severity: 'success' });
         triggerRefetch();
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to revoke session:', error);
+        setSnackbar({
+          open: true,
+          message: error.response?.data?.message || 'Failed to revoke session',
+          severity: 'error',
+        });
       }
     }
   }, [triggerRefetch]);
@@ -105,30 +118,6 @@ const SessionsPage = () => {
           <StatusChip status={row.revoked ? 'REVOKED' : 'ACTIVE'} />
         ),
       },
-      {
-        id: 'actions',
-        label: 'Actions',
-        editable: false,
-        minWidth: 100,
-        render: (row: SessionAdmin) => (
-          <Tooltip title="Revoke Session">
-            <IconButton
-              size="small"
-              onClick={() => handleRevokeSession(row.sessionId)}
-              disabled={row.revoked}
-              sx={{
-                color: row.revoked ? 'text.disabled' : 'error.main',
-                '&:hover': {
-                  backgroundColor: 'error.light',
-                  color: 'error.contrastText',
-                },
-              }}
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        ),
-      },
     ],
     [formatTimestamp]
   );
@@ -147,7 +136,36 @@ const SessionsPage = () => {
         enableBulkEdit={false}
         rowIdField="sessionId"
         key={refetchTrigger}
+        renderActions={(row: SessionAdmin) => (
+          <Tooltip title="Revoke Session">
+            <IconButton
+              size="small"
+              onClick={() => handleRevokeSession(row.sessionId)}
+              disabled={row.revoked}
+              sx={{
+                color: row.revoked ? 'text.disabled' : 'error.main',
+                '&:hover': {
+                  backgroundColor: 'error.light',
+                  color: 'error.contrastText',
+                },
+              }}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
       />
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

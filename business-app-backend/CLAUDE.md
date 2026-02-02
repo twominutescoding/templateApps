@@ -133,7 +133,7 @@ formatTimestamp('2025-12-07T...');// Accepts Date or ISO string
 **JWT-based authentication via external auth-service**:
 - Login: `POST /auth/login` → Proxies to auth-service
 - Refresh: `POST /auth/refresh` → Proxies to auth-service
-- Returns JWT access token (24 hours) + refresh token (7 days)
+- Returns JWT access token (15 minutes) + refresh token (7 days)
 - Tokens stored in localStorage (frontend)
 - JwtRequestFilter validates JWT signature and extracts roles from token claims
 - No database query for authentication - stateless validation
@@ -430,7 +430,7 @@ const MyEntityPage = () => {
 - **Always extend BaseEntity** for new entities to get automatic createdAt/updatedAt
 - **Always use formatTimestamp** from DateFormatContext for displaying timestamps
 - **Demo package is separate** - safe to delete when ready for production
-- **Access tokens expire** - 24 hours (from auth-service)
+- **Access tokens expire** - 15 minutes (from auth-service)
 - **Refresh tokens expire** - 7 days (from auth-service)
 
 ## Last Session Summary

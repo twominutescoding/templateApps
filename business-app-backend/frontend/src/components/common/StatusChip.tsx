@@ -9,49 +9,58 @@ import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 export type StatusType = 'success' | 'error' | 'warning' | 'info' | 'pending' | 'cancelled';
 
 interface StatusChipProps {
-  status: StatusType;
-  label: string;
+  status: string; // Can be any string: ACTIVE, INACTIVE, REVOKED, etc.
+  label?: string; // Optional label override
   size?: 'small' | 'medium';
 }
 
 const StatusChip = ({ status, label, size = 'small' }: StatusChipProps) => {
   const getStatusConfig = () => {
-    switch (status) {
-      case 'success':
+    const statusUpper = status?.toUpperCase();
+
+    switch (statusUpper) {
+      case 'ACTIVE':
+      case 'SUCCESS':
+      case 'SENT':
         return {
           color: '#4caf50',
           bgColor: 'rgba(76, 175, 80, 0.1)',
           icon: <CheckCircleIcon />,
         };
-      case 'error':
+      case 'INACTIVE':
+      case 'ERROR':
         return {
           color: '#f44336',
           bgColor: 'rgba(244, 67, 54, 0.1)',
           icon: <ErrorIcon />,
         };
-      case 'warning':
+      case 'REVOKED':
+      case 'CANCELLED':
+      case 'SKIP':
+      case 'SKIPPED':
+        return {
+          color: '#607d8b',
+          bgColor: 'rgba(96, 125, 139, 0.1)',
+          icon: <CancelIcon />,
+        };
+      case 'WARNING':
         return {
           color: '#ff9800',
           bgColor: 'rgba(255, 152, 0, 0.1)',
           icon: <WarningIcon />,
         };
-      case 'info':
+      case 'INFO':
+      case 'NEW':
         return {
           color: '#2196f3',
           bgColor: 'rgba(33, 150, 243, 0.1)',
           icon: <InfoIcon />,
         };
-      case 'pending':
+      case 'PENDING':
         return {
           color: '#9e9e9e',
           bgColor: 'rgba(158, 158, 158, 0.1)',
           icon: <HourglassEmptyIcon />,
-        };
-      case 'cancelled':
-        return {
-          color: '#607d8b',
-          bgColor: 'rgba(96, 125, 139, 0.1)',
-          icon: <CancelIcon />,
         };
       default:
         return {
@@ -63,11 +72,12 @@ const StatusChip = ({ status, label, size = 'small' }: StatusChipProps) => {
   };
 
   const config = getStatusConfig();
+  const displayLabel = label || status;
 
   return (
     <Chip
       icon={config.icon}
-      label={label}
+      label={displayLabel}
       size={size}
       sx={{
         backgroundColor: config.bgColor,

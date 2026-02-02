@@ -851,9 +851,18 @@ const AdvancedDataTable = ({
           {activeFilterCount > 0 && (
             <Chip
               label={`${activeFilterCount} filter${activeFilterCount > 1 ? 's' : ''} active`}
-              color="primary"
               size="small"
               onDelete={handleClearFilters}
+              sx={{
+                backgroundColor: '#42a5f5',
+                color: '#fff',
+                '& .MuiChip-deleteIcon': {
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  '&:hover': {
+                    color: '#fff',
+                  },
+                },
+              }}
             />
           )}
           <Chip
@@ -871,20 +880,32 @@ const AdvancedDataTable = ({
                   <Button
                     size="small"
                     variant="contained"
-                    color="primary"
                     startIcon={<SaveIcon />}
                     onClick={handleBulkSaveAll}
                     disabled={saving}
+                    sx={{
+                      backgroundColor: '#66bb6a',
+                      '&:hover': {
+                        backgroundColor: '#43a047',
+                      },
+                    }}
                   >
                     Save All
                   </Button>
                   <Button
                     size="small"
                     variant="outlined"
-                    color="secondary"
                     startIcon={<CancelIcon />}
                     onClick={handleBulkEditCancel}
                     disabled={saving}
+                    sx={{
+                      color: '#bdbdbd',
+                      borderColor: '#bdbdbd',
+                      '&:hover': {
+                        backgroundColor: 'rgba(189, 189, 189, 0.15)',
+                        borderColor: '#9e9e9e',
+                      },
+                    }}
                   >
                     Cancel All
                   </Button>
@@ -893,10 +914,17 @@ const AdvancedDataTable = ({
                 <Button
                   size="small"
                   variant="outlined"
-                  color="primary"
                   startIcon={<EditIcon />}
                   onClick={handleBulkEditStart}
                   disabled={editingRowId !== null}
+                  sx={{
+                    color: '#42a5f5',
+                    borderColor: '#42a5f5',
+                    '&:hover': {
+                      backgroundColor: 'rgba(66, 165, 245, 0.15)',
+                      borderColor: '#64b5f6',
+                    },
+                  }}
                 >
                   Edit All
                 </Button>
@@ -1118,20 +1146,32 @@ const AdvancedDataTable = ({
                                   <Button
                                     size="small"
                                     variant="contained"
-                                    color="primary"
                                     startIcon={<SaveIcon />}
                                     onClick={handleSaveRow}
                                     disabled={saving}
+                                    sx={{
+                                      backgroundColor: '#66bb6a',
+                                      '&:hover': {
+                                        backgroundColor: '#43a047',
+                                      },
+                                    }}
                                   >
                                     Save
                                   </Button>
                                   <Button
                                     size="small"
                                     variant="outlined"
-                                    color="secondary"
                                     startIcon={<CancelIcon />}
                                     onClick={handleCancelEdit}
                                     disabled={saving}
+                                    sx={{
+                                      color: '#bdbdbd',
+                                      borderColor: '#bdbdbd',
+                                      '&:hover': {
+                                        backgroundColor: 'rgba(189, 189, 189, 0.15)',
+                                        borderColor: '#9e9e9e',
+                                      },
+                                    }}
                                   >
                                     Cancel
                                   </Button>
@@ -1140,9 +1180,18 @@ const AdvancedDataTable = ({
                                 <Tooltip title="Edit">
                                   <IconButton
                                     size="small"
-                                    color="primary"
                                     onClick={() => handleEditRow(row)}
                                     disabled={editingRowId !== null}
+                                    sx={{
+                                      color: '#42a5f5',
+                                      '&:hover': {
+                                        backgroundColor: 'rgba(66, 165, 245, 0.15)',
+                                        color: '#64b5f6',
+                                      },
+                                      '&.Mui-disabled': {
+                                        color: 'action.disabled',
+                                      },
+                                    }}
                                   >
                                     <EditIcon fontSize="small" />
                                   </IconButton>

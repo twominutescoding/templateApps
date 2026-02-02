@@ -494,4 +494,26 @@ Comprehensive documentation for building OSB-replacement integration systems usi
 
 - **H2 Database**: Both applications use H2 for development - switch to PostgreSQL/MySQL/Oracle for production
 - **Frontend Bundle Size**: Business app frontend is ~1.27 MB (384 KB gzipped) - could be optimized with code splitting
-- **JWT Expiration**: Currently set to 24 hours - adjust as needed
+- **JWT Expiration**: Access tokens expire in 15 minutes, refresh tokens in 7 days - adjust in `application-*.properties`
+- **AdvancedDataTable Button Colors**: Uses hardcoded hex colors for dark theme visibility (#42a5f5 blue, #66bb6a green, #bdbdbd gray)
+
+## Shared Frontend Components
+
+### StatusChip Component
+Status display component with consistent styling across both frontends. Supports the following statuses:
+
+| Status | Color | Use Case |
+|--------|-------|----------|
+| ACTIVE, SUCCESS, SENT | Green (#4caf50) | Active sessions, successful operations, sent emails |
+| INACTIVE, ERROR | Red (#f44336) | Inactive users, errors |
+| REVOKED, CANCELLED, SKIP, SKIPPED | Gray (#607d8b) | Revoked sessions, skipped operations |
+| WARNING | Orange (#ff9800) | Warning states |
+| INFO, NEW | Blue (#2196f3) | Informational, new records |
+| PENDING | Gray (#9e9e9e) | Pending operations |
+
+### AdvancedDataTable Component
+Reusable table component with server-side pagination, filtering, sorting, and inline editing. Key features:
+- Dark theme compatible button colors (hardcoded for visibility)
+- Date range filtering via `filterType: 'date'`
+- Bulk edit mode support
+- Export to CSV/JSON
