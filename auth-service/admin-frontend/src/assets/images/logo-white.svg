@@ -1,0 +1,5 @@
+<svg width="200" height="50" viewBox="0 0 200 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Placeholder White Logo for Login Page -->
+  <rect width="200" height="50" rx="4" fill="rgba(255,255,255,0.15)"/>
+  <text x="100" y="32" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="white" text-anchor="middle">COMPANY LOGO</text>
+</svg>

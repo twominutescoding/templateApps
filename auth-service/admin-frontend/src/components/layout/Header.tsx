@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useThemeContext } from '../../theme/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
+import Logo from '../common/Logo';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -68,7 +69,17 @@ const Header = ({ onMenuClick }: HeaderProps) => {
           <MenuIcon fontSize="small" />
         </IconButton>
 
-        {/* Admin Icon */}
+        {/* Company Logo + Admin Icon */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            mr: 2,
+          }}
+        >
+          <Logo variant="default" height={32} maxWidth={120} />
+        </Box>
+
         <AdminPanelSettingsIcon
           sx={{
             mr: 1.5,

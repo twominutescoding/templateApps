@@ -18,8 +18,9 @@ import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import { useThemeContext } from '../theme/ThemeContext';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import Logo from '../components/common/Logo';
 
 const Login = () => {
   const { login } = useAuth();
@@ -90,15 +91,25 @@ const Login = () => {
             color: 'white',
           }}
         >
-          {/* Admin Icon */}
+          {/* Company Logo + Admin Icon */}
           <Box
             sx={{
-              mb: 3,
+              mb: 2,
               display: 'flex',
               justifyContent: 'center',
             }}
           >
-            <AdminPanelSettingsIcon sx={{ fontSize: 60, opacity: 0.95 }} />
+            <Logo variant="white" height={50} maxWidth={200} />
+          </Box>
+
+          <Box
+            sx={{
+              mb: 2,
+              display: 'flex',
+              justifyContent: 'center',
+            }}
+          >
+            <AdminPanelSettingsIcon sx={{ fontSize: 48, opacity: 0.95 }} />
           </Box>
 
           <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
