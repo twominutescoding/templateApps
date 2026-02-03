@@ -245,6 +245,29 @@ export interface MailingAdmin {
   createUser: string;
 }
 
+export interface AppLogAdmin {
+  id: number;
+  entity: string;
+  entityName: string;
+  module: string;
+  request: string;
+  response: string;
+  status: string;
+  startTime: string;
+  endTime: string;
+  durationMs: number;
+  notifiable: string; // Y/N
+  notificationSent: string; // Y/N
+  username: string;
+  createUser: string;
+  createDate: string;
+}
+
+export interface LogStatusData {
+  status: string;
+  deleteAfter: number; // Number of days to keep logs with this status
+}
+
 export interface SessionAdmin {
   sessionId: number;
   username: string;
@@ -535,6 +558,29 @@ export const adminMailingAPI = {
 
   getMailing: async (id: number): Promise<ApiResponse<MailingAdmin>> => {
     const response = await apiClient.get<ApiResponse<MailingAdmin>>(`/admin/mailings/${id}`);
+    return response.data;
+  },
+};
+
+// Admin App Log API (read-only)
+export const adminAppLogAPI = {
+  getAllLogs: async (): Promise<ApiResponse<AppLogAdmin[]>> => {
+    const response = await apiClient.get<ApiResponse<AppLogAdmin[]>>('/admin/logs');
+    return response.data;
+  },
+
+  searchLogs: async (searchRequest: SearchRequest): Promise<ApiResponse<PageResponse<AppLogAdmin>>> => {
+    const response = await apiClient.post<ApiResponse<PageResponse<AppLogAdmin>>>('/admin/logs/search', searchRequest);
+    return response.data;
+  },
+
+  getLog: async (id: number): Promise<ApiResponse<AppLogAdmin>> => {
+    const response = await apiClient.get<ApiResponse<AppLogAdmin>>(`/admin/logs/${id}`);
+    return response.data;
+  },
+
+  getLogStatuses: async (): Promise<ApiResponse<LogStatusData[]>> => {
+    const response = await apiClient.get<ApiResponse<LogStatusData[]>>('/admin/logs/statuses');
     return response.data;
   },
 };

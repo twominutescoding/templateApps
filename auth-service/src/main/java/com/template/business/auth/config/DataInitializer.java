@@ -1,13 +1,17 @@
 package com.template.business.auth.config;
 
+import com.template.business.auth.entity.AppLog;
 import com.template.business.auth.entity.ApplicationEntity;
 import com.template.business.auth.entity.EntityType;
+import com.template.business.auth.entity.LogStatus;
 import com.template.business.auth.entity.Role;
 import com.template.business.auth.entity.User;
 import com.template.business.auth.entity.UserRole;
 import com.template.business.auth.entity.UserStatus;
+import com.template.business.auth.repository.AppLogRepository;
 import com.template.business.auth.repository.EntityRepository;
 import com.template.business.auth.repository.EntityTypeRepository;
+import com.template.business.auth.repository.LogStatusRepository;
 import com.template.business.auth.repository.RoleRepository;
 import com.template.business.auth.repository.UserRepository;
 import com.template.business.auth.repository.UserRoleRepository;
@@ -69,6 +73,8 @@ public class DataInitializer {
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
     private final UserStatusRepository userStatusRepository;
+    private final LogStatusRepository logStatusRepository;
+    private final AppLogRepository appLogRepository;
     private final PasswordEncoder passwordEncoder;
 
     /**
@@ -253,6 +259,52 @@ public class DataInitializer {
 
                 log.info("Created {} user-role assignments", userRoleRepository.count());
 
+                // 5. Create Log Status values (lookup table)
+                log.info("Creating log status values...");
+
+                LogStatus infoStatus = createLogStatus("INFO", 7);
+                LogStatus warningStatus = createLogStatus("WARNING", 20);
+                LogStatus errorStatus = createLogStatus("ERROR", 30);
+                LogStatus successStatus = createLogStatus("SUCCESS", 7);
+
+                logStatusRepository.save(infoStatus);
+                logStatusRepository.save(warningStatus);
+                logStatusRepository.save(errorStatus);
+                logStatusRepository.save(successStatus);
+
+                log.info("Created {} log status values", logStatusRepository.count());
+
+                // 6. Create sample application logs
+                log.info("Creating sample application logs...");
+
+                Date now = new Date();
+                Date fiveMinAgo = new Date(now.getTime() - 5 * 60 * 1000);
+                Date tenMinAgo = new Date(now.getTime() - 10 * 60 * 1000);
+                Date oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+                Date twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+
+                appLogRepository.save(createAppLog("APP001", "UserService", "INFO",
+                        "{\"action\":\"login\",\"username\":\"admin\"}", "{\"success\":true,\"token\":\"jwt...\"}",
+                        twoHoursAgo, new Date(twoHoursAgo.getTime() + 150), "admin", "auth-service"));
+
+                appLogRepository.save(createAppLog("APP001", "OrderService", "SUCCESS",
+                        "{\"orderId\":12345,\"items\":[\"item1\",\"item2\"]}", "{\"status\":\"created\",\"orderId\":12345}",
+                        oneHourAgo, new Date(oneHourAgo.getTime() + 320), "user1", "order-service"));
+
+                appLogRepository.save(createAppLog("APP002", "ReportGenerator", "WARNING",
+                        "{\"reportType\":\"monthly\",\"format\":\"pdf\"}", "{\"status\":\"completed\",\"warnings\":[\"some data missing\"]}",
+                        tenMinAgo, new Date(tenMinAgo.getTime() + 5500), "admin", "report-service"));
+
+                appLogRepository.save(createAppLog("APP001", "PaymentGateway", "ERROR",
+                        "{\"paymentId\":\"PAY-001\",\"amount\":99.99}", "{\"error\":\"Connection timeout\",\"code\":\"TIMEOUT\"}",
+                        fiveMinAgo, new Date(fiveMinAgo.getTime() + 30000), "user2", "payment-service"));
+
+                appLogRepository.save(createAppLog("DEFAULT", "HealthCheck", "SUCCESS",
+                        "{\"service\":\"database\"}", "{\"status\":\"healthy\",\"latency\":12}",
+                        now, new Date(now.getTime() + 50), null, "monitoring-service"));
+
+                log.info("Created {} sample application logs", appLogRepository.count());
+
                 log.info("Data initialization completed successfully!");
                 log.info("Sample users created:");
                 log.info("  - admin/password (ADMIN in DEFAULT, APP001, APP002 & AUTH_ADMIN)");
@@ -344,5 +396,55 @@ public class DataInitializer {
         userRole.setCreateDate(new Date());
         userRole.setCreateUser("system");
         return userRole;
+    }
+
+    /**
+     * Creates a LogStatus entity for the lookup table.
+     *
+     * @param status the status code (e.g., INFO, WARNING, ERROR)
+     * @param deleteAfter number of days to keep logs with this status
+     * @return a configured LogStatus entity ready to be persisted
+     */
+    private LogStatus createLogStatus(String status, Integer deleteAfter) {
+        LogStatus logStatus = new LogStatus();
+        logStatus.setStatus(status);
+        logStatus.setDeleteAfter(deleteAfter);
+        logStatus.setCreateDate(new Date());
+        logStatus.setCreateUser("system");
+        return logStatus;
+    }
+
+    /**
+     * Creates an AppLog entity for sample data.
+     *
+     * @param entity the application entity ID
+     * @param module the module name
+     * @param status the log status
+     * @param request the request payload
+     * @param response the response payload
+     * @param startTime the start time
+     * @param endTime the end time
+     * @param username the user who performed the action (optional)
+     * @param createUser the service that created the log
+     * @return a configured AppLog entity ready to be persisted
+     */
+    private AppLog createAppLog(String entity, String module, String status,
+                                String request, String response,
+                                Date startTime, Date endTime,
+                                String username, String createUser) {
+        AppLog appLog = new AppLog();
+        appLog.setEntity(entity);
+        appLog.setModule(module);
+        appLog.setStatus(status);
+        appLog.setRequest(request);
+        appLog.setResponse(response);
+        appLog.setStartTime(startTime);
+        appLog.setEndTime(endTime);
+        appLog.setUsername(username);
+        appLog.setCreateUser(createUser);
+        appLog.setNotifiable("N");
+        appLog.setNotificationSent("N");
+        appLog.setCreateDate(new Date());
+        return appLog;
     }
 }

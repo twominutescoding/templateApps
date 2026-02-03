@@ -11,6 +11,7 @@ import RolesPage from './pages/roles/RolesPage';
 import EntitiesPage from './pages/entities/EntitiesPage';
 import SessionsPage from './pages/sessions/SessionsPage';
 import MailingsPage from './pages/mailings/MailingsPage';
+import LogsPage from './pages/logs/LogsPage';
 import Settings from './pages/Settings';
 
 function App() {
@@ -80,6 +81,16 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <MailingsPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/logs"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <LogsPage />
                   </Layout>
                 </ProtectedRoute>
               }

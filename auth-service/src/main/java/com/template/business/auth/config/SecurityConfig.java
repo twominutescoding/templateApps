@@ -149,6 +149,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/validate").authenticated()
                         .requestMatchers("/api/v1/auth/sessions/**").authenticated()
                         .requestMatchers("/api/v1/auth/admin/**").authenticated()
+                        // Logging endpoints (require JWT authentication)
+                        .requestMatchers("/api/v1/logs/**").authenticated()
+                        .requestMatchers("/api/v1/admin/logs/**").authenticated()
                         // All other endpoints require authentication
                         .anyRequest().authenticated()
                 )
