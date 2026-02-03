@@ -4,7 +4,7 @@ A Spring Boot 4.0.1 microservice providing centralized authentication with Activ
 
 ## Features
 
-- **Spring Boot 4.0.1** - Latest Spring Boot with enhanced modularization and Java 25 support
+- **Spring Boot 4.0.1** - Latest Spring Boot with enhanced modularization and Java 17+ support
 - **Dual Authentication Strategy**: Active Directory LDAP with database fallback
 - **JWT Token-based Authentication** with HS256 algorithm (JJWT 0.12.6)
 - **User Registration** with BCrypt password encryption

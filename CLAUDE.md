@@ -27,7 +27,7 @@ Each template application is **independent** and can be:
 A Spring Boot 4.0.1 microservice providing centralized JWT-based authentication.
 
 ### Key Features
-- **Spring Boot 4.0.1**: Latest version with enhanced modularization and Java 25 support
+- **Spring Boot 4.0.1**: Latest version with enhanced modularization and Java 17+ support
 - **Dual Authentication Strategy**: Active Directory LDAP (optional) with database fallback
 - **Multi-application Support**: Entity-based role filtering via `applicationCode`
 - **JWT Tokens**: HS256 algorithm with 15-minute expiration (JJWT 0.12.6)
@@ -183,7 +183,7 @@ A comprehensive full-stack business application template with Spring Boot backen
 - **Backend**: Spring Boot 4.0.1, Java 17, Spring Security, Spring Data JPA
 - **Frontend**: React 19.2, TypeScript, Vite, Material-UI v7
 - **Database**: H2 (dev), Oracle (prod)
-- **Authentication**: JWT-based stateless authentication
+- **Authentication**: External auth-service (JWT tokens validated locally, refresh tokens via auth-service)
 - **API Documentation**: SpringDoc OpenAPI (Swagger)
 
 ### Important Design: Demo vs Real Code Separation
@@ -196,7 +196,8 @@ A comprehensive full-stack business application template with Spring Boot backen
 
 **Real Business Packages**:
 - `entity/`, `repository/`, `service/`, `controller/` - Ready for real business logic
-- Currently contains User entity and authentication services
+- Contains BaseEntity and proxy services for external auth-service
+- No local User entity (users managed by external auth-service)
 - Demo code does NOT pollute these packages
 
 ### Running Business App
@@ -204,7 +205,7 @@ A comprehensive full-stack business application template with Spring Boot backen
 ```bash
 cd business-app-backend
 
-# Backend only (port 8080)
+# Backend only (port 8090)
 ./mvnw spring-boot:run
 
 # Frontend only (port 5173)
@@ -231,10 +232,14 @@ java -jar target/business-app-backend-1.0.0.jar
 - Swagger UI: http://localhost:8090/api/swagger-ui.html
 
 ### Sample Users (Dev)
-- Admin: admin@example.com / admin123 (username: admin)
-- Regular User: user@example.com / user123 (username: user)
-- Users with MANAGER role: jane.smith@example.com / password123 (username: jane.smith)
-- Other test users: john.doe@example.com, bob.wilson@example.com (password: password123)
+Uses auth-service users (auth-service must be running):
+| Username | Password | Roles |
+|----------|----------|-------|
+| admin | password | ADMIN |
+| user1 | password | USER, MANAGER |
+| user2 | password | USER |
+
+**Note:** Login requires `entityCode` parameter (e.g., "APP001" or "APP002")
 
 ### Key Frontend Features
 

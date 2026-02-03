@@ -1,12 +1,11 @@
 package com.template.business.service;
 
 import com.template.business.dto.AppLogRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -18,6 +17,7 @@ import java.util.concurrent.CompletableFuture;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class AuthServiceLogClient {
 
     @Value("${auth.service.log-url}")
@@ -27,10 +27,6 @@ public class AuthServiceLogClient {
     private boolean loggingEnabled;
 
     private final RestTemplate restTemplate;
-
-    public AuthServiceLogClient() {
-        this.restTemplate = new RestTemplate();
-    }
 
     /**
      * Send log entry to auth-service asynchronously.

@@ -87,14 +87,14 @@ public class AuthController {
         try {
             log.info("Login attempt for user: {} with entity: {}", request.getUsername(), request.getEntityCode());
 
-            String entityId = entityRepository.findByName(request.getEntityCode()).orElseGet(ApplicationEntity::new).getId();
-
-            // Validate that entity exists
-            if (!entityRepository.existsById(entityId)) {
+            // Validate that entity exists and get its ID
+            ApplicationEntity entity = entityRepository.findByName(request.getEntityCode()).orElse(null);
+            if (entity == null) {
                 log.warn("Login failed: Entity {} does not exist", request.getEntityCode());
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(ApiResponse.error("Entity '" + request.getEntityCode() + "' does not exist"));
             }
+            String entityId = entity.getId();
 
             // Authenticate using custom provider (LDAP + DB fallback)
             Authentication authentication = authenticationProvider.authenticate(
@@ -111,7 +111,7 @@ public class AuthController {
             // Extract roles - prioritize database roles if user exists
             List<String> roles;
 
-            System.out.println("entityId " + entityId);
+            log.debug("Filtering roles for entityId: {}", entityId);
             if (user != null && user.getUserRoles() != null && !user.getUserRoles().isEmpty()) {
                 // LDAP is only for authentication - roles ALWAYS come from database
                 // Filter roles by specific entity (entityCode is mandatory)

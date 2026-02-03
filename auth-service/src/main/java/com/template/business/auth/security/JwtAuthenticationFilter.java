@@ -147,7 +147,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
 
         // Skip JWT validation for these public endpoints
-        // (they don't need authentication)
+        // Note: getRequestURI() includes the context path (/auth), so paths here
+        // must include it. SecurityConfig uses paths without context path.
         return path.equals("/auth/api/v1/auth/login") ||
                path.equals("/auth/api/v1/auth/register") ||
                path.equals("/auth/api/v1/auth/health") ||

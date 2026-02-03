@@ -42,14 +42,14 @@ import { useDateFormat } from '../../contexts/DateFormatContext';
 
 type Order = 'asc' | 'desc';
 
-interface Column {
+export interface Column<T = Record<string, unknown>> {
   id: string;
   label: string;
   sortable?: boolean;
   filterable?: boolean;
   filterType?: 'text' | 'select' | 'number' | 'date';
   filterOptions?: { label: string; value: string }[];
-  render?: (row: Record<string, any>) => React.ReactNode;
+  render?: (row: T) => React.ReactNode;
   editable?: boolean;  // Can this column be edited?
   editType?: 'text' | 'select' | 'number' | 'date';  // Input type for editing
   width?: string | number;  // Fixed width for column (e.g., '100px', 100, '10%')
