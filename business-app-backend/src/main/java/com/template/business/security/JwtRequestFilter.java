@@ -67,9 +67,11 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                             .map(SimpleGrantedAuthority::new)
                             .collect(Collectors.toList());
 
-                    // Create authentication token with username and authorities
+                    // Create authentication token with username, JWT token, and authorities
+                    // The JWT token is stored as credentials so it can be used by services
+                    // that need to forward it to other services (e.g., AppLogger -> auth-service)
                     UsernamePasswordAuthenticationToken authenticationToken =
-                            new UsernamePasswordAuthenticationToken(username, null, authorities);
+                            new UsernamePasswordAuthenticationToken(username, jwt, authorities);
                     authenticationToken.setDetails(
                             new WebAuthenticationDetailsSource().buildDetails(request));
 

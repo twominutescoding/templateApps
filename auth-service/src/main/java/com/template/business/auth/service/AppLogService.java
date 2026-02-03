@@ -9,6 +9,7 @@ import com.template.business.auth.exception.ResourceNotFoundException;
 import com.template.business.auth.repository.AppLogRepository;
 import com.template.business.auth.repository.EntityRepository;
 import com.template.business.auth.repository.LogStatusRepository;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -32,6 +33,7 @@ public class AppLogService {
     private final AppLogRepository appLogRepository;
     private final EntityRepository entityRepository;
     private final LogStatusRepository logStatusRepository;
+    private final EntityManager entityManager;
 
     /**
      * Create a log entry synchronously
@@ -41,7 +43,10 @@ public class AppLogService {
         log.debug("Creating log entry for module: {}, status: {}", request.getModule(), request.getStatus());
 
         AppLog appLog = buildAppLog(request);
-        AppLog savedLog = appLogRepository.save(appLog);
+        AppLog savedLog = appLogRepository.saveAndFlush(appLog);
+
+        // Refresh to get the database-generated ID (from trigger)
+        entityManager.refresh(savedLog);
 
         log.info("Created log entry with ID: {} for module: {}", savedLog.getId(), request.getModule());
         return convertToDTO(savedLog);
@@ -57,7 +62,10 @@ public class AppLogService {
 
         try {
             AppLog appLog = buildAppLog(request);
-            AppLog savedLog = appLogRepository.save(appLog);
+            AppLog savedLog = appLogRepository.saveAndFlush(appLog);
+
+            // Refresh to get the database-generated ID (from trigger)
+            entityManager.refresh(savedLog);
 
             log.info("Created async log entry with ID: {} for module: {}", savedLog.getId(), request.getModule());
             return CompletableFuture.completedFuture(convertToDTO(savedLog));
