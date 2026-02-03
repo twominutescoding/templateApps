@@ -11,7 +11,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useThemeContext } from '../../theme/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import logo from '../../assets/images/logo.svg';
+import Logo from '../common/Logo';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -82,15 +82,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
             mr: 3,
           }}
         >
-          <img
-            src={logo}
-            alt="Company Logo"
-            style={{
-              height: '32px',
-              maxWidth: '120px',
-              objectFit: 'contain',
-            }}
-          />
+          <Logo variant="default" height={32} maxWidth={120} />
         </Box>
 
         <Typography

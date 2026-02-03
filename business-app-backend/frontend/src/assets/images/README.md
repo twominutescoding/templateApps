@@ -4,13 +4,13 @@ This folder contains placeholder company logos. Replace these files with your ac
 
 ## Logo Files
 
-### 1. `logo.svg` (Main Logo - Dark Backgrounds)
+### 1. `logo.svg` (Main Logo - Header/Topbar)
 - **Used in**: Header/Topbar
 - **Recommended size**: 120x40px (or similar aspect ratio)
 - **Format**: SVG (preferred) or PNG with transparent background
-- **Colors**: Should work on gradient backgrounds (will be inverted to white)
+- **Colors**: Should work on gradient backgrounds
 
-### 2. `logo-white.svg` (White Logo - Dark Backgrounds)
+### 2. `logo-white.svg` (White Logo - Login Page)
 - **Used in**: Login page header
 - **Recommended size**: 200x50px (or similar aspect ratio)
 - **Format**: SVG (preferred) or PNG with transparent background
@@ -24,69 +24,72 @@ This folder contains placeholder company logos. Replace these files with your ac
 
 ## How to Replace Logos
 
-### Option 1: Replace the SVG files directly
+### Option 1: Use Custom PNG (Recommended)
+
+Place your custom logo files in the `public/` folder:
+
+1. Add `logo.png` to `public/` - used in the header
+2. Add `logo-white.png` to `public/` - used on the login page
+
+The Logo component will automatically detect and use these files.
+
+### Option 2: Replace the SVG files
+
 1. Replace `logo.svg` with your company logo
 2. Replace `logo-white.svg` with a white version of your logo
 3. Replace `/frontend/public/favicon.svg` with your favicon
 
-### Option 2: Use PNG/JPG files
-1. Add your logo files (e.g., `logo.png`, `logo-white.png`)
-2. Update the import paths in:
-   - `/frontend/src/components/layout/Header.tsx`
-   - `/frontend/src/pages/Login.tsx`
-
-Example:
-```typescript
-// Before
-import logo from '../../assets/images/logo.svg';
-
-// After
-import logo from '../../assets/images/logo.png';
-```
-
 ### Option 3: Use external URL
-If your logo is hosted externally, you can use the URL directly:
+
+Modify the Logo component to use an external URL:
 
 ```typescript
-// In Header.tsx or Login.tsx
-<img src="https://yourcompany.com/logo.svg" alt="Company Logo" />
-```
-
-## Customization Tips
-
-### Login Page Logo
-- Best size: Height 40-60px, Width up to 200px
-- Should be white or light colored for dark gradient background
-- Located at: `/frontend/src/pages/Login.tsx` line 98
-
-### Header/Topbar Logo
-- Best size: Height 30-36px, Width up to 120px
-- Uses CSS filter to make it white on gradient background
-- Located at: `/frontend/src/components/layout/Header.tsx` line 86
-
-### Removing the Filter
-If your logo is already white/light, you may want to remove the CSS filter:
-
-```typescript
-// In Header.tsx, remove or comment out:
-filter: 'brightness(0) invert(1)',
+// In src/components/common/Logo.tsx
+// Change the default logo source to your CDN URL
 ```
 
 ## File Structure
+
 ```
 frontend/
 ├── public/
-│   └── favicon.svg          # Browser tab icon
+│   ├── logo.png         # Custom logo (optional - takes priority)
+│   ├── logo-white.png   # Custom white logo (optional - takes priority)
+│   └── favicon.svg      # Browser tab icon
 └── src/
-    └── assets/
-        └── images/
-            ├── logo.svg           # Main logo (topbar)
-            ├── logo-white.svg     # White logo (login page)
-            └── README.md          # This file
+    ├── assets/
+    │   └── images/
+    │       ├── logo.svg         # Default logo (fallback)
+    │       ├── logo-white.svg   # Default white logo (fallback)
+    │       └── README.md        # This file
+    └── components/
+        └── common/
+            └── Logo.tsx         # Logo component with fallback logic
 ```
 
-## Need Help?
+## Logo Component Usage
+
+The `Logo` component automatically handles the fallback:
+
+```typescript
+import Logo from '../components/common/Logo';
+
+// In Header (default variant)
+<Logo variant="default" height={32} maxWidth={120} />
+
+// In Login page (white variant)
+<Logo variant="white" height={50} maxWidth={200} />
+```
+
+## Priority Order
+
+1. **Custom PNG in public/** (e.g., `/public/logo.png`) - checked first
+2. **Default SVG** (e.g., `src/assets/images/logo.svg`) - fallback
+
+## Customization Tips
+
 - SVG logos work best for scaling
 - Use transparent backgrounds for PNG files
 - Test your logo on both light and dark themes
 - Ensure logos are optimized for web (compress large files)
+- White logo should be clearly visible on dark blue gradient background

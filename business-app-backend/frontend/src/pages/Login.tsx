@@ -18,7 +18,7 @@ import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import logoWhite from '../assets/images/logo-white.svg';
+import Logo from '../components/common/Logo';
 
 const Login = () => {
   const { login } = useAuth();
@@ -94,15 +94,7 @@ const Login = () => {
               justifyContent: 'center',
             }}
           >
-            <img
-              src={logoWhite}
-              alt="Company Logo"
-              style={{
-                height: '50px',
-                maxWidth: '200px',
-                objectFit: 'contain',
-              }}
-            />
+            <Logo variant="white" height={50} maxWidth={200} />
           </Box>
 
           <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
