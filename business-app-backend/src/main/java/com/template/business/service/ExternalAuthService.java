@@ -6,6 +6,7 @@ import com.template.business.dto.RefreshTokenRequest;
 import com.template.business.exception.CustomAuthenticationException;
 import com.template.business.exception.ErrorCode;
 import com.template.business.exception.ExternalServiceException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -18,6 +19,7 @@ import org.springframework.web.client.RestTemplate;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class ExternalAuthService {
 
     @Value("${auth.service.url}")
@@ -28,18 +30,15 @@ public class ExternalAuthService {
 
     private final RestTemplate restTemplate;
 
-    public ExternalAuthService() {
-        this.restTemplate = new RestTemplate();
-    }
-
     /**
      * Authenticate with external auth-service
      *
      * @param username Username
      * @param password Password
+     * @param entityCode Entity (application) code for multi-app support
      * @return ExternalAuthResponse with token and user data
      */
-    public ExternalAuthResponse authenticate(String username, String password) {
+    public ExternalAuthResponse authenticate(String username, String password, String entityCode) {
         try {
             log.debug("Authenticating with external auth-service: {}", authServiceUrl);
 
@@ -47,6 +46,7 @@ public class ExternalAuthService {
             LoginRequest loginRequest = new LoginRequest();
             loginRequest.setUsername(username);
             loginRequest.setPassword(password);
+            loginRequest.setEntityCode(entityCode);
 
             // Create headers
             HttpHeaders headers = new HttpHeaders();
@@ -70,7 +70,8 @@ public class ExternalAuthService {
                     return authResponse;
                 } else {
                     log.error("External auth service returned unsuccessful response");
-                    throw new CustomAuthenticationException(ErrorCode.EXTERNAL_AUTH_ERROR, "Authentication failed: " + authResponse.getMessage());
+                    String message = authResponse.getMessage() != null ? authResponse.getMessage() : "Authentication failed";
+                    throw new CustomAuthenticationException(ErrorCode.EXTERNAL_AUTH_ERROR, message);
                 }
             } else {
                 log.error("External auth service returned non-OK status: {}", response.getStatusCode());
@@ -119,7 +120,8 @@ public class ExternalAuthService {
                     return authResponse;
                 } else {
                     log.error("External auth service returned unsuccessful response on refresh");
-                    throw new CustomAuthenticationException(ErrorCode.TOKEN_EXPIRED, "Token refresh failed: " + authResponse.getMessage());
+                    String message = authResponse.getMessage() != null ? authResponse.getMessage() : "Token refresh failed";
+                    throw new CustomAuthenticationException(ErrorCode.TOKEN_EXPIRED, message);
                 }
             } else {
                 log.error("External auth service returned non-OK status on refresh: {}", response.getStatusCode());

@@ -24,12 +24,13 @@ public class AuthService {
      *
      * @param username Username
      * @param password Password
+     * @param entityCode Entity (application) code for multi-app support
      * @return LoginResponse with JWT token and user details from auth-service
      */
-    public LoginResponse authenticate(String username, String password) {
+    public LoginResponse authenticate(String username, String password, String entityCode) {
         log.info("Authenticating user with external auth-service: {}", username);
 
-        ExternalAuthResponse authResponse = externalAuthService.authenticate(username, password);
+        ExternalAuthResponse authResponse = externalAuthService.authenticate(username, password, entityCode);
         ExternalAuthResponse.AuthData authData = authResponse.getData();
 
         // Convert roles from List to Set

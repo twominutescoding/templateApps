@@ -218,16 +218,12 @@ const DemoProductsPage = () => {
 
   // Handle row click - demonstrate master-detail pattern
   const handleRowClick = useCallback((rowId: string | number, rowData: Record<string, any>) => {
-    console.log('Row clicked!');
-    console.log('Product ID:', rowId);
-    console.log('Product Data:', rowData);
     setSelectedProductId(rowId as number);
-    // You can now:
+    // You can customize this behavior:
     // - Navigate to detail page: navigate(`/products/${rowId}`)
     // - Open a modal/drawer with details
     // - Expand row to show more info
     // - Load related data (order items, history, etc.)
-    alert(`Clicked on product: ${rowData.name} (ID: ${rowId})\n\nCheck console for full data!`);
   }, []);
 
   return (
