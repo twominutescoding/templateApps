@@ -1,154 +1,22 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+/**
+ * Auth context - now powered by Jotai atoms
+ * This file re-exports the useAuth hook for backward compatibility
+ */
+export { useAuth } from '../hooks/useAuth';
+
+// Legacy provider component - no longer needed with Jotai
+// Kept for backward compatibility, but does nothing
 import type { ReactNode } from 'react';
-import type { User, AuthTokens, LoginCredentials, AuthState } from '../types/auth';
-import * as authService from '../services/authService';
-
-interface AuthContextType extends AuthState {
-  login: (credentials: LoginCredentials) => Promise<void>;
-  logout: () => Promise<void>;
-  updateUser: (user: User) => void;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
+/**
+ * @deprecated AuthProvider is no longer needed with Jotai.
+ * Auth state is now managed via atoms and can be used anywhere without a provider.
+ * This component is kept for backward compatibility but simply renders children.
+ */
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [state, setState] = useState<AuthState>({
-    user: null,
-    tokens: null,
-    isAuthenticated: false,
-    isLoading: true,
-  });
-
-  // Check for existing session on mount
-  useEffect(() => {
-    const initAuth = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const refreshToken = localStorage.getItem('refreshToken');
-
-        if (token && refreshToken) {
-          const tokens: AuthTokens = {
-            accessToken: token,
-            refreshToken: refreshToken,
-          };
-
-          // Check if token is expired
-          if (authService.isTokenExpired(tokens.accessToken)) {
-            // Try to refresh
-            try {
-              const newTokens = await authService.refreshToken(tokens.refreshToken);
-
-              const user = await authService.getCurrentUser(newTokens.accessToken);
-              setState({
-                user,
-                tokens: newTokens,
-                isAuthenticated: true,
-                isLoading: false,
-              });
-            } catch {
-              // Refresh failed, clear auth
-              localStorage.removeItem('token');
-              localStorage.removeItem('refreshToken');
-              localStorage.removeItem('user');
-              setState({
-                user: null,
-                tokens: null,
-                isAuthenticated: false,
-                isLoading: false,
-              });
-            }
-          } else {
-            // Token still valid
-            const user = await authService.getCurrentUser(tokens.accessToken);
-            setState({
-              user,
-              tokens,
-              isAuthenticated: true,
-              isLoading: false,
-            });
-          }
-        } else {
-          setState(prev => ({ ...prev, isLoading: false }));
-        }
-      } catch (error) {
-        console.error('Auth initialization error:', error);
-        setState({
-          user: null,
-          tokens: null,
-          isAuthenticated: false,
-          isLoading: false,
-        });
-      }
-    };
-
-    initAuth();
-  }, []);
-
-  const login = async (credentials: LoginCredentials) => {
-    try {
-      const { user, tokens } = await authService.login(credentials);
-
-      // Tokens are already saved to localStorage by authService.login
-      // (as 'token' and 'refreshToken')
-
-      setState({
-        user,
-        tokens,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const logout = async () => {
-    try {
-      await authService.logout();
-
-      // Tokens are already cleared from localStorage by authService.logout
-      // (removes 'token', 'refreshToken', and 'user')
-
-      setState({
-        user: null,
-        tokens: null,
-        isAuthenticated: false,
-        isLoading: false,
-      });
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
-
-  const updateUser = (user: User) => {
-    setState(prev => ({
-      ...prev,
-      user,
-    }));
-  };
-
-  return (
-    <AuthContext.Provider
-      value={{
-        ...state,
-        login,
-        logout,
-        updateUser,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  return <>{children}</>;
 };
