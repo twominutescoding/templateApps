@@ -5,7 +5,7 @@ import AdvancedDataTable from '../../components/table/AdvancedDataTable';
 import StatusChip from '../../components/common/StatusChip';
 import type { StatusType } from '../../components/common/StatusChip';
 import { demoProductAPI, type SearchRequest, type Product } from '../../services/api';
-import { useDateFormat } from '../../contexts/DateFormatContext';
+import { useDateFormat } from '../../hooks';
 
 // Map product status to StatusChip status (outside component to prevent recreating)
 const getStatusInfo = (status: string): { status: StatusType; label: string } => {

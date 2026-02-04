@@ -5,7 +5,7 @@ import type { Column, FetchParams } from '../../components/table/AdvancedDataTab
 import { adminMailingAPI } from '../../services/api';
 import type { MailingAdmin, SearchRequest } from '../../services/api';
 import StatusChip from '../../components/common/StatusChip';
-import { useDateFormat } from '../../contexts/DateFormatContext';
+import { useDateFormat } from '../../hooks';
 
 const MailingsPage = () => {
   const [data, setData] = useState<MailingAdmin[]>([]);

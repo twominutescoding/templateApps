@@ -22,7 +22,7 @@ import AdvancedDataTable from '../../components/table/AdvancedDataTable';
 import type { Column, FetchParams } from '../../components/table/AdvancedDataTable';
 import { adminRoleAPI } from '../../services/api';
 import type { RoleAdmin, SearchRequest } from '../../services/api';
-import { useDateFormat } from '../../contexts/DateFormatContext';
+import { useDateFormat } from '../../hooks';
 
 const RolesPage = () => {
   const [data, setData] = useState<(RoleAdmin & { id: string })[]>([]);

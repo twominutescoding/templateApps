@@ -16,7 +16,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import LoginIcon from '@mui/icons-material/Login';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../components/common/Logo';
 

@@ -24,12 +24,11 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PersonIcon from '@mui/icons-material/Person';
 import { useThemeContext } from '../theme/ThemeContext';
-import { useDateFormat } from '../contexts/DateFormatContext';
-import type { DateFormatType, TimestampFormatType } from '../contexts/DateFormatContext';
+import { useDateFormat, useAuth } from '../hooks';
+import type { DateFormatType, TimestampFormatType } from '../hooks';
 import { predefinedPalettes } from '../types/palette';
 import CustomPaletteEditor from '../components/common/CustomPaletteEditor';
 import type { ColorPalette } from '../types/palette';
-import { useAuth } from '../contexts/AuthContext';
 
 const Settings = () => {
   const { mode, toggleTheme, palette, setPalette, customPalettes, addCustomPalette, removeCustomPalette } = useThemeContext();

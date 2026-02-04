@@ -6,7 +6,7 @@ import type { Column, FetchParams } from '../../components/table/AdvancedDataTab
 import { adminSessionAPI } from '../../services/api';
 import type { SessionAdmin, SearchRequest } from '../../services/api';
 import StatusChip from '../../components/common/StatusChip';
-import { useDateFormat } from '../../contexts/DateFormatContext';
+import { useDateFormat } from '../../hooks';
 
 const SessionsPage = () => {
   const [data, setData] = useState<SessionAdmin[]>([]);

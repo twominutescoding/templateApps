@@ -27,7 +27,7 @@ import type { Column, FetchParams } from '../../components/table/AdvancedDataTab
 import { adminUserAPI, adminRoleAPI, adminUserStatusAPI } from '../../services/api';
 import type { UserAdmin, RoleAdmin, UserStatusData, SearchRequest } from '../../services/api';
 import StatusChip from '../../components/common/StatusChip';
-import { useDateFormat } from '../../contexts/DateFormatContext';
+import { useDateFormat } from '../../hooks';
 import { CreateUserDialog, AddRoleDialog, ResetPasswordDialog } from './UserManagementDialogs';
 
 const UsersPage = () => {

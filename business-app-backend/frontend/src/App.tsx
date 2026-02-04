@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Provider as JotaiProvider } from 'jotai';
 import { ThemeContextProvider } from './theme/ThemeContext';
-import { AuthProvider } from './contexts/AuthContext';
-import { DateFormatProvider } from './contexts/DateFormatContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import Layout from './components/layout/Layout';
 import Login from './pages/Login';
@@ -18,10 +17,9 @@ import DemoProductsPage from './pages/demo/DemoProductsPage';
 
 function App() {
   return (
-    <ThemeContextProvider>
-      <DateFormatProvider>
-        <AuthProvider>
-          <BrowserRouter>
+    <JotaiProvider>
+      <ThemeContextProvider>
+        <BrowserRouter>
           <Routes>
             {/* Public route */}
             <Route path="/login" element={<Login />} />
@@ -132,9 +130,8 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
-      </AuthProvider>
-    </DateFormatProvider>
-  </ThemeContextProvider>
+      </ThemeContextProvider>
+    </JotaiProvider>
   );
 }
 

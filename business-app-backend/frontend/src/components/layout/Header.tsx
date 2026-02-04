@@ -10,7 +10,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useThemeContext } from '../../theme/ThemeContext';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../hooks';
 import Logo from '../common/Logo';
 
 interface HeaderProps {

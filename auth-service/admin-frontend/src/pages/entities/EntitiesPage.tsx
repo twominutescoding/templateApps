@@ -23,7 +23,7 @@ import AdvancedDataTable from '../../components/table/AdvancedDataTable';
 import type { Column, FetchParams } from '../../components/table/AdvancedDataTable';
 import { adminEntityAPI, adminEntityTypeAPI } from '../../services/api';
 import type { EntityAdmin, EntityType, SearchRequest } from '../../services/api';
-import { useDateFormat } from '../../contexts/DateFormatContext';
+import { useDateFormat } from '../../hooks';
 
 const EntitiesPage = () => {
   const [data, setData] = useState<EntityAdmin[]>([]);
