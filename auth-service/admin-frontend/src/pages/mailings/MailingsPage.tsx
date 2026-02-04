@@ -145,6 +145,8 @@ const MailingsPage = () => {
         enableSelection={false}
         enableBulkEdit={false}
         rowIdField="id"
+        defaultSortColumn="createDate"
+        defaultSortOrder="desc"
       />
     </Box>
   );

@@ -138,6 +138,8 @@ const SessionsPage = () => {
         enableBulkEdit={false}
         rowIdField="sessionId"
         refetchTrigger={refetchTrigger}
+        defaultSortColumn="createdAt"
+        defaultSortOrder="desc"
         renderActions={(row: SessionAdmin) => (
           <Tooltip title="Revoke Session">
             <IconButton
