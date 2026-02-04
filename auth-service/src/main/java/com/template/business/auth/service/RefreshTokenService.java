@@ -58,7 +58,7 @@ public class RefreshTokenService {
     private final DatabaseUserDetailsService databaseUserDetailsService;
     private final JwtUtil jwtUtil;
 
-    @Value("${jwt.refresh.expiration:604800000}") // 7 days default
+    @Value("${jwt.refresh.expiration:86400000}") // 24 hours default
     private Long refreshTokenExpiration;
 
     @Value("${jwt.access.expiration:900000}") // 15 minutes default

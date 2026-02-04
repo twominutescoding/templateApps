@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>Cleanup schedules:
  * <ul>
- *   <li>Expired tokens: Every day at 2:00 AM</li>
+ *   <li>Expired tokens: Every hour</li>
  *   <li>Old revoked tokens: Every Sunday at 3:00 AM</li>
  * </ul>
  */
@@ -30,9 +30,9 @@ public class TokenCleanupTask {
 
     /**
      * Clean up expired refresh tokens.
-     * Runs every day at 2:00 AM.
+     * Runs every hour.
      */
-    @Scheduled(cron = "0 0 2 * * ?")
+    @Scheduled(cron = "0 0 * * * ?")
     public void cleanupExpiredTokens() {
         log.info("Starting cleanup of expired refresh tokens...");
         try {
