@@ -1,13 +1,5 @@
-// User types
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'admin' | 'manager' | 'user';
-  avatar?: string;
-  department?: string;
-  createdAt: string;
-}
+// Re-export User from auth types (canonical source)
+export type { User, UserRole, AuthTokens, LoginCredentials, AuthState, DecodedToken } from './auth';
 
 // Product types
 export interface Product {

@@ -15,7 +15,7 @@ import PhoneIcon from '@mui/icons-material/Phone';
 import BusinessIcon from '@mui/icons-material/Business';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks';
 
 const Profile = () => {
   const { user } = useAuth();

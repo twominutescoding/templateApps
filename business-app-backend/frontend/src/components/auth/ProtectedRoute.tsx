@@ -1,5 +1,5 @@
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../hooks';
 import { Box, CircularProgress } from '@mui/material';
 import type { UserRole } from '../../types/auth';
 
