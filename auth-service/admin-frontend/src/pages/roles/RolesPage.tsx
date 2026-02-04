@@ -209,6 +209,7 @@ const RolesPage = () => {
         id: 'createDate',
         label: 'Created',
         editable: false,
+        filterType: 'date',
         minWidth: 180,
         render: (row: RoleAdmin) => formatTimestamp(row.createDate),
       },

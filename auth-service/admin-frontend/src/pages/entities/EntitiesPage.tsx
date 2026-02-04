@@ -189,6 +189,7 @@ const EntitiesPage = () => {
         id: 'createDate',
         label: 'Created',
         editable: false,
+        filterType: 'date',
         minWidth: 180,
         render: (row: EntityAdmin) => formatTimestamp(row.createDate),
       },

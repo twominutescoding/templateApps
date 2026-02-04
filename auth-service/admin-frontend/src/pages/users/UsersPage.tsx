@@ -368,6 +368,7 @@ const UsersPage = () => {
         id: 'createDate',
         label: 'Created',
         editable: false,
+        filterType: 'date',
         minWidth: 140,
         render: (row: UserAdmin) => formatTimestamp(row.createDate),
       },
