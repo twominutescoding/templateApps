@@ -109,6 +109,7 @@ interface AdvancedDataTableProps {
   actionsWidth?: number;  // Custom width for actions column (default: 120 for edit only, 200 with custom actions)
   showExport?: boolean;  // Show export button (default: false)
   enableSelection?: boolean;  // Enable row selection (default: true)
+  refetchTrigger?: number;  // Increment to trigger a refetch without remounting (preserves filters)
 }
 
 const AdvancedDataTable = ({
@@ -132,6 +133,7 @@ const AdvancedDataTable = ({
   actionsWidth,
   showExport = false,
   enableSelection = true,
+  refetchTrigger,
 }: AdvancedDataTableProps) => {
   const { formatDate, dateFormat } = useDateFormat();
   const [order, setOrder] = useState<Order>(defaultSortOrder);
@@ -190,7 +192,7 @@ const AdvancedDataTable = ({
 
       onFetchData(fetchParams);
     }
-  }, [isServerSide, onFetchData, columnFilters, dateRanges, orderBy, order, page, rowsPerPage]);
+  }, [isServerSide, onFetchData, columnFilters, dateRanges, orderBy, order, page, rowsPerPage, refetchTrigger]);
 
   // Editable mode handlers
   const handleEditRow = (row: Record<string, any>) => {

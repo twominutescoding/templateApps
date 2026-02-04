@@ -20,15 +20,29 @@ import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import AdvancedDataTable from '../../components/table/AdvancedDataTable';
 import type { Column, FetchParams } from '../../components/table/AdvancedDataTable';
-import { adminRoleAPI } from '../../services/api';
-import type { RoleAdmin, SearchRequest } from '../../services/api';
+import { adminRoleAPI, adminEntityAPI } from '../../services/api';
+import type { RoleAdmin, SearchRequest, EntityAdmin } from '../../services/api';
 import { useDateFormat } from '../../hooks';
 
 const RolesPage = () => {
   const [data, setData] = useState<(RoleAdmin & { id: string })[]>([]);
   const [totalRecords, setTotalRecords] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [allEntities, setAllEntities] = useState<EntityAdmin[]>([]);
   const { formatTimestamp } = useDateFormat();
+
+  // Fetch all entities for dropdown filter
+  useEffect(() => {
+    const fetchEntities = async () => {
+      try {
+        const response = await adminEntityAPI.getAllEntities();
+        setAllEntities(response.data);
+      } catch (error) {
+        console.error('Failed to fetch entities:', error);
+      }
+    };
+    fetchEntities();
+  }, []);
 
   // Create Role Dialog
   const [createRoleOpen, setCreateRoleOpen] = useState(false);
@@ -132,12 +146,13 @@ const RolesPage = () => {
     }
   }, [triggerRefetch]);
 
-  // Get unique entities from existing roles (with their names)
-  const uniqueEntities = useMemo(() => {
-    return Array.from(
-      new Map(data.map((r) => [r.entity, { id: r.entity, name: r.entityName || r.entity }])).values()
-    );
-  }, [data]);
+  // Entity options for filter and create dialog
+  const entityOptions = useMemo(() => {
+    return allEntities.map((e) => ({
+      label: e.name || e.id,
+      value: e.id,
+    }));
+  }, [allEntities]);
 
   // Role level options
   const roleLevelOptions = [
@@ -158,6 +173,8 @@ const RolesPage = () => {
         id: 'entity',
         label: 'Entity',
         editable: false,
+        filterType: 'select',
+        filterOptions: entityOptions,
         minWidth: 120,
         render: (row: RoleAdmin) => row.entityName || row.entity,
       },
@@ -200,7 +217,7 @@ const RolesPage = () => {
         minWidth: 150,
       },
     ],
-    [formatTimestamp]
+    [formatTimestamp, entityOptions]
   );
 
   return (
@@ -224,7 +241,7 @@ const RolesPage = () => {
         enableSelection={true}
         enableBulkEdit={false}
         rowIdField="id"
-        key={refetchTrigger}
+        refetchTrigger={refetchTrigger}
         renderActions={(row: RoleAdmin & { id: string }) => (
           <Tooltip title="Delete Role">
             <IconButton
@@ -263,9 +280,9 @@ const RolesPage = () => {
                 onChange={(e) => setNewRole({ ...newRole, entity: e.target.value })}
                 label="Entity"
               >
-                {uniqueEntities.map((entity) => (
-                  <MenuItem key={entity.id} value={entity.id}>
-                    {entity.name}
+                {entityOptions.map((entity) => (
+                  <MenuItem key={entity.value} value={entity.value}>
+                    {entity.label}
                   </MenuItem>
                 ))}
               </Select>

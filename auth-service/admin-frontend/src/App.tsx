@@ -12,6 +12,7 @@ import SessionsPage from './pages/sessions/SessionsPage';
 import MailingsPage from './pages/mailings/MailingsPage';
 import LogsPage from './pages/logs/LogsPage';
 import Settings from './pages/Settings';
+import InstructionsPage from './pages/instructions/InstructionsPage';
 
 function App() {
   return (
@@ -99,6 +100,16 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <Settings />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/instructions"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <InstructionsPage />
                   </Layout>
                 </ProtectedRoute>
               }

@@ -1,5 +1,7 @@
 export type UserRole = 'admin' | 'manager' | 'user';
 
+export type AuthenticationMethod = 'DATABASE' | 'LDAP' | string;
+
 export interface User {
   id: string;
   username: string;
@@ -12,6 +14,7 @@ export interface User {
   createdAt: string;
   theme?: string;
   paletteId?: string;
+  authenticationMethod?: AuthenticationMethod;
 }
 
 export interface AuthTokens {

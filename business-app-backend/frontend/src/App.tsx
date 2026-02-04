@@ -14,6 +14,7 @@ import AdvancedFeatures from './pages/components/AdvancedFeatures';
 import BusinessSpecific from './pages/components/BusinessSpecific';
 import ComprehensiveTableDemo from './pages/components/ComprehensiveTableDemo';
 import DemoProductsPage from './pages/demo/DemoProductsPage';
+import InstructionsPage from './pages/instructions/InstructionsPage';
 
 function App() {
   return (
@@ -121,6 +122,16 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <Profile />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/instructions"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <InstructionsPage />
                   </Layout>
                 </ProtectedRoute>
               }

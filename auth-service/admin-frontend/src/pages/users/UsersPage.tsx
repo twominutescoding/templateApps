@@ -396,7 +396,7 @@ const UsersPage = () => {
         enableSelection={true}
         enableBulkEdit={false}
         rowIdField="username"
-        key={refetchTrigger}
+        refetchTrigger={refetchTrigger}
         renderActions={(row: UserAdmin) => (
           <>
             <Tooltip title="Reset Password">

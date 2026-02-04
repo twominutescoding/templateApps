@@ -2,6 +2,7 @@ import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Too
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import SettingsIcon from '@mui/icons-material/Settings';
 import InventoryIcon from '@mui/icons-material/Inventory';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface SidebarProps {
@@ -16,6 +17,7 @@ const menuItems = [
 ];
 
 const settingsItems = [
+  { text: 'Instructions', icon: <MenuBookIcon />, path: '/instructions' },
   { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
 ];
 

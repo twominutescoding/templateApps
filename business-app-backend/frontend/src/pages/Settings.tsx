@@ -23,6 +23,9 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PersonIcon from '@mui/icons-material/Person';
+import StorageIcon from '@mui/icons-material/Storage';
+import LanIcon from '@mui/icons-material/Lan';
+import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import { useThemeContext } from '../theme/ThemeContext';
 import { useDateFormat, useAuth } from '../hooks';
 import type { DateFormatType, TimestampFormatType } from '../hooks';
@@ -85,20 +88,35 @@ const Settings = () => {
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 {user.email}
               </Typography>
-              <Chip
-                label={user.role.toUpperCase()}
-                size="small"
-                color={
-                  user.role === 'admin' ? 'error' :
-                  user.role === 'manager' ? 'warning' : 'default'
-                }
-              />
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Chip
+                  label={user.role.toUpperCase()}
+                  size="small"
+                  color={
+                    user.role === 'admin' ? 'error' :
+                    user.role === 'manager' ? 'warning' : 'default'
+                  }
+                />
+                {user.authenticationMethod && (
+                  <Chip
+                    icon={
+                      user.authenticationMethod === 'DATABASE' ? <StorageIcon /> :
+                      user.authenticationMethod === 'LDAP' ? <LanIcon /> :
+                      <VpnKeyIcon />
+                    }
+                    label={user.authenticationMethod}
+                    size="small"
+                    variant="outlined"
+                    color={
+                      user.authenticationMethod === 'DATABASE' ? 'info' :
+                      user.authenticationMethod === 'LDAP' ? 'success' : 'default'
+                    }
+                  />
+                )}
+              </Box>
             </Box>
           </Box>
         )}
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 3 }}>
-          Connected to Spring Boot backend. User data is managed through JWT authentication.
-        </Typography>
       </Paper>
 
       <Paper sx={{ p: 3, mb: 3 }}>

@@ -6,11 +6,13 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
+import InfoIcon from '@mui/icons-material/Info';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useThemeContext } from '../../theme/ThemeContext';
 import { useAuth } from '../../hooks';
 import Logo from '../common/Logo';
+import AboutDialog from '../common/AboutDialog';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -18,6 +20,7 @@ interface HeaderProps {
 
 const Header = ({ onMenuClick }: HeaderProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const { mode, toggleTheme, headerGradient } = useThemeContext();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -105,6 +108,22 @@ const Header = ({ onMenuClick }: HeaderProps) => {
 
         <Box sx={{ flexGrow: 1 }} />
 
+        <Tooltip title="About">
+          <IconButton
+            color="inherit"
+            onClick={() => setAboutOpen(true)}
+            size="small"
+            sx={{
+              mr: 1,
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              }
+            }}
+          >
+            <InfoIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+
         <Tooltip title={`Switch to ${mode === 'light' ? 'dark' : 'light'} mode`}>
           <IconButton
             color="inherit"
@@ -187,6 +206,8 @@ const Header = ({ onMenuClick }: HeaderProps) => {
             Logout
           </MenuItem>
         </Menu>
+
+        <AboutDialog open={aboutOpen} onClose={() => setAboutOpen(false)} />
       </Toolbar>
     </AppBar>
   );

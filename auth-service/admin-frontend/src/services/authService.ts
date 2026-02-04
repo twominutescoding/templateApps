@@ -45,6 +45,7 @@ export const login = async (credentials: LoginCredentials): Promise<{ user: User
       avatar: '',
       department: loginData.company || '',
       createdAt: new Date().toISOString(),
+      authenticationMethod: loginData.authenticationMethod,
     };
 
     const tokens: AuthTokens = {

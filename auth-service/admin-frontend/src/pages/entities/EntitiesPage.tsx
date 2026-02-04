@@ -223,7 +223,7 @@ const EntitiesPage = () => {
         enableSelection={true}
         enableBulkEdit={false}
         rowIdField="id"
-        key={refetchTrigger}
+        refetchTrigger={refetchTrigger}
         renderActions={(row: EntityAdmin) => (
           <Tooltip title="Delete Entity">
             <IconButton

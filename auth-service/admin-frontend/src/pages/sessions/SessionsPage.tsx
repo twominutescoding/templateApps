@@ -135,7 +135,7 @@ const SessionsPage = () => {
         enableSelection={true}
         enableBulkEdit={false}
         rowIdField="sessionId"
-        key={refetchTrigger}
+        refetchTrigger={refetchTrigger}
         renderActions={(row: SessionAdmin) => (
           <Tooltip title="Revoke Session">
             <IconButton

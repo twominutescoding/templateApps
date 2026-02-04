@@ -7,6 +7,7 @@ import DevicesIcon from '@mui/icons-material/Devices';
 import EmailIcon from '@mui/icons-material/Email';
 import HistoryIcon from '@mui/icons-material/History';
 import SettingsIcon from '@mui/icons-material/Settings';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface SidebarProps {
@@ -26,6 +27,7 @@ const menuItems = [
 ];
 
 const settingsItems = [
+  { text: 'Instructions', icon: <MenuBookIcon />, path: '/instructions' },
   { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
 ];
 
