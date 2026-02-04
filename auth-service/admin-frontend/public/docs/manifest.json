@@ -1,0 +1,47 @@
+{
+  "version": "1.0.0",
+  "appName": "Auth Service Admin",
+  "lastUpdated": "2026-02-04",
+  "instructions": [
+    {
+      "id": "user-manual",
+      "title": "User Manual",
+      "description": "Complete guide for using the Auth Service Admin panel",
+      "file": "instructions/user-manual.md",
+      "category": "manual",
+      "icon": "book"
+    },
+    {
+      "id": "user-management",
+      "title": "User Management",
+      "description": "How to create, edit, and manage users",
+      "file": "instructions/user-management.md",
+      "category": "guide",
+      "icon": "people"
+    },
+    {
+      "id": "role-management",
+      "title": "Role Management",
+      "description": "How to configure roles and permissions",
+      "file": "instructions/role-management.md",
+      "category": "guide",
+      "icon": "security"
+    },
+	{
+    "id": "functional-design",
+    "title": "Functional Design Document",
+    "description": "System functional design specification",
+    "file": "instructions/functional-design.pdf",
+    "category": "pdf",
+    "icon": "pdf",
+    "type": "pdf"
+  }
+  ],
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-02-04",
+      "file": "changelog/v1.0.0.md"
+    }
+  ]
+}

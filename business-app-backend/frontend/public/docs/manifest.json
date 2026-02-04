@@ -1,0 +1,38 @@
+{
+  "version": "1.0.0",
+  "appName": "Business Application",
+  "lastUpdated": "2026-02-04",
+  "instructions": [
+    {
+      "id": "user-manual",
+      "title": "User Manual",
+      "description": "Complete guide for using the Business Application",
+      "file": "instructions/user-manual.md",
+      "category": "manual",
+      "icon": "book"
+    },
+    {
+      "id": "getting-started",
+      "title": "Getting Started",
+      "description": "Quick start guide for new users",
+      "file": "instructions/getting-started.md",
+      "category": "guide",
+      "icon": "rocket"
+    },
+    {
+      "id": "data-management",
+      "title": "Data Management",
+      "description": "How to work with tables and data",
+      "file": "instructions/data-management.md",
+      "category": "guide",
+      "icon": "table"
+    }
+  ],
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-02-04",
+      "file": "changelog/v1.0.0.md"
+    }
+  ]
+}
