@@ -151,6 +151,11 @@ export interface LoginResponse {
   username: string;
   email: string;
   roles: string[];
+  authenticationMethod?: string;
+  firstName?: string;
+  lastName?: string;
+  company?: string;
+  image?: string;
 }
 
 export interface RefreshTokenResponse {

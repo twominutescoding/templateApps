@@ -41,6 +41,7 @@ export const login = async (credentials: LoginCredentials): Promise<{ user: User
       department: loginData.company || '',
       phone: '', // Backend doesn't provide phone
       createdAt: new Date().toISOString(), // Backend doesn't provide creation date
+      authenticationMethod: loginData.authenticationMethod,
     };
 
     const tokens: AuthTokens = {

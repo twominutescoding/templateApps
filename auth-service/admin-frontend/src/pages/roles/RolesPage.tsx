@@ -201,6 +201,8 @@ const RolesPage = () => {
         id: 'userCount',
         label: 'Users',
         editable: false,
+        filterable: false,
+        sortable: false,
         minWidth: 100,
       },
       {

@@ -1,4 +1,5 @@
 export type UserRole = 'admin' | 'manager' | 'user';
+export type AuthenticationMethod = 'DATABASE' | 'LDAP' | string;
 
 export interface User {
   id: string;
@@ -9,6 +10,7 @@ export interface User {
   department?: string;
   phone?: string;
   createdAt: string;
+  authenticationMethod?: AuthenticationMethod;
 }
 
 export interface AuthTokens {
