@@ -140,7 +140,7 @@ const SessionsPage = () => {
         refetchTrigger={refetchTrigger}
         defaultSortColumn="createdAt"
         defaultSortOrder="desc"
-        renderActions={(row: SessionAdmin) => (
+        renderActions={(row: any) => (
           <Tooltip title="Revoke Session">
             <IconButton
               size="small"

@@ -1,7 +1,8 @@
 import axios, { type AxiosInstance, AxiosError, type InternalAxiosRequestConfig, type AxiosResponse } from 'axios';
 
-// API Base URL - adjust based on environment
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8090/api';
+// API Base URL - uses relative path for production (served from same origin)
+// In development with Vite proxy, requests to /api are proxied to http://localhost:8090
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({

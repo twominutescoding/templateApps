@@ -217,7 +217,7 @@ const DemoProductsPage = () => {
   }, []);
 
   // Handle row click - demonstrate master-detail pattern
-  const handleRowClick = useCallback((rowId: string | number, rowData: Record<string, any>) => {
+  const handleRowClick = useCallback((rowId: string | number, _rowData: Record<string, any>) => {
     setSelectedProductId(rowId as number);
     // You can customize this behavior:
     // - Navigate to detail page: navigate(`/products/${rowId}`)

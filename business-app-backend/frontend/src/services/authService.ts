@@ -33,13 +33,14 @@ export const login = async (credentials: LoginCredentials): Promise<{ user: User
     // Map backend user to frontend user format
     const user: User = {
       id: loginData.username, // Use username as ID since backend doesn't return numeric ID
+      username: loginData.username,
       email: loginData.email || '',
       name: `${loginData.firstName || ''} ${loginData.lastName || ''}`.trim() || loginData.username,
       role: loginData.roles.includes('ADMIN') ? 'admin' :
             loginData.roles.includes('MANAGER') ? 'manager' : 'user',
+      roles: loginData.roles || [],
       avatar: loginData.image || '',
       department: loginData.company || '',
-      phone: '', // Backend doesn't provide phone
       createdAt: new Date().toISOString(), // Backend doesn't provide creation date
       authenticationMethod: loginData.authenticationMethod,
     };
@@ -108,14 +109,17 @@ export const getCurrentUser = async (token: string): Promise<User> => {
   }
 
   // Basic user from token
+  const roles = decoded.roles || [];
   return {
-    id: decoded.userId || decoded.sub || '',
-    email: decoded.email || '',
-    name: decoded.sub || 'User',
-    role: decoded.role || 'user',
+    id: decoded.sub || decoded.username || '',
+    username: decoded.username || decoded.sub || '',
+    email: '',
+    name: decoded.sub || decoded.username || 'User',
+    role: roles.includes('ADMIN') ? 'admin' :
+          roles.includes('MANAGER') ? 'manager' : 'user',
+    roles: roles,
     avatar: '',
     department: '',
-    phone: '',
     createdAt: new Date().toISOString(),
   };
 };

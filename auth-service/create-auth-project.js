@@ -145,6 +145,9 @@ async function main() {
     }
 
     // Prepare replacements
+    // Ensure contextPath ends with / for Vite base URL
+    const viteBase = contextPath.endsWith('/') ? contextPath : `${contextPath}/`;
+
     const replacements = {
       'com\\.template\\.business\\.auth': `${basePackage}.${serviceNameSnake}`,
       'auth-service': serviceNameKebab,
@@ -153,6 +156,10 @@ async function main() {
       'authdb': `${serviceNameSnake}db`,
       'server\\.port=8091': `server.port=${serverPort}`,
       'server\\.servlet\\.context-path=/auth': `server.servlet.context-path=${contextPath}`,
+      // Update Vite base URL to match context path
+      "base: '/auth/'": `base: '${viteBase}'`,
+      // Update API base URL in api.ts
+      "'/auth/api/v1'": `'${contextPath}/api/v1'`,
       '<groupId>com\\.template</groupId>': `<groupId>${basePackage}</groupId>`,
       '<artifactId>auth-service</artifactId>': `<artifactId>${serviceNameKebab}</artifactId>`,
       '<name>auth-service</name>': `<name>${serviceNameKebab}</name>`,

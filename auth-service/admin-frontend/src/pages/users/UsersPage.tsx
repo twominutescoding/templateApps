@@ -2,25 +2,15 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Box,
   Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
   IconButton,
   Tooltip,
   Alert,
   Snackbar,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
   Chip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import LockResetIcon from '@mui/icons-material/LockReset';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
-import DeleteIcon from '@mui/icons-material/Delete';
 import PersonRemoveIcon from '@mui/icons-material/PersonRemove';
 import AdvancedDataTable from '../../components/table/AdvancedDataTable';
 import type { Column, FetchParams } from '../../components/table/AdvancedDataTable';
@@ -93,13 +83,6 @@ const UsersPage = () => {
     }
   }, []);
 
-  // Simple refresh that triggers the table to refetch
-  const refreshData = useCallback(() => {
-    // This will be called after mutations to trigger a refetch
-    // The table will automatically call fetchData with current params
-    setData([...data]);
-  }, [data]);
-
   const fetchRoles = useCallback(async () => {
     try {
       const response = await adminRoleAPI.getAllRoles();
@@ -127,7 +110,7 @@ const UsersPage = () => {
     fetchUserStatuses();
   }, [fetchRoles, fetchUserStatuses]);
 
-  const handleSave = useCallback(async (row: UserAdmin) => {
+  const handleSave = useCallback(async (row: any) => {
     try {
       // Update user details
       await adminUserAPI.updateUser(row.username, {
@@ -152,20 +135,9 @@ const UsersPage = () => {
     }
   }, [data, triggerRefetch]);
 
-  const handleStatusChange = async (username: string, newStatus: string) => {
-    try {
-      await adminUserAPI.updateUserStatus(username, newStatus);
-      triggerRefetch();
-      setSnackbar({ open: true, message: 'User status updated successfully', severity: 'success' });
-    } catch (error) {
-      console.error('Failed to update user status:', error);
-      setSnackbar({ open: true, message: 'Failed to update user status', severity: 'error' });
-    }
-  };
-
   const handleCreateUser = async () => {
     try {
-      const response = await adminUserAPI.createUser(newUser);
+      await adminUserAPI.createUser(newUser);
       if (newUser.password) {
         setSnackbar({
           open: true,
@@ -398,7 +370,7 @@ const UsersPage = () => {
         enableBulkEdit={false}
         rowIdField="username"
         refetchTrigger={refetchTrigger}
-        renderActions={(row: UserAdmin) => (
+        renderActions={(row: any) => (
           <>
             <Tooltip title="Reset Password">
               <IconButton

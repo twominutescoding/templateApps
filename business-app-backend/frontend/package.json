@@ -18,7 +18,7 @@
     "@mui/x-date-pickers": "^8.21.0",
     "axios": "^1.13.2",
     "dayjs": "^1.11.19",
-    "jotai": "^2.12.5",
+    "jotai": "^2.17.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.10.1",

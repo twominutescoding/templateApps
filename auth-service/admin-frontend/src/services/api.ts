@@ -1,7 +1,9 @@
 import axios, { type AxiosInstance, AxiosError, type InternalAxiosRequestConfig, type AxiosResponse } from 'axios';
 
 // API Base URL - adjust based on environment
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8091/auth/api/v1';
+// In development (Vite): uses proxy configured in vite.config.ts
+// In production (Spring Boot): uses relative path
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/auth/api/v1';
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({

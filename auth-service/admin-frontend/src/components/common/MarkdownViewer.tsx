@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Box, Typography, Divider, Paper, List, ListItem, ListItemText } from '@mui/material';
 
 interface MarkdownViewerProps {
@@ -19,12 +19,10 @@ const MarkdownViewer = ({ content }: MarkdownViewerProps) => {
 
     const processedContent = stripFrontmatter(content);
     const lines = processedContent.split('\n');
-    const result: JSX.Element[] = [];
+    const result: React.ReactElement[] = [];
     let inCodeBlock = false;
     let codeContent: string[] = [];
-    let inList = false;
     let listItems: string[] = [];
-    let listType: 'ul' | 'ol' = 'ul';
 
     const processInlineFormatting = (text: string): React.ReactNode => {
       // Process bold and italic
@@ -100,7 +98,6 @@ const MarkdownViewer = ({ content }: MarkdownViewerProps) => {
           </List>
         );
         listItems = [];
-        inList = false;
       }
     };
 
@@ -213,16 +210,12 @@ const MarkdownViewer = ({ content }: MarkdownViewerProps) => {
 
       // Unordered list
       if (line.match(/^[-*+]\s/)) {
-        inList = true;
-        listType = 'ul';
         listItems.push(line.substring(2));
         continue;
       }
 
       // Ordered list
       if (line.match(/^\d+\.\s/)) {
-        inList = true;
-        listType = 'ol';
         listItems.push(line.replace(/^\d+\.\s/, ''));
         continue;
       }

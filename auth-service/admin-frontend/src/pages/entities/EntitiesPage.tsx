@@ -92,7 +92,7 @@ const EntitiesPage = () => {
     fetchEntityTypes();
   }, [fetchEntityTypes]);
 
-  const handleSave = useCallback(async (row: EntityAdmin) => {
+  const handleSave = useCallback(async (row: any) => {
     try {
       await adminEntityAPI.updateEntity(row.id, {
         name: row.name,
@@ -225,7 +225,7 @@ const EntitiesPage = () => {
         enableBulkEdit={false}
         rowIdField="id"
         refetchTrigger={refetchTrigger}
-        renderActions={(row: EntityAdmin) => (
+        renderActions={(row: any) => (
           <Tooltip title="Delete Entity">
             <IconButton
               size="small"

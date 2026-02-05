@@ -950,22 +950,26 @@ const AdvancedDataTable = ({
             </Button>
           )}
 
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<FileDownloadIcon />}
-            onClick={handleExportClick}
-          >
-            Export {selected.size > 0 ? `(${selected.size})` : ''}
-          </Button>
-          <Menu
-            anchorEl={exportMenuAnchor}
-            open={Boolean(exportMenuAnchor)}
-            onClose={handleExportClose}
-          >
-            <MenuItem onClick={exportToCSV}>Export to CSV</MenuItem>
-            <MenuItem onClick={exportToJSON}>Export to JSON</MenuItem>
-          </Menu>
+          {showExport && (
+            <>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<FileDownloadIcon />}
+                onClick={handleExportClick}
+              >
+                Export {selected.size > 0 ? `(${selected.size})` : ''}
+              </Button>
+              <Menu
+                anchorEl={exportMenuAnchor}
+                open={Boolean(exportMenuAnchor)}
+                onClose={handleExportClose}
+              >
+                <MenuItem onClick={exportToCSV}>Export to CSV</MenuItem>
+                <MenuItem onClick={exportToJSON}>Export to JSON</MenuItem>
+              </Menu>
+            </>
+          )}
 
           <ToggleButtonGroup
             value={filterMode}

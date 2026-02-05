@@ -95,7 +95,7 @@ const RolesPage = () => {
   const [refetchTrigger, setRefetchTrigger] = useState(0);
   const triggerRefetch = useCallback(() => setRefetchTrigger((prev) => prev + 1), []);
 
-  const handleSave = useCallback(async (row: RoleAdmin & { id: string }) => {
+  const handleSave = useCallback(async (row: any) => {
     try {
       await adminRoleAPI.updateRole(row.role, row.entity, {
         roleLevel: row.roleLevel,
@@ -245,7 +245,7 @@ const RolesPage = () => {
         enableBulkEdit={false}
         rowIdField="id"
         refetchTrigger={refetchTrigger}
-        renderActions={(row: RoleAdmin & { id: string }) => (
+        renderActions={(row: any) => (
           <Tooltip title="Delete Role">
             <IconButton
               size="small"

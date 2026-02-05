@@ -11,7 +11,6 @@ import {
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import EmailIcon from '@mui/icons-material/Email';
-import PhoneIcon from '@mui/icons-material/Phone';
 import BusinessIcon from '@mui/icons-material/Business';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
@@ -125,18 +124,6 @@ const Profile = () => {
               <ListItemText
                 primary="Department"
                 secondary={user.department || 'Not specified'}
-                primaryTypographyProps={{ variant: 'body2', color: 'text.secondary' }}
-                secondaryTypographyProps={{ variant: 'body1', color: 'text.primary' }}
-              />
-            </ListItem>
-
-            <Divider />
-
-            <ListItem>
-              <PhoneIcon sx={{ mr: 2, color: 'text.secondary' }} />
-              <ListItemText
-                primary="Phone Number"
-                secondary={user.phone || 'Not specified'}
                 primaryTypographyProps={{ variant: 'body2', color: 'text.secondary' }}
                 secondaryTypographyProps={{ variant: 'body1', color: 'text.primary' }}
               />

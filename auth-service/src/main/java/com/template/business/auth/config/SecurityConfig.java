@@ -134,6 +134,11 @@ public class SecurityConfig {
                 .cors(cors -> cors.configure(http))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Static resources for SPA (frontend)
+                        .requestMatchers("/", "/index.html", "/favicon.ico").permitAll()
+                        .requestMatchers("/assets/**", "/*.js", "/*.css", "/*.svg", "/*.png", "/*.ico").permitAll()
+                        // SPA routes (handled by SpaController -> forward to index.html)
+                        .requestMatchers("/login", "/dashboard", "/users", "/roles", "/sessions", "/entities", "/mailings", "/logs", "/settings").permitAll()
                         // Public endpoints (no authentication required)
                         .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/health").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
