@@ -25,11 +25,24 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import HomeIcon from '@mui/icons-material/Home';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import DownloadIcon from '@mui/icons-material/Download';
-import { getInstructions, fetchDocument, getDocumentUrl, type InstructionDoc } from '../../services/docsService';
+import CodeIcon from '@mui/icons-material/Code';
+import FolderZipIcon from '@mui/icons-material/FolderZip';
+import ApiIcon from '@mui/icons-material/Api';
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import { getInstructions, fetchDocument, getDocumentUrl, type InstructionDoc, type DocType } from '../../services/docsService';
 import MarkdownViewer from '../../components/common/MarkdownViewer';
 
-const getIconComponent = (iconName: string, isPdf: boolean = false) => {
-  if (isPdf) return <PictureAsPdfIcon color="error" />;
+const getIconComponent = (iconName: string, docType?: DocType, fileType?: string) => {
+  if (docType === 'pdf') return <PictureAsPdfIcon color="error" />;
+
+  if (docType === 'download') {
+    // Use fileType to determine icon for downloads
+    const ft = (fileType || '').toUpperCase();
+    if (ft.includes('POSTMAN') || ft.includes('API')) return <ApiIcon color="warning" />;
+    if (ft.includes('ZIP') || ft.includes('TAR') || ft.includes('GZ')) return <FolderZipIcon color="info" />;
+    if (ft.includes('JSON') || ft.includes('XML') || ft.includes('YAML')) return <CodeIcon color="secondary" />;
+    return <InsertDriveFileIcon color="action" />;
+  }
 
   switch (iconName) {
     case 'book':
@@ -40,6 +53,12 @@ const getIconComponent = (iconName: string, isPdf: boolean = false) => {
       return <SecurityIcon />;
     case 'pdf':
       return <PictureAsPdfIcon color="error" />;
+    case 'api':
+      return <ApiIcon />;
+    case 'code':
+      return <CodeIcon />;
+    case 'zip':
+      return <FolderZipIcon />;
     default:
       return <DescriptionIcon />;
   }
@@ -78,6 +97,12 @@ const InstructionsPage = () => {
       return;
     }
 
+    // For downloads, trigger download
+    if (doc.type === 'download') {
+      handleDownloadFile(doc);
+      return;
+    }
+
     // For markdown, load and display
     try {
       setLoadingContent(true);
@@ -92,15 +117,15 @@ const InstructionsPage = () => {
     }
   };
 
-  const handleDownloadPdf = (doc: InstructionDoc, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleDownloadFile = (doc: InstructionDoc, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     const link = document.createElement('a');
     link.href = getDocumentUrl(doc.file);
-    link.download = doc.file.split('/').pop() || 'document.pdf';
+    link.download = doc.file.split('/').pop() || 'document';
     link.click();
   };
 
-  const handleOpenPdf = (doc: InstructionDoc, e: React.MouseEvent) => {
+  const handleOpenInNewTab = (doc: InstructionDoc, e: React.MouseEvent) => {
     e.stopPropagation();
     window.open(getDocumentUrl(doc.file), '_blank');
   };
@@ -126,13 +151,26 @@ const InstructionsPage = () => {
     );
   }
 
+  const getChipColor = (docType?: DocType, fileType?: string): 'error' | 'warning' | 'info' | 'secondary' | 'default' => {
+    if (docType === 'pdf') return 'error';
+    if (docType === 'download') {
+      const ft = (fileType || '').toUpperCase();
+      if (ft.includes('POSTMAN') || ft.includes('API')) return 'warning';
+      if (ft.includes('ZIP') || ft.includes('TAR')) return 'info';
+      if (ft.includes('JSON') || ft.includes('XML')) return 'secondary';
+    }
+    return 'default';
+  };
+
   const renderDocItem = (doc: InstructionDoc, index: number, arr: InstructionDoc[]) => {
     const isPdf = doc.type === 'pdf';
+    const isDownload = doc.type === 'download';
+    const showActions = isPdf || isDownload;
 
     return (
       <Box key={doc.id}>
         <ListItemButton onClick={() => handleSelectDoc(doc)}>
-          <ListItemIcon>{getIconComponent(doc.icon, isPdf)}</ListItemIcon>
+          <ListItemIcon>{getIconComponent(doc.icon, doc.type, doc.fileType)}</ListItemIcon>
           <ListItemText
             primary={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -146,19 +184,30 @@ const InstructionsPage = () => {
                     sx={{ height: 20, fontSize: '0.7rem' }}
                   />
                 )}
+                {isDownload && doc.fileType && (
+                  <Chip
+                    label={doc.fileType}
+                    size="small"
+                    color={getChipColor(doc.type, doc.fileType)}
+                    variant="outlined"
+                    sx={{ height: 20, fontSize: '0.7rem' }}
+                  />
+                )}
               </Box>
             }
             secondary={doc.description}
           />
-          {isPdf && (
+          {showActions && (
             <Box sx={{ display: 'flex', gap: 0.5 }}>
-              <Tooltip title="Open in new tab">
-                <IconButton size="small" onClick={(e) => handleOpenPdf(doc, e)}>
-                  <OpenInNewIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+              {isPdf && (
+                <Tooltip title="Open in new tab">
+                  <IconButton size="small" onClick={(e) => handleOpenInNewTab(doc, e)}>
+                    <OpenInNewIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
               <Tooltip title="Download">
-                <IconButton size="small" onClick={(e) => handleDownloadPdf(doc, e)}>
+                <IconButton size="small" onClick={(e) => handleDownloadFile(doc, e)}>
                   <DownloadIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
@@ -201,7 +250,7 @@ const InstructionsPage = () => {
             Documentation & Instructions
           </Typography>
           <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-            Select a document to view detailed instructions and guides. PDF files will open in a new tab.
+            Select a document to view detailed instructions and guides. PDF files will open in a new tab, and downloadable files (Postman collections, etc.) will be downloaded directly.
           </Typography>
 
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
@@ -259,6 +308,23 @@ const InstructionsPage = () => {
                 <List>
                   {instructions
                     .filter(doc => doc.category === 'pdf')
+                    .map((doc, index, arr) => renderDocItem(doc, index, arr))}
+                </List>
+              </Paper>
+            )}
+
+            {/* Downloads (Postman, ZIP, JSON, etc.) */}
+            {instructions.filter(doc => doc.category === 'download').length > 0 && (
+              <Paper elevation={1} sx={{ p: 0, overflow: 'hidden', gridColumn: { md: 'span 2' } }}>
+                <Box sx={{ p: 2, backgroundColor: 'warning.main', color: 'warning.contrastText' }}>
+                  <Typography variant="h6">
+                    <DownloadIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                    Downloads
+                  </Typography>
+                </Box>
+                <List>
+                  {instructions
+                    .filter(doc => doc.category === 'download')
                     .map((doc, index, arr) => renderDocItem(doc, index, arr))}
                 </List>
               </Paper>

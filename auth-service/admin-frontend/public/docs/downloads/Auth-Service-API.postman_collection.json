@@ -1,0 +1,1450 @@
+{
+	"info": {
+		"_postman_id": "auth-service-collection",
+		"name": "Auth Service API",
+		"description": "Complete API collection for Auth Service - JWT-based authentication microservice with user, role, entity, and session management.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8091/auth/api/v1",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refreshToken",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Authentication",
+			"description": "Login, logout, token refresh, and session management",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.success && jsonData.data) {",
+									"        pm.collectionVariables.set('token', jsonData.data.token);",
+									"        pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
+									"        console.log('Token saved to collection variables');",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"password\",\n    \"entityCode\": \"APP001\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "login"]
+						},
+						"description": "Authenticate user and get JWT tokens"
+					}
+				},
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"newuser\",\n    \"password\": \"Password123!\",\n    \"firstName\": \"New\",\n    \"lastName\": \"User\",\n    \"email\": \"newuser@example.com\",\n    \"company\": \"Example Corp\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "register"]
+						},
+						"description": "Register a new user"
+					}
+				},
+				{
+					"name": "Validate Token",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/validate",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "validate"]
+						},
+						"description": "Validate if the current JWT token is valid"
+					}
+				},
+				{
+					"name": "Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.success && jsonData.data) {",
+									"        pm.collectionVariables.set('token', jsonData.data.accessToken);",
+									"        pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
+									"        console.log('Tokens refreshed and saved');",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/refresh",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "refresh"]
+						},
+						"description": "Refresh access token using refresh token"
+					}
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/logout",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "logout"]
+						},
+						"description": "Logout and revoke refresh token"
+					}
+				},
+				{
+					"name": "Logout All Devices",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/logout-all",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "logout-all"]
+						},
+						"description": "Logout from all devices (revoke all refresh tokens)"
+					}
+				},
+				{
+					"name": "Get My Sessions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/sessions",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "sessions"]
+						},
+						"description": "Get all active sessions for current user"
+					}
+				},
+				{
+					"name": "Revoke My Session",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sessionId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/sessions/revoke",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "sessions", "revoke"]
+						},
+						"description": "Revoke a specific session (current user only)"
+					}
+				},
+				{
+					"name": "Update Theme Preferences",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"theme\": \"dark\",\n    \"paletteId\": \"ocean-blue\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/theme",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "theme"]
+						},
+						"description": "Update current user's theme preferences"
+					}
+				},
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/auth/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "health"]
+						},
+						"description": "Check service health and LDAP status"
+					}
+				}
+			]
+		},
+		{
+			"name": "Admin - Sessions",
+			"description": "Session management (ADMIN only)",
+			"item": [
+				{
+					"name": "Get All Sessions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/admin/sessions",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "admin", "sessions"]
+						},
+						"description": "Get all active sessions across all users (ADMIN)"
+					}
+				},
+				{
+					"name": "Search Sessions",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"filters\": {\n        \"username\": \"\"\n    },\n    \"dateRanges\": {},\n    \"sort\": {\n        \"column\": \"lastUsedAt\",\n        \"order\": \"desc\"\n    },\n    \"page\": 0,\n    \"pageSize\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/admin/sessions/search",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "admin", "sessions", "search"]
+						},
+						"description": "Search sessions with pagination and filtering (ADMIN)"
+					}
+				},
+				{
+					"name": "Revoke Session (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sessionId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/admin/sessions/revoke",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "admin", "sessions", "revoke"]
+						},
+						"description": "Revoke any user's session (ADMIN)"
+					}
+				},
+				{
+					"name": "Force Logout User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/admin/users/:username/logout",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "admin", "users", ":username", "logout"],
+							"variable": [
+								{
+									"key": "username",
+									"value": "user1"
+								}
+							]
+						},
+						"description": "Force logout all sessions for a specific user (ADMIN)"
+					}
+				},
+				{
+					"name": "Get Dashboard Statistics",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/admin/stats/dashboard",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "admin", "stats", "dashboard"]
+						},
+						"description": "Get dashboard statistics (ADMIN)"
+					}
+				}
+			]
+		},
+		{
+			"name": "Admin - Users",
+			"description": "User management (ADMIN only)",
+			"item": [
+				{
+					"name": "Get All Users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "users"]
+						},
+						"description": "Get all users"
+					}
+				},
+				{
+					"name": "Search Users",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"filters\": {\n        \"username\": \"\",\n        \"email\": \"\",\n        \"status\": \"\"\n    },\n    \"dateRanges\": {},\n    \"sort\": {\n        \"column\": \"username\",\n        \"order\": \"asc\"\n    },\n    \"page\": 0,\n    \"pageSize\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/users/search",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "users", "search"]
+						},
+						"description": "Search users with pagination and filtering"
+					}
+				},
+				{
+					"name": "Get User by Username",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/users/:username",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "users", ":username"],
+							"variable": [
+								{
+									"key": "username",
+									"value": "admin"
+								}
+							]
+						},
+						"description": "Get user details by username"
+					}
+				},
+				{
+					"name": "Create User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"newadminuser\",\n    \"password\": \"Password123!\",\n    \"firstName\": \"New\",\n    \"lastName\": \"Admin\",\n    \"email\": \"newadmin@example.com\",\n    \"company\": \"Example Corp\",\n    \"theme\": \"light\",\n    \"paletteId\": \"ocean-blue\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "users"]
+						},
+						"description": "Create a new user (password optional - auto-generated if not provided)"
+					}
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"firstName\": \"Updated\",\n    \"lastName\": \"Name\",\n    \"email\": \"updated@example.com\",\n    \"company\": \"New Company\",\n    \"theme\": \"dark\",\n    \"paletteId\": \"sunset-orange\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/users/:username",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "users", ":username"],
+							"variable": [
+								{
+									"key": "username",
+									"value": "user1"
+								}
+							]
+						},
+						"description": "Update user details"
+					}
+				},
+				{
+					"name": "Update User Status",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"INACTIVE\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/users/:username/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "users", ":username", "status"],
+							"variable": [
+								{
+									"key": "username",
+									"value": "user1"
+								}
+							]
+						},
+						"description": "Update user status (ACTIVE/INACTIVE)"
+					}
+				},
+				{
+					"name": "Reset Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"newPassword\": \"NewPassword123!\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/users/:username/reset-password",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "users", ":username", "reset-password"],
+							"variable": [
+								{
+									"key": "username",
+									"value": "user1"
+								}
+							]
+						},
+						"description": "Reset user password (newPassword optional - auto-generated if not provided)"
+					}
+				},
+				{
+					"name": "Get User Roles",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/users/:username/roles",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "users", ":username", "roles"],
+							"variable": [
+								{
+									"key": "username",
+									"value": "admin"
+								}
+							]
+						},
+						"description": "Get all roles assigned to a user"
+					}
+				},
+				{
+					"name": "Assign Role to User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"role\": \"USER\",\n    \"entity\": \"APP001\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/users/:username/roles",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "users", ":username", "roles"],
+							"variable": [
+								{
+									"key": "username",
+									"value": "user1"
+								}
+							]
+						},
+						"description": "Assign a role to a user for a specific entity"
+					}
+				},
+				{
+					"name": "Remove Role from User",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/users/:username/roles/:role/entity/:entity",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "users", ":username", "roles", ":role", "entity", ":entity"],
+							"variable": [
+								{
+									"key": "username",
+									"value": "user1"
+								},
+								{
+									"key": "role",
+									"value": "USER"
+								},
+								{
+									"key": "entity",
+									"value": "APP001"
+								}
+							]
+						},
+						"description": "Remove a role from a user"
+					}
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/users/:username",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "users", ":username"],
+							"variable": [
+								{
+									"key": "username",
+									"value": "userToDelete"
+								}
+							]
+						},
+						"description": "Delete a user"
+					}
+				}
+			]
+		},
+		{
+			"name": "Admin - Roles",
+			"description": "Role management (ADMIN only)",
+			"item": [
+				{
+					"name": "Get All Roles",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/roles",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "roles"]
+						},
+						"description": "Get all roles"
+					}
+				},
+				{
+					"name": "Get Roles by Entity",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/roles?entity=APP001",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "roles"],
+							"query": [
+								{
+									"key": "entity",
+									"value": "APP001"
+								}
+							]
+						},
+						"description": "Get roles filtered by entity"
+					}
+				},
+				{
+					"name": "Search Roles",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"filters\": {\n        \"role\": \"\",\n        \"entity\": \"\"\n    },\n    \"dateRanges\": {},\n    \"sort\": {\n        \"column\": \"role\",\n        \"order\": \"asc\"\n    },\n    \"page\": 0,\n    \"pageSize\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/roles/search",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "roles", "search"]
+						},
+						"description": "Search roles with pagination and filtering"
+					}
+				},
+				{
+					"name": "Get Role by Role and Entity",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/roles/:role/entity/:entity",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "roles", ":role", "entity", ":entity"],
+							"variable": [
+								{
+									"key": "role",
+									"value": "ADMIN"
+								},
+								{
+									"key": "entity",
+									"value": "APP001"
+								}
+							]
+						},
+						"description": "Get a specific role by role name and entity"
+					}
+				},
+				{
+					"name": "Create Role",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"role\": \"VIEWER\",\n    \"entity\": \"APP001\",\n    \"roleLevel\": \"3\",\n    \"description\": \"Read-only viewer role\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/roles",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "roles"]
+						},
+						"description": "Create a new role"
+					}
+				},
+				{
+					"name": "Update Role",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"role\": \"VIEWER\",\n    \"entity\": \"APP001\",\n    \"roleLevel\": \"3\",\n    \"description\": \"Updated description for viewer role\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/roles/:role/entity/:entity",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "roles", ":role", "entity", ":entity"],
+							"variable": [
+								{
+									"key": "role",
+									"value": "VIEWER"
+								},
+								{
+									"key": "entity",
+									"value": "APP001"
+								}
+							]
+						},
+						"description": "Update a role"
+					}
+				},
+				{
+					"name": "Delete Role",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/roles/:role/entity/:entity",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "roles", ":role", "entity", ":entity"],
+							"variable": [
+								{
+									"key": "role",
+									"value": "VIEWER"
+								},
+								{
+									"key": "entity",
+									"value": "APP001"
+								}
+							]
+						},
+						"description": "Delete a role"
+					}
+				}
+			]
+		},
+		{
+			"name": "Admin - Entities",
+			"description": "Entity/Application management (ADMIN only)",
+			"item": [
+				{
+					"name": "Get All Entities",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/entities",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "entities"]
+						},
+						"description": "Get all entities/applications"
+					}
+				},
+				{
+					"name": "Search Entities",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"filters\": {\n        \"name\": \"\",\n        \"type\": \"\"\n    },\n    \"dateRanges\": {},\n    \"sort\": {\n        \"column\": \"id\",\n        \"order\": \"asc\"\n    },\n    \"page\": 0,\n    \"pageSize\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/entities/search",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "entities", "search"]
+						},
+						"description": "Search entities with pagination and filtering"
+					}
+				},
+				{
+					"name": "Get Entity by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/entities/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "entities", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "APP001"
+								}
+							]
+						},
+						"description": "Get entity by ID"
+					}
+				},
+				{
+					"name": "Create Entity",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": \"APP003\",\n    \"name\": \"New Application\",\n    \"type\": \"WEB\",\n    \"description\": \"A new web application\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/entities",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "entities"]
+						},
+						"description": "Create a new entity/application"
+					}
+				},
+				{
+					"name": "Update Entity",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": \"APP003\",\n    \"name\": \"Updated Application Name\",\n    \"type\": \"WEB\",\n    \"description\": \"Updated description\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/entities/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "entities", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "APP003"
+								}
+							]
+						},
+						"description": "Update an entity"
+					}
+				},
+				{
+					"name": "Delete Entity",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/entities/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "entities", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "APP003"
+								}
+							]
+						},
+						"description": "Delete an entity"
+					}
+				}
+			]
+		},
+		{
+			"name": "Admin - Mailings",
+			"description": "Mailing management - Read only (ADMIN only)",
+			"item": [
+				{
+					"name": "Get All Mailings",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/mailings",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "mailings"]
+						},
+						"description": "Get all mailings"
+					}
+				},
+				{
+					"name": "Search Mailings",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"filters\": {\n        \"subject\": \"\",\n        \"sent\": \"\"\n    },\n    \"dateRanges\": {\n        \"createDate\": {\n            \"from\": \"\",\n            \"to\": \"\"\n        }\n    },\n    \"sort\": {\n        \"column\": \"createDate\",\n        \"order\": \"desc\"\n    },\n    \"page\": 0,\n    \"pageSize\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/mailings/search",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "mailings", "search"]
+						},
+						"description": "Search mailings with pagination and filtering"
+					}
+				},
+				{
+					"name": "Get Mailing by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/mailings/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "mailings", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Get mailing by ID"
+					}
+				}
+			]
+		},
+		{
+			"name": "Admin - Lookups",
+			"description": "Lookup data (ADMIN only)",
+			"item": [
+				{
+					"name": "Get All User Statuses",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/user-status",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "user-status"]
+						},
+						"description": "Get all available user statuses"
+					}
+				},
+				{
+					"name": "Get All Entity Types",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/entity-types",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "entity-types"]
+						},
+						"description": "Get all available entity types"
+					}
+				}
+			]
+		},
+		{
+			"name": "Logging API",
+			"description": "Application logging API for backend services (requires JWT authentication)",
+			"item": [
+				{
+					"name": "Create Log (Sync)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"entityName\": \"Main Application\",\n    \"module\": \"OrderService\",\n    \"request\": \"{\\\"orderId\\\": 12345, \\\"action\\\": \\\"create\\\"}\",\n    \"response\": \"{\\\"status\\\": \\\"success\\\", \\\"orderId\\\": 12345}\",\n    \"status\": \"SUCCESS\",\n    \"startTime\": \"2024-01-15T10:30:00.000Z\",\n    \"endTime\": \"2024-01-15T10:30:00.150Z\",\n    \"notifiable\": \"N\",\n    \"createUser\": \"order-service\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/logs",
+							"host": ["{{baseUrl}}"],
+							"path": ["logs"]
+						},
+						"description": "Create a log entry synchronously. Use entityName (e.g., 'Main Application') - resolved to entity ID automatically. Username is automatically taken from JWT token. Returns created log with entity ID, entityName, and username."
+					}
+				},
+				{
+					"name": "Create Log (Async)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"entityName\": \"Main Application\",\n    \"module\": \"PaymentGateway\",\n    \"request\": \"{\\\"paymentId\\\": \\\"PAY-001\\\", \\\"amount\\\": 99.99}\",\n    \"response\": \"{\\\"status\\\": \\\"pending\\\"}\",\n    \"status\": \"INFO\",\n    \"startTime\": \"2024-01-15T10:35:00.000Z\",\n    \"notifiable\": \"N\",\n    \"createUser\": \"payment-service\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/logs/async",
+							"host": ["{{baseUrl}}"],
+							"path": ["logs", "async"]
+						},
+						"description": "Create a log entry asynchronously. Use entityName - resolved to entity ID automatically. Username is taken from JWT token. Returns 202 Accepted immediately, log is processed in background."
+					}
+				},
+				{
+					"name": "Create Log - Minimal",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"module\": \"HealthCheck\",\n    \"status\": \"SUCCESS\",\n    \"createUser\": \"monitoring-service\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/logs",
+							"host": ["{{baseUrl}}"],
+							"path": ["logs"]
+						},
+						"description": "Create a minimal log entry with only required fields (status and createUser)"
+					}
+				},
+				{
+					"name": "Create Log - Error Example",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"entityName\": \"Main Application\",\n    \"module\": \"DatabaseService\",\n    \"request\": \"{\\\"query\\\": \\\"SELECT * FROM users\\\"}\",\n    \"response\": \"{\\\"error\\\": \\\"Connection timeout\\\", \\\"code\\\": \\\"TIMEOUT\\\"}\",\n    \"status\": \"ERROR\",\n    \"startTime\": \"2024-01-15T10:40:00.000Z\",\n    \"endTime\": \"2024-01-15T10:40:30.000Z\",\n    \"notifiable\": \"Y\",\n    \"createUser\": \"db-service\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/logs",
+							"host": ["{{baseUrl}}"],
+							"path": ["logs"]
+						},
+						"description": "Create an error log entry with notifiable=Y (triggers notification). Use entityName to specify the application."
+					}
+				}
+			]
+		},
+		{
+			"name": "Admin - Logs",
+			"description": "Application log management - Read only (ADMIN only)",
+			"item": [
+				{
+					"name": "Get All Logs",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/logs",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "logs"]
+						},
+						"description": "Get all application logs"
+					}
+				},
+				{
+					"name": "Search Logs",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"filters\": {\n        \"status\": \"\",\n        \"entity\": \"\",\n        \"module\": \"\",\n        \"username\": \"\",\n        \"createUser\": \"\"\n    },\n    \"dateRanges\": {\n        \"startTime\": {\n            \"from\": \"\",\n            \"to\": \"\"\n        }\n    },\n    \"sort\": {\n        \"column\": \"startTime\",\n        \"order\": \"desc\"\n    },\n    \"page\": 0,\n    \"pageSize\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/logs/search",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "logs", "search"]
+						},
+						"description": "Search logs with pagination, filtering by status/entity/module/username, and date range filtering"
+					}
+				},
+				{
+					"name": "Search Logs - By Status",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"filters\": {\n        \"status\": \"ERROR\"\n    },\n    \"dateRanges\": {},\n    \"sort\": {\n        \"column\": \"startTime\",\n        \"order\": \"desc\"\n    },\n    \"page\": 0,\n    \"pageSize\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/logs/search",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "logs", "search"]
+						},
+						"description": "Search for error logs only"
+					}
+				},
+				{
+					"name": "Search Logs - By Entity",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"filters\": {\n        \"entity\": \"APP001\"\n    },\n    \"dateRanges\": {},\n    \"sort\": {\n        \"column\": \"startTime\",\n        \"order\": \"desc\"\n    },\n    \"page\": 0,\n    \"pageSize\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/logs/search",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "logs", "search"]
+						},
+						"description": "Search logs for a specific entity/application"
+					}
+				},
+				{
+					"name": "Search Logs - Date Range",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"filters\": {},\n    \"dateRanges\": {\n        \"startTime\": {\n            \"from\": \"2024-01-01T00:00:00.000Z\",\n            \"to\": \"2024-12-31T23:59:59.999Z\"\n        }\n    },\n    \"sort\": {\n        \"column\": \"startTime\",\n        \"order\": \"desc\"\n    },\n    \"page\": 0,\n    \"pageSize\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/logs/search",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "logs", "search"]
+						},
+						"description": "Search logs within a specific date range"
+					}
+				},
+				{
+					"name": "Get Log by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/logs/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "logs", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Get full log details by ID (includes complete request/response without truncation)"
+					}
+				},
+				{
+					"name": "Get Log Statuses",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/logs/statuses",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "logs", "statuses"]
+						},
+						"description": "Get all available log statuses for filtering dropdown"
+					}
+				}
+			]
+		}
+	]
+}

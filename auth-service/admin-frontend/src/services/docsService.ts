@@ -1,5 +1,8 @@
 // Types for documentation system
-export type DocType = 'md' | 'pdf';
+// 'md' = Markdown (displayed inline)
+// 'pdf' = PDF (opens in new tab or downloads)
+// 'download' = Any file for download (Postman collections, ZIP, etc.)
+export type DocType = 'md' | 'pdf' | 'download';
 
 export interface InstructionDoc {
   id: string;
@@ -8,7 +11,8 @@ export interface InstructionDoc {
   file: string;
   category: string;
   icon: string;
-  type?: DocType; // 'md' (default) or 'pdf'
+  type?: DocType; // 'md' (default), 'pdf', or 'download'
+  fileType?: string; // Display label for file type (e.g., 'JSON', 'ZIP', 'POSTMAN')
 }
 
 export interface ChangelogEntry {
@@ -59,6 +63,33 @@ export const getDocumentUrl = (filePath: string): string => {
 };
 
 /**
+ * Detect document type based on file extension
+ */
+const detectDocType = (filename: string): DocType => {
+  const ext = filename.split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'pdf':
+      return 'pdf';
+    case 'md':
+    case 'markdown':
+      return 'md';
+    default:
+      return 'download';
+  }
+};
+
+/**
+ * Get file type label for display
+ */
+const getFileTypeLabel = (filename: string): string => {
+  const ext = filename.split('.').pop()?.toUpperCase();
+  // Special cases
+  if (filename.includes('postman')) return 'POSTMAN';
+  if (filename.includes('swagger') || filename.includes('openapi')) return 'API';
+  return ext || 'FILE';
+};
+
+/**
  * Get all instruction documents
  */
 export const getInstructions = async (): Promise<InstructionDoc[]> => {
@@ -66,7 +97,8 @@ export const getInstructions = async (): Promise<InstructionDoc[]> => {
   // Add default type based on file extension if not specified
   return manifest.instructions.map(doc => ({
     ...doc,
-    type: doc.type || (doc.file.endsWith('.pdf') ? 'pdf' : 'md'),
+    type: doc.type || detectDocType(doc.file),
+    fileType: doc.fileType || getFileTypeLabel(doc.file),
   }));
 };
 

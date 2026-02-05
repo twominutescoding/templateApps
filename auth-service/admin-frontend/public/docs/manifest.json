@@ -26,6 +26,16 @@
       "file": "instructions/role-management.md",
       "category": "guide",
       "icon": "security"
+    },
+    {
+      "id": "postman-collection",
+      "title": "Auth Service API - Postman Collection",
+      "description": "Import this collection into Postman to test the Auth Service API",
+      "file": "downloads/Auth-Service-API.postman_collection.json",
+      "category": "download",
+      "icon": "api",
+      "type": "download",
+      "fileType": "POSTMAN"
     }
   ],
   "changelog": [
