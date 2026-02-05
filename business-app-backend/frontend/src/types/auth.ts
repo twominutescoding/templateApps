@@ -1,15 +1,19 @@
 export type UserRole = 'admin' | 'manager' | 'user';
+
 export type AuthenticationMethod = 'DATABASE' | 'LDAP' | string;
 
 export interface User {
   id: string;
+  username: string;
   email: string;
   name: string;
   role: UserRole;
+  roles: string[];
   avatar?: string;
   department?: string;
-  phone?: string;
   createdAt: string;
+  theme?: string;
+  paletteId?: string;
   authenticationMethod?: AuthenticationMethod;
 }
 
@@ -19,7 +23,7 @@ export interface AuthTokens {
 }
 
 export interface LoginCredentials {
-  email: string;
+  email: string; // Can be username or email
   password: string;
 }
 
@@ -31,10 +35,9 @@ export interface AuthState {
 }
 
 export interface DecodedToken {
-  userId?: string;
   sub?: string;
-  email?: string;
-  role?: UserRole;
+  username?: string;
+  roles?: string[];
   exp: number;
   iat: number;
 }

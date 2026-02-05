@@ -10,11 +10,12 @@ import {
 import type { User, LoginCredentials } from '../types/auth';
 import * as authService from '../services/authService';
 
-// Global flag to prevent multiple initializations
+// Global flag to prevent multiple initializations across components
 let globalInitStarted = false;
 
 /**
  * Auth hook using Jotai atoms
+ * Replaces the old AuthContext
  */
 export const useAuth = () => {
   const [token, setToken] = useAtom(tokenAtom);
@@ -63,7 +64,7 @@ export const useAuth = () => {
                 const userData = await authService.getCurrentUser(storedToken);
                 setUser(userData);
               } catch {
-                // Keep existing state
+                // Keep existing localStorage state
               }
             }
           }
@@ -76,11 +77,13 @@ export const useAuth = () => {
     };
 
     initAuth();
-  }, []);
+  }, []); // Empty deps - runs once on mount
 
   const login = useCallback(async (credentials: LoginCredentials) => {
+    // authService.login handles localStorage
     const { user: userData, tokens } = await authService.login(credentials);
 
+    // Update atoms to trigger re-renders
     setToken(tokens.accessToken);
     setRefreshToken(tokens.refreshToken);
     setUser(userData);
@@ -89,14 +92,18 @@ export const useAuth = () => {
 
   const logout = useCallback(async () => {
     try {
+      // authService.logout handles localStorage
       await authService.logout();
     } catch (error) {
       console.error('Logout error:', error);
     }
 
+    // Clear atoms
     setToken(null);
     setRefreshToken(null);
     setUser(null);
+
+    // Reset for next login
     globalInitStarted = false;
   }, [setToken, setRefreshToken, setUser]);
 

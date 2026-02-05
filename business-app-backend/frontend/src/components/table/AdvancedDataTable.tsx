@@ -938,8 +938,13 @@ const AdvancedDataTable = ({
             <Button
               size="small"
               variant="contained"
-              color="primary"
               onClick={applyFilters}
+              sx={{
+                backgroundColor: '#42a5f5',
+                '&:hover': {
+                  backgroundColor: '#1e88e5',
+                },
+              }}
             >
               Apply Filters
             </Button>
@@ -978,7 +983,12 @@ const AdvancedDataTable = ({
           {filterMode === 'panel' && (
             <IconButton
               onClick={() => setShowFilters(!showFilters)}
-              color={showFilters ? 'primary' : 'default'}
+              sx={{
+                color: showFilters ? '#42a5f5' : 'action.active',
+                '&:hover': {
+                  backgroundColor: 'rgba(66, 165, 245, 0.15)',
+                },
+              }}
             >
               <FilterListIcon />
             </IconButton>

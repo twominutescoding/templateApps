@@ -11,7 +11,7 @@ const safeParseJSON = <T>(value: string | null, fallback: T): T => {
   }
 };
 
-// Get initial values from localStorage
+// Get initial values from localStorage (compatible with authService format)
 const getInitialToken = (): string | null => {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem('token');
@@ -56,3 +56,13 @@ export const isAuthenticatedAtom = atom<boolean>(
 
 // Loading state atom
 export const isLoadingAtom = atom<boolean>(true);
+
+// Combined auth state atom (for compatibility)
+export const authStateAtom = atom(
+  (get) => ({
+    user: get(userAtom),
+    tokens: get(tokensAtom),
+    isAuthenticated: get(isAuthenticatedAtom),
+    isLoading: get(isLoadingAtom),
+  })
+);

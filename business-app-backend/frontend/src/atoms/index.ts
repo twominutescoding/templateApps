@@ -6,12 +6,14 @@ export {
   tokensAtom,
   isAuthenticatedAtom,
   isLoadingAtom,
+  authStateAtom,
 } from './authAtoms';
 
 // Theme atoms
 export {
   themeModeAtom,
   paletteAtom,
+  selectedPaletteIdAtom,
   customPalettesAtom,
   allPalettesAtom,
 } from './themeAtoms';
