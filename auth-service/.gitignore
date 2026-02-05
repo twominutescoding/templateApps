@@ -44,3 +44,11 @@ ldap-config/
 ### Claude Code ###
 .claude/
 *.local.json
+
+### Frontend Build Output ###
+src/main/resources/static/
+
+### Frontend Dependencies ###
+admin-frontend/node_modules/
+admin-frontend/dist/
+admin-frontend/.vite/
