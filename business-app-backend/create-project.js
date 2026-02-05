@@ -100,6 +100,7 @@ async function main() {
     const basePackage = await question('Enter base package name (e.g., com.mycompany): ');
     const appDisplayName = await question('Enter application display name (e.g., Inventory Management): ');
     const serverPort = await question('Enter server port (default: 8090): ') || '8090';
+    const contextPath = await question('Enter context path (default: /api): ') || '/api';
     const authServiceUrl = await question('Enter auth-service URL (default: http://localhost:8091/auth/api/v1/auth/login): ') || 'http://localhost:8091/auth/api/v1/auth/login';
     let targetDir = await question('Enter target directory (default: ../): ');
 
@@ -122,6 +123,7 @@ async function main() {
     console.log(`Package: ${basePackage}.${projectNameSnake}`);
     console.log(`Display Name: ${appDisplayName}`);
     console.log(`Server Port: ${serverPort}`);
+    console.log(`Context Path: ${contextPath}`);
     console.log(`Auth Service Login URL: ${authServiceUrl}`);
     console.log(`Auth Service Refresh URL: ${authServiceRefreshUrl}`);
     console.log(`Target Directory: ${newProjectDir}`);
@@ -167,6 +169,9 @@ async function main() {
     }
 
     // Prepare replacements
+    // Ensure contextPath ends with / for Vite base URL
+    const viteBase = contextPath.endsWith('/') ? contextPath : `${contextPath}/`;
+
     const replacements = {
       'com\\.template\\.business': `${basePackage}.${projectNameSnake}`,
       'business-app-backend': projectNameKebab,
@@ -177,6 +182,10 @@ async function main() {
       'Business App': appDisplayName,
       'businessdb': `${projectNameSnake}db`,
       'server\\.port=8090': `server.port=${serverPort}`,
+      // Update context path
+      'server\\.servlet\\.context-path=/api': `server.servlet.context-path=${contextPath}`,
+      // Update Vite base URL to match context path
+      "base: '/api/'": `base: '${viteBase}'`,
       'AUTH_SERVICE_URL:http://localhost:8091/auth/api/v1/auth/login': `AUTH_SERVICE_URL:${authServiceUrl}`,
       'AUTH_SERVICE_REFRESH_URL:http://localhost:8091/auth/api/v1/auth/refresh': `AUTH_SERVICE_REFRESH_URL:${authServiceRefreshUrl}`,
       '<groupId>com\\.template</groupId>': `<groupId>${basePackage}</groupId>`,
@@ -247,10 +256,10 @@ npm run dev
 
 ## Access
 
-- **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:${serverPort}/api
-- **Swagger UI**: http://localhost:${serverPort}/api/swagger-ui.html
-- **H2 Console**: http://localhost:${serverPort}/api/h2-console
+- **Frontend**: http://localhost:5173 (dev) or http://localhost:${serverPort}${contextPath}/ (production)
+- **Backend API**: http://localhost:${serverPort}${contextPath}
+- **Swagger UI**: http://localhost:${serverPort}${contextPath}/swagger-ui.html
+- **H2 Console**: http://localhost:${serverPort}${contextPath}/h2-console
   - JDBC URL: \`jdbc:h2:mem:${projectNameSnake}db\`
   - Username: \`sa\`
   - Password: (empty)
