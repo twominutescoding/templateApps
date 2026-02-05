@@ -160,6 +160,8 @@ async function main() {
       "base: '/auth/'": `base: '${viteBase}'`,
       // Update API base URL in api.ts
       "'/auth/api/v1'": `'${contextPath}/api/v1'`,
+      // Update finalName in pom.xml to match context path (for Tomcat deployment)
+      '<finalName>auth</finalName>': `<finalName>${contextPath.replace(/^\//, '')}</finalName>`,
       '<groupId>com\\.template</groupId>': `<groupId>${basePackage}</groupId>`,
       '<artifactId>auth-service</artifactId>': `<artifactId>${serviceNameKebab}</artifactId>`,
       '<name>auth-service</name>': `<name>${serviceNameKebab}</name>`,

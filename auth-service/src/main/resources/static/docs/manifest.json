@@ -26,16 +26,7 @@
       "file": "instructions/role-management.md",
       "category": "guide",
       "icon": "security"
-    },
-	{
-    "id": "functional-design",
-    "title": "Functional Design Document",
-    "description": "System functional design specification",
-    "file": "instructions/functional-design.pdf",
-    "category": "pdf",
-    "icon": "pdf",
-    "type": "pdf"
-  }
+    }
   ],
   "changelog": [
     {

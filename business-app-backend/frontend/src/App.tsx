@@ -16,11 +16,14 @@ import ComprehensiveTableDemo from './pages/components/ComprehensiveTableDemo';
 import DemoProductsPage from './pages/demo/DemoProductsPage';
 import InstructionsPage from './pages/instructions/InstructionsPage';
 
+// Get basename from Vite's base URL (removes trailing slash for React Router)
+const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
+
 function App() {
   return (
     <JotaiProvider>
       <ThemeContextProvider>
-        <BrowserRouter>
+        <BrowserRouter basename={basename}>
           <Routes>
             {/* Public route */}
             <Route path="/login" element={<Login />} />

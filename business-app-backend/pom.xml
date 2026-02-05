@@ -15,6 +15,7 @@
     <groupId>com.template</groupId>
     <artifactId>business-app-backend</artifactId>
     <version>1.0.0</version>
+    <packaging>war</packaging>
     <name>Business Application Backend</name>
     <description>Template backend for business applications with common features</description>
 
@@ -30,6 +31,13 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Tomcat provided for WAR deployment -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-tomcat</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -130,6 +138,8 @@
     </dependencies>
 
     <build>
+        <!-- WAR/JAR name matches context path for easy Tomcat deployment -->
+        <finalName>api</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
@@ -183,8 +193,8 @@
                             <goal>install-node-and-npm</goal>
                         </goals>
                         <configuration>
-                            <nodeVersion>v18.18.0</nodeVersion>
-                            <npmVersion>9.8.1</npmVersion>
+                            <nodeVersion>v20.19.0</nodeVersion>
+                            <npmVersion>10.8.2</npmVersion>
                         </configuration>
                     </execution>
                     <!-- npm install -->

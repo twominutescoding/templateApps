@@ -30,7 +30,8 @@ public class SpaController {
         "/entities",
         "/mailings",
         "/logs",
-        "/settings"
+        "/settings",
+        "/instructions"
     })
     public String forward() {
         return "forward:/index.html";

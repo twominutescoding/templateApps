@@ -186,6 +186,10 @@ async function main() {
       'server\\.servlet\\.context-path=/api': `server.servlet.context-path=${contextPath}`,
       // Update Vite base URL to match context path
       "base: '/api/'": `base: '${viteBase}'`,
+      // Update API base URL in api.ts
+      "VITE_API_BASE_URL \\|\\| '/api'": `VITE_API_BASE_URL || '${contextPath}'`,
+      // Update finalName in pom.xml to match context path (for Tomcat deployment)
+      '<finalName>api</finalName>': `<finalName>${contextPath.replace(/^\//, '')}</finalName>`,
       'AUTH_SERVICE_URL:http://localhost:8091/auth/api/v1/auth/login': `AUTH_SERVICE_URL:${authServiceUrl}`,
       'AUTH_SERVICE_REFRESH_URL:http://localhost:8091/auth/api/v1/auth/refresh': `AUTH_SERVICE_REFRESH_URL:${authServiceRefreshUrl}`,
       '<groupId>com\\.template</groupId>': `<groupId>${basePackage}</groupId>`,

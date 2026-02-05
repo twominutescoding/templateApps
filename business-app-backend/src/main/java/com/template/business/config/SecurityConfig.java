@@ -39,6 +39,7 @@ public class SecurityConfig {
                         // Static resources for SPA (frontend)
                         .requestMatchers("/", "/index.html", "/favicon.ico").permitAll()
                         .requestMatchers("/assets/**", "/*.js", "/*.css", "/*.svg", "/*.png", "/*.ico").permitAll()
+                        .requestMatchers("/docs/**").permitAll()
                         // SPA routes (handled by SpaController -> forward to index.html)
                         .requestMatchers("/login", "/components", "/components/**", "/settings", "/profile", "/instructions").permitAll()
                         // Public endpoints

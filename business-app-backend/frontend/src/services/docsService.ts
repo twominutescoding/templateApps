@@ -25,7 +25,9 @@ export interface DocsManifest {
   changelog: ChangelogEntry[];
 }
 
-const DOCS_BASE_PATH = '/docs';
+// Use Vite's BASE_URL which includes the context path (e.g., '/api/')
+// This ensures docs work both in dev mode and when served via Spring Boot
+const DOCS_BASE_PATH = `${import.meta.env.BASE_URL}docs`.replace('//', '/');
 
 /**
  * Fetch the documentation manifest

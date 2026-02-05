@@ -15,6 +15,7 @@
     <groupId>com.template</groupId>
     <artifactId>auth-service</artifactId>
     <version>1.0.0</version>
+    <packaging>war</packaging>
     <name>Authentication Service</name>
     <description>Authentication microservice with LDAP and database fallback</description>
 
@@ -24,8 +25,8 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- Frontend build properties -->
-        <node.version>v20.11.0</node.version>
-        <npm.version>10.2.4</npm.version>
+        <node.version>v20.19.0</node.version>
+        <npm.version>10.8.2</npm.version>
         <frontend.directory>${project.basedir}/admin-frontend</frontend.directory>
     </properties>
 
@@ -34,6 +35,13 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Tomcat provided for WAR deployment -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-tomcat</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -131,6 +139,8 @@
     </dependencies>
 
     <build>
+        <!-- WAR/JAR name matches context path for easy Tomcat deployment -->
+        <finalName>auth</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
