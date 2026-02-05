@@ -1,9 +1,5 @@
 import { useState } from 'react';
 
-// Default SVG logos (fallback)
-import defaultLogo from '../../assets/images/logo.svg';
-import defaultLogoWhite from '../../assets/images/logo-white.svg';
-
 interface LogoProps {
   variant?: 'default' | 'white';
   height?: number | string;
@@ -13,16 +9,14 @@ interface LogoProps {
 }
 
 /**
- * Logo component with automatic fallback.
+ * Logo component that loads logos from public/images/logo folder.
+ * Supports both PNG and SVG formats with automatic fallback.
  *
- * Priority:
- * 1. Custom logo.png (if exists in public/)
- * 2. Default SVG logo
+ * Required files in public/images/logo/:
+ * - logo.png OR logo.svg (for default variant)
+ * - logo-white.png OR logo-white.svg (for white variant)
  *
- * Usage:
- * - Place your custom logo as logo.png or logo-white.png in public/
- * - The component will automatically use it if available
- * - Otherwise falls back to the default placeholder SVG
+ * Priority: PNG first, then SVG fallback
  */
 const Logo = ({
   variant = 'default',
@@ -31,17 +25,18 @@ const Logo = ({
   alt = 'Company Logo',
   style
 }: LogoProps) => {
-  // Start with custom PNG, fallback to SVG on error
-  const customLogo = variant === 'white' ? '/logo-white.png' : '/logo.png';
-  const fallbackLogo = variant === 'white' ? defaultLogoWhite : defaultLogo;
+  const baseUrl = import.meta.env.BASE_URL || '/';
+  const logoName = variant === 'white' ? 'logo-white' : 'logo';
+  const basePath = `${baseUrl}images/logo/${logoName}`.replace('//', '/');
 
-  const [logoSrc, setLogoSrc] = useState<string>(customLogo);
-  const [useFallback, setUseFallback] = useState(false);
+  // Try PNG first, fallback to SVG
+  const [logoSrc, setLogoSrc] = useState<string>(`${basePath}.png`);
+  const [triedSvg, setTriedSvg] = useState(false);
 
   const handleError = () => {
-    if (!useFallback) {
-      setUseFallback(true);
-      setLogoSrc(fallbackLogo);
+    if (!triedSvg) {
+      setTriedSvg(true);
+      setLogoSrc(`${basePath}.svg`);
     }
   };
 
