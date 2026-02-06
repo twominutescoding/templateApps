@@ -114,8 +114,14 @@ async function main() {
     const basePackage = await question('Enter base package name (e.g., com.mycompany): ');
     const appDisplayName = await question('Enter application display name (e.g., Inventory API): ');
     const serverPort = await question('Enter server port (default: 8090): ') || '8090';
-    const authServiceUrl = await question('Enter auth-service URL (default: http://localhost:8091/auth/api/v1/auth/login): ') || 'http://localhost:8091/auth/api/v1/auth/login';
-    let targetDir = await question('Enter target directory (default: ../): ');
+
+    // Auth service configuration
+    console.log('\n--- Auth Service Configuration ---');
+    const authServiceHost = await question('Enter auth-service host (default: localhost): ') || 'localhost';
+    const authServicePort = await question('Enter auth-service port (default: 8091): ') || '8091';
+    const authServiceContext = await question('Enter auth-service context path (default: /auth): ') || '/auth';
+
+    let targetDir = await question('\nEnter target directory (default: ../): ');
 
     targetDir = targetDir || '../';
 
@@ -123,9 +129,11 @@ async function main() {
     const projectNameSnake = toSnakeCase(projectName);
     const projectNamePascal = toPascalCase(projectName);
 
-    // Extract auth-service base URL for refresh endpoint
-    const authServiceBase = authServiceUrl.replace('/login', '');
-    const authServiceRefreshUrl = `${authServiceBase}/refresh`;
+    // Build auth-service URLs from components
+    const authServiceBaseUrl = `http://${authServiceHost}:${authServicePort}${authServiceContext}`;
+    const authServiceUrl = `${authServiceBaseUrl}/api/v1/auth/login`;
+    const authServiceRefreshUrl = `${authServiceBaseUrl}/api/v1/auth/refresh`;
+    const authServiceLogUrl = `${authServiceBaseUrl}/api/v1/logs`;
 
     const newProjectDir = path.join(targetDir, projectNameKebab);
     const packagePath = basePackage.replace(/\./g, '/');
@@ -136,8 +144,10 @@ async function main() {
     console.log(`Package: ${basePackage}.${projectNameSnake}`);
     console.log(`Display Name: ${appDisplayName}`);
     console.log(`Server Port: ${serverPort}`);
-    console.log(`Auth Service Login URL: ${authServiceUrl}`);
-    console.log(`Auth Service Refresh URL: ${authServiceRefreshUrl}`);
+    console.log(`Auth Service Base: ${authServiceBaseUrl}`);
+    console.log(`  - Login URL: ${authServiceUrl}`);
+    console.log(`  - Refresh URL: ${authServiceRefreshUrl}`);
+    console.log(`  - Log URL: ${authServiceLogUrl}`);
     console.log(`Target Directory: ${newProjectDir}`);
     console.log(`Type: Backend-Only (No Frontend)`);
     console.log('----------------------------------------\n');
@@ -200,6 +210,7 @@ async function main() {
       'server\\.port=8090': `server.port=${serverPort}`,
       'AUTH_SERVICE_URL:http://localhost:8091/auth/api/v1/auth/login': `AUTH_SERVICE_URL:${authServiceUrl}`,
       'AUTH_SERVICE_REFRESH_URL:http://localhost:8091/auth/api/v1/auth/refresh': `AUTH_SERVICE_REFRESH_URL:${authServiceRefreshUrl}`,
+      'AUTH_SERVICE_LOG_URL:http://localhost:8091/auth/api/v1/logs': `AUTH_SERVICE_LOG_URL:${authServiceLogUrl}`,
       // Update CORS origins - remove React dev server defaults for backend-only
       'cors\\.allowed-origins=\\$\\{CORS_ORIGINS:http://localhost:5173,http://localhost:3000\\}': 'cors.allowed-origins=${CORS_ORIGINS:http://localhost:3000}',
       '<groupId>com\\.template</groupId>': `<groupId>${basePackage}</groupId>`,
@@ -294,6 +305,7 @@ To change this, update \`application.properties\`:
 \`\`\`properties
 auth.service.url=\${AUTH_SERVICE_URL:${authServiceUrl}}
 auth.service.refresh-url=\${AUTH_SERVICE_REFRESH_URL:${authServiceRefreshUrl}}
+auth.service.log-url=\${AUTH_SERVICE_LOG_URL:${authServiceLogUrl}}
 \`\`\`
 
 ### Using the API
@@ -442,6 +454,7 @@ Set these in production:
 # Auth Service URLs
 export AUTH_SERVICE_URL=https://your-auth-service/api/v1/auth/login
 export AUTH_SERVICE_REFRESH_URL=https://your-auth-service/api/v1/auth/refresh
+export AUTH_SERVICE_LOG_URL=https://your-auth-service/api/v1/logs
 
 # JWT Secret (MUST match auth-service!)
 export JWT_SECRET=your-production-secret-key

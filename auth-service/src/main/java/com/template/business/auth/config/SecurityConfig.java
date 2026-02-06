@@ -136,7 +136,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Static resources for SPA (frontend)
                         .requestMatchers("/", "/index.html", "/favicon.ico").permitAll()
-                        .requestMatchers("/assets/**", "/*.js", "/*.css", "/*.svg", "/*.png", "/*.ico").permitAll()
+                        .requestMatchers("/assets/**", "/images/**", "/*.js", "/*.css", "/*.svg", "/*.png", "/*.ico").permitAll()
                         .requestMatchers("/docs/**").permitAll()
                         // SPA routes (handled by SpaController -> forward to index.html)
                         .requestMatchers("/login", "/dashboard", "/users", "/roles", "/sessions", "/entities", "/mailings", "/logs", "/settings", "/instructions").permitAll()

@@ -101,8 +101,14 @@ async function main() {
     const appDisplayName = await question('Enter application display name (e.g., Inventory Management): ');
     const serverPort = await question('Enter server port (default: 8090): ') || '8090';
     const contextPath = await question('Enter context path (default: /api): ') || '/api';
-    const authServiceUrl = await question('Enter auth-service URL (default: http://localhost:8091/auth/api/v1/auth/login): ') || 'http://localhost:8091/auth/api/v1/auth/login';
-    let targetDir = await question('Enter target directory (default: ../): ');
+
+    // Auth service configuration
+    console.log('\n--- Auth Service Configuration ---');
+    const authServiceHost = await question('Enter auth-service host (default: localhost): ') || 'localhost';
+    const authServicePort = await question('Enter auth-service port (default: 8091): ') || '8091';
+    const authServiceContext = await question('Enter auth-service context path (default: /auth): ') || '/auth';
+
+    let targetDir = await question('\nEnter target directory (default: ../): ');
 
     targetDir = targetDir || '../';
 
@@ -110,9 +116,11 @@ async function main() {
     const projectNameSnake = toSnakeCase(projectName);
     const projectNamePascal = toPascalCase(projectName);
 
-    // Extract auth-service base URL for refresh endpoint
-    const authServiceBase = authServiceUrl.replace('/login', '');
-    const authServiceRefreshUrl = `${authServiceBase}/refresh`;
+    // Build auth-service URLs from components
+    const authServiceBaseUrl = `http://${authServiceHost}:${authServicePort}${authServiceContext}`;
+    const authServiceUrl = `${authServiceBaseUrl}/api/v1/auth/login`;
+    const authServiceRefreshUrl = `${authServiceBaseUrl}/api/v1/auth/refresh`;
+    const authServiceLogUrl = `${authServiceBaseUrl}/api/v1/logs`;
 
     const newProjectDir = path.join(targetDir, projectNameKebab);
     const packagePath = basePackage.replace(/\./g, '/');
@@ -124,8 +132,10 @@ async function main() {
     console.log(`Display Name: ${appDisplayName}`);
     console.log(`Server Port: ${serverPort}`);
     console.log(`Context Path: ${contextPath}`);
-    console.log(`Auth Service Login URL: ${authServiceUrl}`);
-    console.log(`Auth Service Refresh URL: ${authServiceRefreshUrl}`);
+    console.log(`Auth Service Base: ${authServiceBaseUrl}`);
+    console.log(`  - Login URL: ${authServiceUrl}`);
+    console.log(`  - Refresh URL: ${authServiceRefreshUrl}`);
+    console.log(`  - Log URL: ${authServiceLogUrl}`);
     console.log(`Target Directory: ${newProjectDir}`);
     console.log('----------------------------------------\n');
 
@@ -192,6 +202,7 @@ async function main() {
       '<finalName>api</finalName>': `<finalName>${contextPath.replace(/^\//, '')}</finalName>`,
       'AUTH_SERVICE_URL:http://localhost:8091/auth/api/v1/auth/login': `AUTH_SERVICE_URL:${authServiceUrl}`,
       'AUTH_SERVICE_REFRESH_URL:http://localhost:8091/auth/api/v1/auth/refresh': `AUTH_SERVICE_REFRESH_URL:${authServiceRefreshUrl}`,
+      'AUTH_SERVICE_LOG_URL:http://localhost:8091/auth/api/v1/logs': `AUTH_SERVICE_LOG_URL:${authServiceLogUrl}`,
       '<groupId>com\\.template</groupId>': `<groupId>${basePackage}</groupId>`,
       '<artifactId>business-app-backend</artifactId>': `<artifactId>${projectNameKebab}</artifactId>`,
       '<name>business-app-backend</name>': `<name>${projectNameKebab}</name>`,
@@ -281,13 +292,16 @@ Users are managed in the auth-service database.
 ### Auth Service Integration
 
 This app is configured to use auth-service at:
+- **Base URL**: ${authServiceBaseUrl}
 - **Login**: ${authServiceUrl}
 - **Refresh**: ${authServiceRefreshUrl}
+- **Logging**: ${authServiceLogUrl}
 
 To change this, update \`application.properties\`:
 \`\`\`properties
 auth.service.url=\${AUTH_SERVICE_URL:${authServiceUrl}}
 auth.service.refresh-url=\${AUTH_SERVICE_REFRESH_URL:${authServiceRefreshUrl}}
+auth.service.log-url=\${AUTH_SERVICE_LOG_URL:${authServiceLogUrl}}
 \`\`\`
 
 ## Configuration
