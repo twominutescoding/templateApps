@@ -79,7 +79,7 @@ export interface FetchParams {
 
 interface AdvancedDataTableProps {
   title: string;
-  columns: Column[];
+  columns: Column<any>[];
   data: Record<string, any>[];
   defaultSortColumn?: string;
   defaultSortOrder?: Order;

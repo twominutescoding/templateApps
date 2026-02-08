@@ -57,4 +57,19 @@ public class ResourceNotFoundException extends BaseException {
     public ResourceNotFoundException(ErrorCode errorCode, String customMessage, Throwable cause) {
         super(errorCode, customMessage, cause);
     }
+
+    /**
+     * Legacy constructor for backward compatibility.
+     * Creates a formatted message from resource details.
+     *
+     * @param resourceName the name of the resource type (e.g., "User", "Role")
+     * @param fieldName the field name used for lookup (e.g., "id", "username")
+     * @param fieldValue the value that was not found
+     * @deprecated Use {@link #ResourceNotFoundException(ErrorCode, String)} instead
+     */
+    @Deprecated
+    public ResourceNotFoundException(String resourceName, String fieldName, Object fieldValue) {
+        super(ErrorCode.ENTITY_NOT_FOUND,
+              String.format("%s not found with %s: '%s'", resourceName, fieldName, fieldValue));
+    }
 }

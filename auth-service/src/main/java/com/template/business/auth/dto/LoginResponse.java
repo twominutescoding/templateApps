@@ -24,6 +24,7 @@ public class LoginResponse {
     private String company;
     private String theme;
     private String paletteId;
+    private String image;
     private List<String> roles;
     private String authenticationMethod; // LDAP or DATABASE
 }
