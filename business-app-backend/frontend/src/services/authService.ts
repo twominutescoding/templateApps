@@ -23,7 +23,7 @@ export const login = async (credentials: LoginCredentials): Promise<{ user: User
     const response = await authAPI.login({
       username: credentials.email, // Can be either email or username
       password: credentials.password,
-      entityCode: import.meta.env.VITE_ENTITY_CODE || 'BUSINESS_APP',
+      entityCode: 'BUSINESS_APP', // Replaced by create-project.js during generation
     });
 
     if (!response.success) {
