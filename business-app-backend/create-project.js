@@ -2,7 +2,8 @@
 
 /**
  * Business App Template Generator
- * Creates a new full-stack business application with external auth-service integration
+ * Creates a new business application with external auth-service integration
+ * Supports both full-stack (with React frontend) and backend-only projects
  */
 
 const fs = require('fs');
@@ -102,6 +103,20 @@ function replaceInAllFiles(dir, replacements, extensions = ['.java', '.propertie
   }
 }
 
+function removeFrontendPluginsFromPom(pomPath) {
+  let content = fs.readFileSync(pomPath, 'utf8');
+
+  // Remove frontend-maven-plugin
+  const frontendPluginRegex = /<!-- Frontend Maven Plugin -->[\s\S]*?<plugin>[\s\S]*?<groupId>com\.github\.eirslett<\/groupId>[\s\S]*?<\/plugin>/;
+  content = content.replace(frontendPluginRegex, '');
+
+  // Remove maven-resources-plugin for frontend
+  const resourcesPluginRegex = /<!-- Maven Resources Plugin - Copy frontend build to static folder -->[\s\S]*?<plugin>[\s\S]*?<artifactId>maven-resources-plugin<\/artifactId>[\s\S]*?<\/plugin>/;
+  content = content.replace(resourcesPluginRegex, '');
+
+  fs.writeFileSync(pomPath, content, 'utf8');
+}
+
 // ============================================================================
 // Main Function
 // ============================================================================
@@ -112,6 +127,19 @@ async function main() {
   console.log('==========================================\n');
 
   try {
+    // ========================================================================
+    // User Input - Application Type
+    // ========================================================================
+    console.log('--- Application Type ---\n');
+    console.log('  1) Full-Stack Web App (Spring Boot + React Frontend)');
+    console.log('  2) Backend Only (API without frontend)\n');
+
+    let appTypeInput = await question('Select application type (1 or 2, default: 1): ') || '1';
+    const isFullStack = appTypeInput.trim() === '1';
+    const appTypeLabel = isFullStack ? 'Full-Stack Web App' : 'Backend Only';
+
+    console.log(`\n  Selected: ${appTypeLabel}\n`);
+
     // ========================================================================
     // User Input - Basic Configuration
     // ========================================================================
@@ -194,6 +222,7 @@ async function main() {
     console.log('\n==========================================');
     console.log('Summary');
     console.log('==========================================\n');
+    console.log(`Application Type: ${appTypeLabel}`);
     console.log(`Project Name:     ${projectNameKebab}`);
     console.log(`Package:          ${basePackage}.${projectNameSnake}`);
     console.log(`Display Name:     ${displayName}`);
@@ -221,9 +250,13 @@ async function main() {
     // ========================================================================
     console.log('\nCreating new project...\n');
 
+    const totalSteps = isFullStack ? 4 : 5;
+
     // Copy project structure
-    console.log('[1/4] Copying project files...');
+    console.log(`[1/${totalSteps}] Copying project files...`);
     const sourceDir = __dirname;
+
+    // Base exclusions
     const exclude = [
       /^target$/,
       /^node_modules$/,
@@ -238,10 +271,24 @@ async function main() {
       /^TEMPLATE_README\.md$/
     ];
 
+    // For backend-only, exclude frontend
+    if (!isFullStack) {
+      exclude.push(/^frontend$/);
+      exclude.push(/^static$/);
+    }
+
     copyDirSync(sourceDir, newProjectDir, exclude);
 
+    // For backend-only, delete static folder if it exists
+    if (!isFullStack) {
+      const staticDir = path.join(newProjectDir, 'src/main/resources/static');
+      if (fs.existsSync(staticDir)) {
+        fs.rmSync(staticDir, { recursive: true, force: true });
+      }
+    }
+
     // Restructure Java packages
-    console.log('[2/4] Restructuring Java packages...');
+    console.log(`[2/${totalSteps}] Restructuring Java packages...`);
     const oldPackagePath = path.join(newProjectDir, 'src/main/java/com/template/business');
     const newPackagePath = path.join(newProjectDir, `src/main/java/${packagePath}/${projectNameSnake}`);
 
@@ -252,7 +299,7 @@ async function main() {
     }
 
     // Prepare replacements
-    console.log('[3/4] Updating configuration files...');
+    console.log(`[3/${totalSteps}] Updating configuration files...`);
 
     const replacements = {
       // Package name
@@ -275,10 +322,6 @@ async function main() {
       'server\\.port=8090': `server.port=${serverPort}`,
       'server\\.servlet\\.context-path=/api': `server.servlet.context-path=${contextPath}`,
 
-      // Vite configuration
-      "base: '/api/'": `base: '${viteBase}'`,
-      "VITE_API_BASE_URL \\|\\| '/api'": `VITE_API_BASE_URL || '${contextPath}'`,
-
       // Maven configuration
       '<finalName>api</finalName>': `<finalName>${contextPath.replace(/^\//, '')}</finalName>`,
       '<groupId>com\\.template</groupId>': `<groupId>${basePackage}</groupId>`,
@@ -300,6 +343,16 @@ async function main() {
       'app\\.logging\\.create-user=\\$\\{APP_LOGGING_CREATE_USER:business-app-backend\\}': `app.logging.create-user=\${APP_LOGGING_CREATE_USER:${projectNameKebab}}`,
     };
 
+    // Full-stack specific replacements
+    if (isFullStack) {
+      replacements["base: '/api/'"] = `base: '${viteBase}'`;
+      replacements["VITE_API_BASE_URL \\|\\| '/api'"] = `VITE_API_BASE_URL || '${contextPath}'`;
+    } else {
+      // Backend-only: remove React dev server from CORS
+      replacements['cors\\.allowed-origins=\\$\\{CORS_ORIGINS:http://localhost:5173,http://localhost:3000\\}'] =
+        `cors.allowed-origins=\${CORS_ORIGINS:http://localhost:3000}`;
+    }
+
     // Add JWT secret replacement if generated
     if (jwtSecret) {
       replacements['9ff7ff40e4641ffc5e1078ce57f682723c7371612ecc84a0e9c60e786f90cfb0'] = jwtSecret;
@@ -307,9 +360,94 @@ async function main() {
 
     replaceInAllFiles(newProjectDir, replacements);
 
+    // For backend-only, remove frontend plugins from pom.xml
+    if (!isFullStack) {
+      console.log(`[4/${totalSteps}] Removing frontend Maven plugins...`);
+      const pomPath = path.join(newProjectDir, 'pom.xml');
+      removeFrontendPluginsFromPom(pomPath);
+    }
+
     // Create README
-    console.log('[4/4] Creating README...');
-    const readme = `# ${displayName}
+    console.log(`[${totalSteps}/${totalSteps}] Creating README...`);
+
+    let readme;
+    if (isFullStack) {
+      readme = generateFullStackReadme({
+        displayName, projectNameKebab, projectNameSnake, basePackage,
+        serverPort, contextPath, entityCode, databaseName,
+        authServiceBaseUrl, authServiceUrl, authServiceRefreshUrl, authServiceLogUrl,
+        jwtSecret, packagePath
+      });
+    } else {
+      readme = generateBackendOnlyReadme({
+        displayName, projectNameKebab, projectNameSnake, basePackage,
+        serverPort, contextPath, entityCode, databaseName,
+        authServiceBaseUrl, authServiceUrl, authServiceRefreshUrl, authServiceLogUrl,
+        jwtSecret, packagePath
+      });
+    }
+
+    fs.writeFileSync(path.join(newProjectDir, 'README.md'), readme, 'utf8');
+
+    // ========================================================================
+    // Success Message
+    // ========================================================================
+    console.log('\n==========================================');
+    console.log('Project created successfully!');
+    console.log('==========================================\n');
+
+    console.log('Next steps:\n');
+    console.log('1. Start auth-service (REQUIRED):');
+    console.log('   cd ../auth-service');
+    console.log('   ./mvnw spring-boot:run\n');
+    console.log(`2. Start backend (${projectNameKebab}):`);
+    console.log(`   cd ${newProjectDir}`);
+    console.log('   ./mvnw spring-boot:run\n');
+
+    if (isFullStack) {
+      console.log('3. Start frontend:');
+      console.log('   cd frontend');
+      console.log('   npm install');
+      console.log('   npm run dev\n');
+      console.log('4. Open http://localhost:5173\n');
+      console.log('5. Login with: admin / password\n');
+    } else {
+      console.log(`3. Open Swagger UI:`);
+      console.log(`   http://localhost:${serverPort}${contextPath}/swagger-ui.html\n`);
+      console.log('4. Test API:');
+      console.log(`   curl -X POST http://localhost:${serverPort}${contextPath}/auth/login \\`);
+      console.log('     -H "Content-Type: application/json" \\');
+      console.log(`     -d '{"username":"admin","password":"password","entityCode":"${entityCode}"}'`);
+      console.log('');
+    }
+
+    if (jwtSecret) {
+      console.log('JWT Secret (must match auth-service):');
+      console.log(`${jwtSecret}\n`);
+    }
+
+    console.log(`Your new project is ready at: ${newProjectDir}\n`);
+
+  } catch (err) {
+    console.error('Error:', err.message);
+  } finally {
+    rl.close();
+  }
+}
+
+// ============================================================================
+// README Generators
+// ============================================================================
+
+function generateFullStackReadme(config) {
+  const {
+    displayName, projectNameKebab, projectNameSnake, basePackage,
+    serverPort, contextPath, entityCode, databaseName,
+    authServiceBaseUrl, authServiceUrl, authServiceRefreshUrl, authServiceLogUrl,
+    jwtSecret
+  } = config;
+
+  return `# ${displayName}
 
 This project was generated from the Business App Template.
 
@@ -445,42 +583,172 @@ Generated from Business App Template
 - Entity Code: \`${entityCode}\`
 - Auth Service: ${authServiceBaseUrl}
 `;
+}
 
-    fs.writeFileSync(path.join(newProjectDir, 'README.md'), readme, 'utf8');
+function generateBackendOnlyReadme(config) {
+  const {
+    displayName, projectNameKebab, projectNameSnake, basePackage,
+    serverPort, contextPath, entityCode, databaseName,
+    authServiceBaseUrl, authServiceUrl, authServiceRefreshUrl, authServiceLogUrl,
+    jwtSecret, packagePath
+  } = config;
 
-    // ========================================================================
-    // Success Message
-    // ========================================================================
-    console.log('\n==========================================');
-    console.log('Project created successfully!');
-    console.log('==========================================\n');
+  return `# ${displayName}
 
-    console.log('Next steps:\n');
-    console.log('1. Start auth-service (REQUIRED):');
-    console.log('   cd ../auth-service');
-    console.log('   ./mvnw spring-boot:run\n');
-    console.log(`2. Start backend (${projectNameKebab}):`);
-    console.log(`   cd ${newProjectDir}`);
-    console.log('   ./mvnw spring-boot:run\n');
-    console.log('3. Start frontend:');
-    console.log('   cd frontend');
-    console.log('   npm install');
-    console.log('   npm run dev\n');
-    console.log('4. Open http://localhost:5173\n');
-    console.log('5. Login with: admin / password\n');
+This backend-only API was generated from the Business App Template.
 
-    if (jwtSecret) {
-      console.log('JWT Secret (must match auth-service):');
-      console.log(`${jwtSecret}\n`);
-    }
+## Architecture
 
-    console.log(`Your new project is ready at: ${newProjectDir}\n`);
+This is a **backend-only API** application with:
+- **Spring Boot 4.0.1** (Java 17)
+- **External auth-service** for authentication
+- **RESTful API** endpoints
+- **Swagger UI** for API documentation
+- **No frontend** - Use any frontend framework or mobile app
 
-  } catch (err) {
-    console.error('Error:', err.message);
-  } finally {
-    rl.close();
-  }
+### Authentication
+
+All user authentication is handled by a separate auth-service microservice:
+- JWT tokens issued by auth-service
+- Refresh tokens managed by auth-service (7-day expiration)
+- Roles embedded in JWT tokens for authorization
+- No local user database
+
+## Prerequisites
+
+1. **Auth Service must be running first!**
+   - Start auth-service on ${authServiceBaseUrl}
+
+2. Java 17 or higher
+3. Maven 3.6+
+
+## Quick Start
+
+### 1. Start Auth Service (Required!)
+
+\`\`\`bash
+cd ../auth-service
+./mvnw spring-boot:run
+\`\`\`
+
+### 2. Start Backend API
+
+\`\`\`bash
+./mvnw spring-boot:run
+# Starts on port ${serverPort}
+\`\`\`
+
+## Access Points
+
+- **API Base URL**: http://localhost:${serverPort}${contextPath}
+- **Swagger UI**: http://localhost:${serverPort}${contextPath}/swagger-ui.html
+- **H2 Console**: http://localhost:${serverPort}${contextPath}/h2-console
+  - JDBC URL: \`jdbc:h2:mem:${databaseName}\`
+  - Username: \`sa\`
+  - Password: (empty)
+
+## Authentication
+
+### Login Credentials (from auth-service)
+
+- **Admin**: \`admin\` / \`password\`
+- **User**: \`user1\` / \`password\`
+- **Manager**: \`user2\` / \`password\`
+
+### Using the API
+
+#### 1. Login to get JWT token
+
+\`\`\`bash
+curl -X POST http://localhost:${serverPort}${contextPath}/auth/login \\
+  -H "Content-Type: application/json" \\
+  -d '{"username":"admin","password":"password","entityCode":"${entityCode}"}'
+\`\`\`
+
+#### 2. Use token in API requests
+
+\`\`\`bash
+curl -X GET http://localhost:${serverPort}${contextPath}/demo/products/1 \\
+  -H "Authorization: Bearer YOUR_TOKEN_HERE"
+\`\`\`
+
+## Configuration
+
+### JWT Secret
+${jwtSecret ? `
+Your generated JWT secret:
+\`\`\`
+${jwtSecret}
+\`\`\`
+
+This secret is already configured. **Make sure auth-service uses the same secret!**
+` : `
+The \`jwt.secret\` in this app **must match** the auth-service secret.
+
+Generate a secure secret:
+\`\`\`bash
+openssl rand -hex 32
+\`\`\`
+`}
+
+### Database (Production)
+
+\`\`\`bash
+export SPRING_PROFILES_ACTIVE=prod
+export DB_HOST=your-db-host
+export DB_PORT=1521
+export DB_SID=YOUR_SID
+export DB_USERNAME=your_user
+export DB_PASSWORD=your_password
+\`\`\`
+
+### CORS Configuration
+
+Configure allowed origins for your frontend:
+
+\`\`\`properties
+cors.allowed-origins=http://localhost:3000,https://your-frontend.com
+\`\`\`
+
+## Building for Production
+
+\`\`\`bash
+./mvnw clean package
+java -jar target/${projectNameKebab}-1.0.0.jar
+\`\`\`
+
+## API Endpoints
+
+### Authentication (Proxied to auth-service)
+
+- \`POST ${contextPath}/auth/login\` - Login with username/password
+- \`POST ${contextPath}/auth/refresh\` - Refresh expired access token
+
+### Demo Products (Example CRUD)
+
+- \`POST ${contextPath}/demo/products/search\` - Search with filters/pagination
+- \`GET ${contextPath}/demo/products/{id}\` - Get by ID
+- \`POST ${contextPath}/demo/products\` - Create
+- \`PUT ${contextPath}/demo/products/{id}\` - Update
+- \`DELETE ${contextPath}/demo/products/{id}\` - Delete
+
+See **Swagger UI** for complete API documentation.
+
+## Demo Code
+
+The \`demo/\` package contains example code that can be safely deleted:
+
+\`\`\`bash
+rm -rf src/main/java/${packagePath}/${projectNameSnake}/demo/
+\`\`\`
+
+---
+
+Generated from Business App Template (Backend-Only)
+- Package: \`${basePackage}.${projectNameSnake}\`
+- Entity Code: \`${entityCode}\`
+- Auth Service: ${authServiceBaseUrl}
+`;
 }
 
 main();
