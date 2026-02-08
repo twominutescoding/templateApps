@@ -6,8 +6,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Authentication service - delegates all authentication to external auth-service
@@ -33,20 +33,26 @@ public class AuthService {
         ExternalAuthResponse authResponse = externalAuthService.authenticate(username, password, entityCode);
         ExternalAuthResponse.AuthData authData = authResponse.getData();
 
-        // Convert roles from List to Set
-        Set<String> roles = authData.getRoles() != null
-            ? new HashSet<>(authData.getRoles())
-            : Set.of("USER");
+        // Get roles or default to USER
+        List<String> roles = authData.getRoles() != null
+            ? authData.getRoles()
+            : List.of("USER");
 
         // Return the response using auth-service token and user data
         return LoginResponse.builder()
                 .token(authData.getToken())
                 .refreshToken(authData.getRefreshToken())
                 .type(authData.getType())
-                .id(null) // Auth-service doesn't provide numeric ID
                 .username(authData.getUsername())
                 .email(authData.getEmail())
+                .firstName(authData.getFirstName())
+                .lastName(authData.getLastName())
+                .company(authData.getCompany())
+                .theme(authData.getTheme())
+                .paletteId(authData.getPaletteId())
+                .image(authData.getImage())
                 .roles(roles)
+                .authenticationMethod(authData.getAuthenticationMethod())
                 .build();
     }
 
@@ -62,19 +68,25 @@ public class AuthService {
         ExternalAuthResponse authResponse = externalAuthService.refreshToken(refreshTokenString);
         ExternalAuthResponse.AuthData authData = authResponse.getData();
 
-        // Convert roles from List to Set
-        Set<String> roles = authData.getRoles() != null
-            ? new HashSet<>(authData.getRoles())
-            : Set.of("USER");
+        // Get roles or default to USER
+        List<String> roles = authData.getRoles() != null
+            ? authData.getRoles()
+            : List.of("USER");
 
         return LoginResponse.builder()
                 .token(authData.getToken())
                 .refreshToken(authData.getRefreshToken())
                 .type(authData.getType())
-                .id(null)
                 .username(authData.getUsername())
                 .email(authData.getEmail())
+                .firstName(authData.getFirstName())
+                .lastName(authData.getLastName())
+                .company(authData.getCompany())
+                .theme(authData.getTheme())
+                .paletteId(authData.getPaletteId())
+                .image(authData.getImage())
                 .roles(roles)
+                .authenticationMethod(authData.getAuthenticationMethod())
                 .build();
     }
 }

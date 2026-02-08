@@ -10,13 +10,13 @@ interface LogoProps {
 
 /**
  * Logo component that loads logos from public/images/logo folder.
- * Supports both PNG and SVG formats with automatic fallback.
+ * Supports both SVG and PNG formats with automatic fallback.
  *
  * Required files in public/images/logo/:
- * - logo.png OR logo.svg (for default variant)
- * - logo-white.png OR logo-white.svg (for white variant)
+ * - logo.svg OR logo.png (for default variant)
+ * - logo-white.svg OR logo-white.png (for white variant)
  *
- * Priority: PNG first, then SVG fallback
+ * Priority: SVG first, then PNG fallback
  */
 const Logo = ({
   variant = 'default',
@@ -29,14 +29,14 @@ const Logo = ({
   const logoName = variant === 'white' ? 'logo-white' : 'logo';
   const basePath = `${baseUrl}images/logo/${logoName}`.replace('//', '/');
 
-  // Try PNG first, fallback to SVG
-  const [logoSrc, setLogoSrc] = useState<string>(`${basePath}.png`);
-  const [triedSvg, setTriedSvg] = useState(false);
+  // Try SVG first, fallback to PNG
+  const [logoSrc, setLogoSrc] = useState<string>(`${basePath}.svg`);
+  const [triedPng, setTriedPng] = useState(false);
 
   const handleError = () => {
-    if (!triedSvg) {
-      setTriedSvg(true);
-      setLogoSrc(`${basePath}.svg`);
+    if (!triedPng) {
+      setTriedPng(true);
+      setLogoSrc(`${basePath}.png`);
     }
   };
 

@@ -19,9 +19,11 @@ export const login = async (credentials: LoginCredentials): Promise<{ user: User
   try {
     // Backend expects username, but frontend uses email
     // We'll accept both email and username in the login form
+    // entityCode is used for multi-application support (defaults to APP001)
     const response = await authAPI.login({
       username: credentials.email, // Can be either email or username
       password: credentials.password,
+      entityCode: import.meta.env.VITE_ENTITY_CODE || 'BUSINESS_APP',
     });
 
     if (!response.success) {

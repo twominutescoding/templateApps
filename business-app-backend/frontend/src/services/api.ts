@@ -142,6 +142,7 @@ export interface PageResponse<T> {
 export interface LoginRequest {
   username: string;
   password: string;
+  entityCode: string;
 }
 
 export interface LoginResponse {

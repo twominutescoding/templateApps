@@ -128,6 +128,7 @@ async function main() {
     const projectNameKebab = toKebabCase(projectName);
     const projectNameSnake = toSnakeCase(projectName);
     const projectNamePascal = toPascalCase(projectName);
+    const projectNameUpperSnake = projectNameSnake.toUpperCase(); // For entity code (e.g., INVENTORY_API)
 
     // Build auth-service URLs from components
     const authServiceBaseUrl = `http://${authServiceHost}:${authServicePort}${authServiceContext}`;
@@ -148,6 +149,7 @@ async function main() {
     console.log(`  - Login URL: ${authServiceUrl}`);
     console.log(`  - Refresh URL: ${authServiceRefreshUrl}`);
     console.log(`  - Log URL: ${authServiceLogUrl}`);
+    console.log(`Entity Code: ${projectNameUpperSnake}`);
     console.log(`Target Directory: ${newProjectDir}`);
     console.log(`Type: Backend-Only (No Frontend)`);
     console.log('----------------------------------------\n');
@@ -217,6 +219,8 @@ async function main() {
       '<artifactId>business-app-backend</artifactId>': `<artifactId>${projectNameKebab}</artifactId>`,
       '<name>business-app-backend</name>': `<name>${projectNameKebab}</name>`,
       'logging\\.level\\.com\\.template\\.business': `logging.level.${basePackage}.${projectNameSnake}`,
+      // Update entity code for auth-service (used in logging)
+      'BUSINESS_APP': projectNameUpperSnake,
     };
 
     // Replace in all files

@@ -117,7 +117,7 @@ public class AppLogger {
      * @param message The log message
      */
     public void error(String module, String message) {
-        error(module, message, null, null);
+        error(module, message, (String) null, (String) null);
     }
 
     /**
