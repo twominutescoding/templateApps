@@ -24,6 +24,43 @@
 	],
 	"item": [
 		{
+			"name": "Health",
+			"description": "Health check endpoints for monitoring and load balancers.",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["health"]
+						},
+						"description": "Basic health check endpoint. Returns service status and LDAP configuration.\n\nResponse:\n- 200: { \"status\": \"UP\", \"service\": \"auth-service\", \"ldap\": \"enabled/disabled\" }"
+					}
+				},
+				{
+					"name": "Health Check with DB",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/healthDB",
+							"host": ["{{baseUrl}}"],
+							"path": ["healthDB"]
+						},
+						"description": "Health check with database connectivity validation. Requires authentication.\n\nResponse:\n- 200: { \"status\": \"UP\", \"service\": \"auth-service\", \"ldap\": \"enabled/disabled\", \"database\": { \"status\": \"UP\", \"latency_ms\": 5 } }\n- 200 (degraded): { \"status\": \"DEGRADED\", ... }"
+					}
+				}
+			]
+		},
+		{
 			"name": "Authentication",
 			"description": "Login, logout, token refresh, and session management",
 			"item": [

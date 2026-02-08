@@ -110,6 +110,38 @@
 			]
 		},
 		{
+			"name": "Health",
+			"description": "Health check endpoints for monitoring and load balancer health checks.",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["health"]
+						},
+						"description": "Basic health check endpoint. Returns service status.\n\nResponse:\n- 200: { \"status\": \"UP\", \"service\": \"business-app-backend\" }"
+					}
+				},
+				{
+					"name": "Health Check with DB",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/healthDB",
+							"host": ["{{baseUrl}}"],
+							"path": ["healthDB"]
+						},
+						"description": "Health check with database connectivity validation.\n\nResponse:\n- 200: { \"status\": \"UP\", \"service\": \"business-app-backend\", \"database\": \"connected\" }\n- 503: { \"status\": \"DOWN\", \"service\": \"business-app-backend\", \"database\": \"disconnected\", \"error\": \"...\" }"
+					}
+				}
+			]
+		},
+		{
 			"name": "Demo Products",
 			"description": "Demo product CRUD operations. These endpoints demonstrate the application patterns and can be safely deleted when starting real development.",
 			"item": [
