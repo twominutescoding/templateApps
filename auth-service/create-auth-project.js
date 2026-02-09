@@ -245,13 +245,14 @@ async function main() {
       // Database
       'authdb': databaseName,
 
-      // Server configuration
-      'server\\.port=8091': `server.port=${serverPort}`,
-      'server\\.servlet\\.context-path=/auth': `server.servlet.context-path=${contextPath}`,
+      // Server configuration (default values in env vars)
+      'SERVER_PORT:8091': `SERVER_PORT:${serverPort}`,
+      'CONTEXT_PATH:/auth': `CONTEXT_PATH:${contextPath}`,
 
       // Vite configuration
       "base: '/auth/'": `base: '${viteBase}'`,
       "'/auth/api/v1'": `'${contextPath}/api/v1'`,
+      "'/auth/'": `'${viteBase}'`,
 
       // Maven configuration
       '<finalName>auth</finalName>': `<finalName>${contextPath.replace(/^\//, '')}</finalName>`,
@@ -263,10 +264,10 @@ async function main() {
       'logging\\.level\\.com\\.template\\.business': `logging.level.${basePackage}.${serviceNameSnake}`,
 
       // Entity code (for app logging and admin frontend)
-      'MINT_AUTH_SERVICE': entityCode,
+      'TEMP_AUTH_SERVICE': entityCode,
 
-      // App logging create-user
-      'app\\.logging\\.create-user=auth-service': `app.logging.create-user=${serviceNameKebab}`,
+      // App logging create-user (default value in env var)
+      'LOGGING_CREATE_USER:auth-service': `LOGGING_CREATE_USER:${serviceNameKebab}`,
     };
 
     // Add JWT secret replacement if generated

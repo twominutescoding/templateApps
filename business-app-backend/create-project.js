@@ -318,9 +318,9 @@ async function main() {
       // Database
       'businessdb': databaseName,
 
-      // Server configuration
-      'server\\.port=8090': `server.port=${serverPort}`,
-      'server\\.servlet\\.context-path=/api': `server.servlet.context-path=${contextPath}`,
+      // Server configuration (default values in env vars)
+      'SERVER_PORT:8090': `SERVER_PORT:${serverPort}`,
+      'CONTEXT_PATH:/api': `CONTEXT_PATH:${contextPath}`,
 
       // Maven configuration
       '<finalName>api</finalName>': `<finalName>${contextPath.replace(/^\//, '')}</finalName>`,
@@ -328,19 +328,15 @@ async function main() {
       '<artifactId>business-app-backend</artifactId>': `<artifactId>${projectNameKebab}</artifactId>`,
       '<name>business-app-backend</name>': `<name>${projectNameKebab}</name>`,
 
-      // Auth service URLs
-      'AUTH_SERVICE_URL:http://localhost:8091/auth/api/v1/auth/login': `AUTH_SERVICE_URL:${authServiceUrl}`,
-      'AUTH_SERVICE_REFRESH_URL:http://localhost:8091/auth/api/v1/auth/refresh': `AUTH_SERVICE_REFRESH_URL:${authServiceRefreshUrl}`,
-      'AUTH_SERVICE_LOG_URL:http://localhost:8091/auth/api/v1/logs': `AUTH_SERVICE_LOG_URL:${authServiceLogUrl}`,
+      // Auth service URLs (these are part of the prefixed env vars, handled by TEMP_BUSINESS_APP replacement)
+      // The prefix replacement handles: TEMP_BUSINESS_APP_AUTH_SERVICE_URL -> ENTITY_CODE_AUTH_SERVICE_URL
 
       // Logging
       'logging\\.level\\.com\\.template\\.business': `logging.level.${basePackage}.${projectNameSnake}`,
 
-      // Entity code (for auth-service login and app logging)
-      'BUSINESS_APP': entityCode,
-
-      // App logging create-user
-      'app\\.logging\\.create-user=\\$\\{APP_LOGGING_CREATE_USER:business-app-backend\\}': `app.logging.create-user=\${APP_LOGGING_CREATE_USER:${projectNameKebab}}`,
+      // Entity code prefix for environment variables (for multi-app Tomcat deployment)
+      // This replaces ALL occurrences of TEMP_BUSINESS_APP with the user's entity code
+      'TEMP_BUSINESS_APP': entityCode,
     };
 
     // Full-stack specific replacements
@@ -349,8 +345,8 @@ async function main() {
       replacements["VITE_API_BASE_URL \\|\\| '/api'"] = `VITE_API_BASE_URL || '${contextPath}'`;
     } else {
       // Backend-only: remove React dev server from CORS
-      replacements['cors\\.allowed-origins=\\$\\{CORS_ORIGINS:http://localhost:5173,http://localhost:3000\\}'] =
-        `cors.allowed-origins=\${CORS_ORIGINS:http://localhost:3000}`;
+      // Note: TEMP_BUSINESS_APP_CORS_ORIGINS is replaced by entity code prefix replacement
+      replacements['http://localhost:5173,http://localhost:3000'] = 'http://localhost:3000';
     }
 
     // Add JWT secret replacement if generated

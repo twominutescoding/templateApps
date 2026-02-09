@@ -43,6 +43,8 @@ A Spring Boot 4.0.1 microservice providing centralized JWT-based authentication.
 
 ### Running Auth Service
 
+**Note:** Environment variables are prefixed with entity name (e.g., `TEMP_AUTH_SERVICE_`) for multi-app Tomcat deployment. See [ENVIRONMENT_VARIABLES.md](./ENVIRONMENT_VARIABLES.md) for complete documentation.
+
 ```bash
 cd auth-service
 
@@ -51,23 +53,24 @@ cd auth-service
 
 # Test (Oracle database with debug logging)
 export SPRING_PROFILES_ACTIVE=test
-export DB_HOST=localhost
-export DB_PORT=1521
-export DB_SID=TESTDB
-export DB_USERNAME=test_user
-export DB_PASSWORD=test_password
+export TEMP_AUTH_SERVICE_DB_HOST=localhost
+export TEMP_AUTH_SERVICE_DB_PORT=1521
+export TEMP_AUTH_SERVICE_DB_SID=TESTDB
+export TEMP_AUTH_SERVICE_DB_USERNAME=test_user
+export TEMP_AUTH_SERVICE_DB_PASSWORD=test_password
 ./mvnw spring-boot:run
 
 # Production (Oracle + LDAP)
 export SPRING_PROFILES_ACTIVE=prod
-export DB_HOST=localhost
-export DB_PORT=1521
-export DB_SID=ORCL
-export DB_USERNAME=your_username
-export DB_PASSWORD=your_password
-export LDAP_ENABLED=true
-export LDAP_URL=ldaps://your-ldap-server:636
-export LDAP_BASE=your.domain.local
+export TEMP_AUTH_SERVICE_DB_HOST=localhost
+export TEMP_AUTH_SERVICE_DB_PORT=1521
+export TEMP_AUTH_SERVICE_DB_SID=ORCL
+export TEMP_AUTH_SERVICE_DB_USERNAME=your_username
+export TEMP_AUTH_SERVICE_DB_PASSWORD=your_password
+export TEMP_AUTH_SERVICE_JWT_SECRET=your_64_byte_secret_here
+export TEMP_AUTH_SERVICE_LDAP_ENABLED=true
+export TEMP_AUTH_SERVICE_LDAP_URL=ldaps://your-ldap-server:636
+export TEMP_AUTH_SERVICE_LDAP_BASE=your.domain.local
 ./mvnw spring-boot:run
 ```
 
@@ -90,11 +93,11 @@ The service uses `ActiveDirectoryLdapAuthenticationProvider`:
 - Validates passwords via LDAP bind
 - Loads roles from local database (ignores AD groups)
 
-**Environment Variables:**
-- `LDAP_ENABLED` - Enable/disable LDAP (default: false)
-- `LDAP_URL` - LDAP server URL (use ldaps:// for secure connection)
-- `LDAP_BASE` - Active Directory domain (e.g., fng.local)
-- `LDAP_USER_SEARCH_FILTER` - AD search filter (default: `(&(objectClass=user)(sAMAccountName={1}))`)
+**Environment Variables (prefixed with entity name):**
+- `TEMP_AUTH_SERVICE_LDAP_ENABLED` - Enable/disable LDAP (default: false in dev, true in prod)
+- `TEMP_AUTH_SERVICE_LDAP_URL` - LDAP server URL (use ldaps:// for secure connection)
+- `TEMP_AUTH_SERVICE_LDAP_BASE` - Active Directory domain (e.g., fng.local)
+- `TEMP_AUTH_SERVICE_LDAP_USER_SEARCH_FILTER` - AD search filter (default: `(&(objectClass=user)(sAMAccountName={1}))`)
 
 ### API Endpoints
 

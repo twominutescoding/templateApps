@@ -193,8 +193,8 @@ public class DataInitializer {
 
                 // Auth Service Admin Frontend
                 ApplicationEntity authAdmin = new ApplicationEntity();
-                authAdmin.setId("MINT_AUTH_SERVICE");
-                authAdmin.setName("MINT_AUTH_SERVICE");
+                authAdmin.setId("TEMP_AUTH_SERVICE");
+                authAdmin.setName("TEMP_AUTH_SERVICE");
                 authAdmin.setType("WEB");
                 authAdmin.setDescription("Authentication Service Administration Panel");
                 authAdmin.setCreateDate(new Date());
