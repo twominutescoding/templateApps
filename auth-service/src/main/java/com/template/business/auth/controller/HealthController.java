@@ -69,7 +69,7 @@ public class HealthController {
         Map<String, Object> dbHealth = new HashMap<>();
         try {
             long startTime = System.currentTimeMillis();
-            jdbcTemplate.queryForObject("SELECT 1", Integer.class);
+            jdbcTemplate.queryForObject("SELECT 1 FROM DUAL", Integer.class);
             long latency = System.currentTimeMillis() - startTime;
 
             dbHealth.put("status", "UP");
