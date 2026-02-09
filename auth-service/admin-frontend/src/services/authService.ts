@@ -1,5 +1,6 @@
 import type { LoginCredentials, AuthTokens, User, DecodedToken } from '../types/auth';
 import { authAPI } from './api';
+import { logError } from '../utils/logger';
 
 // Helper to decode JWT
 export const decodeJWT = (token: string): DecodedToken | null => {
@@ -67,7 +68,7 @@ export const login = async (credentials: LoginCredentials): Promise<{ user: User
 
     return { user, tokens };
   } catch (error: any) {
-    console.error('Login error:', error);
+    logError('Login error:', error);
     throw new Error(error.response?.data?.message || error.message || 'Invalid username or password');
   }
 };
@@ -100,7 +101,7 @@ export const refreshToken = async (token: string): Promise<AuthTokens> => {
       refreshToken: refreshData.refreshToken,
     };
   } catch (error: any) {
-    console.error('Token refresh error:', error);
+    logError('Token refresh error:', error);
     throw new Error(error.response?.data?.message || error.message || 'Token refresh failed');
   }
 };

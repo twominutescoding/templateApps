@@ -81,18 +81,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             // Extract JWT token (remove "Bearer " prefix)
             final String jwt = authHeader.substring(7);
-            log.info("JWT Filter: Processing request to: {}", request.getRequestURI());
+            log.debug("JWT Filter: Processing request to: {}", request.getRequestURI());
 
             // Extract username from token
             final String username = jwtUtil.extractUsername(jwt);
-            log.info("JWT Filter: Extracted username: {}", username);
+            log.debug("JWT Filter: Extracted username: {}", username);
 
             // If username is present and user is not already authenticated
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
                 // Load user details from database (includes roles)
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                log.info("JWT Filter: Loaded user details for: {}, authorities: {}",
+                log.debug("JWT Filter: Loaded user details for: {}, authorities: {}",
                         username, userDetails.getAuthorities());
 
                 // Validate token against user details
@@ -112,7 +112,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     // Now Spring Security knows this user is authenticated
                     SecurityContextHolder.getContext().setAuthentication(authToken);
 
-                    log.info("JWT Filter: Successfully authenticated user: {} with roles: {}",
+                    log.debug("JWT Filter: Successfully authenticated user: {} with roles: {}",
                             username, userDetails.getAuthorities());
                 } else {
                     log.warn("JWT Filter: Token validation failed for user: {}", username);
@@ -120,7 +120,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             } else if (username == null) {
                 log.warn("JWT Filter: Could not extract username from token");
             } else {
-                log.info("JWT Filter: User already authenticated: {}",
+                log.debug("JWT Filter: User already authenticated: {}",
                         SecurityContextHolder.getContext().getAuthentication().getName());
             }
         } catch (Exception e) {

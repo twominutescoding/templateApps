@@ -9,6 +9,7 @@ import {
 } from '../atoms';
 import type { User, LoginCredentials } from '../types/auth';
 import * as authService from '../services/authService';
+import { logError } from '../utils/logger';
 
 // Global flag to prevent multiple initializations across components
 let globalInitStarted = false;
@@ -70,7 +71,7 @@ export const useAuth = () => {
           }
         }
       } catch (error) {
-        console.error('Auth initialization error:', error);
+        logError('Auth initialization error:', error);
       } finally {
         setIsLoading(false);
       }
@@ -95,7 +96,7 @@ export const useAuth = () => {
       // authService.logout handles localStorage
       await authService.logout();
     } catch (error) {
-      console.error('Logout error:', error);
+      logError('Logout error:', error);
     }
 
     // Clear atoms
