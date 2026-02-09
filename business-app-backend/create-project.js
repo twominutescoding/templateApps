@@ -347,6 +347,9 @@ async function main() {
       'TEMP_BUSINESS_APP': entityCode,
     };
 
+    // Postman collection baseUrl
+    replacements['http://localhost:8090/api'] = `http://localhost:${serverPort}${contextPath}`;
+
     // Full-stack specific replacements
     if (isFullStack) {
       replacements["base: '/api/'"] = `base: '${viteBase}'`;

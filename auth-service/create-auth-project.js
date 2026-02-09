@@ -254,6 +254,10 @@ async function main() {
       "'/auth/api/v1'": `'${contextPath}/api/v1'`,
       "'/auth/'": `'${viteBase}'`,
 
+      // Postman collection baseUrl
+      'http://localhost:8091/auth/api/v1': `http://localhost:${serverPort}${contextPath}/api/v1`,
+      'http://localhost:8091/auth': `http://localhost:${serverPort}${contextPath}`,
+
       // Maven configuration
       '<finalName>auth</finalName>': `<finalName>${contextPath.replace(/^\//, '')}</finalName>`,
       '<groupId>com\\.template</groupId>': `<groupId>${basePackage}</groupId>`,
