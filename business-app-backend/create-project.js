@@ -117,6 +117,38 @@ function removeFrontendPluginsFromPom(pomPath) {
   fs.writeFileSync(pomPath, content, 'utf8');
 }
 
+function removeDemoReferences(projectDir) {
+  // Remove demo import and route from App.tsx
+  const appTsxPath = path.join(projectDir, 'frontend/src/App.tsx');
+  if (fs.existsSync(appTsxPath)) {
+    let content = fs.readFileSync(appTsxPath, 'utf8');
+    // Remove demo page import line
+    content = content.replace(/import DemoProductsPage from ['"]\.\/pages\/demo\/DemoProductsPage['"];\n/g, '');
+    // Replace DemoProductsPage with Components in the home route
+    content = content.replace(/<DemoProductsPage \/>/g, '<Components />');
+    // Replace /components route with redirect to home (since Components is now at /)
+    content = content.replace(
+      /(<Route\s+path="\/components"\s+element=\{[\s\S]*?<Components \/>[\s\S]*?\}\s*\/>)/g,
+      '<Route path="/components" element={<Navigate to="/" replace />} />'
+    );
+    fs.writeFileSync(appTsxPath, content, 'utf8');
+  }
+
+  // Remove demo menu item from Sidebar.tsx
+  const sidebarPath = path.join(projectDir, 'frontend/src/components/layout/Sidebar.tsx');
+  if (fs.existsSync(sidebarPath)) {
+    let content = fs.readFileSync(sidebarPath, 'utf8');
+    // Remove InventoryIcon import
+    content = content.replace(/import InventoryIcon from ['"]@mui\/icons-material\/Inventory['"];\n/g, '');
+    // Remove Demo Products menu item from menuItems array
+    content = content.replace(/\s*\{ text: 'Demo Products', icon: <InventoryIcon \/>, path: '\/' \},\n/g, '');
+    // Update Components path to be the home route
+    content = content.replace(/\{ text: 'Components', icon: <ViewModuleIcon \/>, path: '\/components' \}/g,
+      "{ text: 'Components', icon: <ViewModuleIcon />, path: '/' }");
+    fs.writeFileSync(sidebarPath, content, 'utf8');
+  }
+}
+
 // ============================================================================
 // Main Function
 // ============================================================================
@@ -250,7 +282,7 @@ async function main() {
     // ========================================================================
     console.log('\nCreating new project...\n');
 
-    const totalSteps = isFullStack ? 4 : 5;
+    const totalSteps = isFullStack ? 5 : 5;
 
     // Copy project structure
     console.log(`[1/${totalSteps}] Copying project files...`);
@@ -268,7 +300,9 @@ async function main() {
       /^create-new-project\.sh$/,
       /^create-project\.js$/,
       /^create-backend-only-project\.js$/,
-      /^TEMPLATE_README\.md$/
+      /^TEMPLATE_README\.md$/,
+      /^demo$/,  // Exclude demo folder from both backend and frontend
+      /^DataInitializer\.java$/,  // Exclude demo data initializer
     ];
 
     // For backend-only, exclude frontend
@@ -287,8 +321,14 @@ async function main() {
       }
     }
 
+    // Remove demo references from frontend files (before package restructure)
+    if (isFullStack) {
+      console.log(`[2/${totalSteps}] Removing demo references...`);
+      removeDemoReferences(newProjectDir);
+    }
+
     // Restructure Java packages
-    console.log(`[2/${totalSteps}] Restructuring Java packages...`);
+    console.log(`[${isFullStack ? 3 : 2}/${totalSteps}] Restructuring Java packages...`);
     const oldPackagePath = path.join(newProjectDir, 'src/main/java/com/template/business');
     const newPackagePath = path.join(newProjectDir, `src/main/java/${packagePath}/${projectNameSnake}`);
 
@@ -299,7 +339,7 @@ async function main() {
     }
 
     // Prepare replacements
-    console.log(`[3/${totalSteps}] Updating configuration files...`);
+    console.log(`[${isFullStack ? 4 : 3}/${totalSteps}] Updating configuration files...`);
 
     const replacements = {
       // Package name
@@ -577,12 +617,6 @@ cd ..
 java -jar target/${projectNameKebab}-1.0.0.jar
 \`\`\`
 
-## Demo Code
-
-The \`demo/\` package contains example code that can be safely deleted:
-- \`${basePackage}.${projectNameSnake}.demo\` - Demo products CRUD
-- \`frontend/src/pages/demo\` - Demo products page
-
 ---
 
 Generated from Business App Template
@@ -675,7 +709,7 @@ curl -X POST http://localhost:${serverPort}${contextPath}/auth/login \\
 #### 2. Use token in API requests
 
 \`\`\`bash
-curl -X GET http://localhost:${serverPort}${contextPath}/demo/products/1 \\
+curl -X GET http://localhost:${serverPort}${contextPath}/your-endpoint \\
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 \`\`\`
 
@@ -731,23 +765,7 @@ java -jar target/${projectNameKebab}-1.0.0.jar
 - \`POST ${contextPath}/auth/login\` - Login with username/password
 - \`POST ${contextPath}/auth/refresh\` - Refresh expired access token
 
-### Demo Products (Example CRUD)
-
-- \`POST ${contextPath}/demo/products/search\` - Search with filters/pagination
-- \`GET ${contextPath}/demo/products/{id}\` - Get by ID
-- \`POST ${contextPath}/demo/products\` - Create
-- \`PUT ${contextPath}/demo/products/{id}\` - Update
-- \`DELETE ${contextPath}/demo/products/{id}\` - Delete
-
 See **Swagger UI** for complete API documentation.
-
-## Demo Code
-
-The \`demo/\` package contains example code that can be safely deleted:
-
-\`\`\`bash
-rm -rf src/main/java/${packagePath}/${projectNameSnake}/demo/
-\`\`\`
 
 ---
 
