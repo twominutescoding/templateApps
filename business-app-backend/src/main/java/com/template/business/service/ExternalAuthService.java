@@ -3,15 +3,19 @@ package com.template.business.service;
 import com.template.business.dto.ExternalAuthResponse;
 import com.template.business.dto.LoginRequest;
 import com.template.business.dto.RefreshTokenRequest;
+import com.template.business.dto.ThemePreferencesRequest;
 import com.template.business.exception.CustomAuthenticationException;
 import com.template.business.exception.ErrorCode;
 import com.template.business.exception.ExternalServiceException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 /**
  * Service for calling external authentication API (auth-service)
@@ -27,6 +31,9 @@ public class ExternalAuthService {
 
     @Value("${auth.service.refresh-url:${auth.service.url}/refresh}")
     private String authServiceRefreshUrl;
+
+    @Value("${auth.service.theme-url:}")
+    private String authServiceThemeUrl;
 
     private final RestTemplate restTemplate;
 
@@ -131,6 +138,72 @@ public class ExternalAuthService {
         } catch (Exception e) {
             log.error("Error calling external auth service for token refresh: {}", e.getMessage());
             throw new ExternalServiceException(ErrorCode.EXTERNAL_SERVICE_UNAVAILABLE, "Auth service unavailable for token refresh: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Update user's theme preferences with external auth-service
+     *
+     * @param theme Theme mode (light/dark)
+     * @param paletteId Palette ID
+     */
+    public void updateThemePreferences(String theme, String paletteId) {
+        try {
+            // Get the theme URL - derive from auth service URL if not explicitly set
+            String themeUrl = authServiceThemeUrl;
+            if (themeUrl == null || themeUrl.isEmpty()) {
+                // Derive from login URL: replace /login with /theme
+                themeUrl = authServiceUrl.replace("/login", "/theme");
+            }
+
+            log.debug("Updating theme preferences with external auth-service: {}", themeUrl);
+
+            // Get the current request to extract the Authorization header
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes == null) {
+                throw new ExternalServiceException(ErrorCode.EXTERNAL_SERVICE_UNAVAILABLE, "No request context available", null);
+            }
+
+            HttpServletRequest currentRequest = attributes.getRequest();
+            String authHeader = currentRequest.getHeader("Authorization");
+
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                throw new CustomAuthenticationException(ErrorCode.INVALID_TOKEN, "No valid authorization token found");
+            }
+
+            // Create request body
+            ThemePreferencesRequest request = new ThemePreferencesRequest();
+            request.setTheme(theme);
+            request.setPaletteId(paletteId);
+
+            // Create headers with authorization
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("Authorization", authHeader);
+
+            // Create request entity
+            HttpEntity<ThemePreferencesRequest> requestEntity = new HttpEntity<>(request, headers);
+
+            // Call external auth service theme endpoint
+            ResponseEntity<Void> response = restTemplate.exchange(
+                    themeUrl,
+                    HttpMethod.PUT,
+                    requestEntity,
+                    Void.class
+            );
+
+            if (response.getStatusCode() == HttpStatus.OK) {
+                log.info("Successfully updated theme preferences with external service");
+            } else {
+                log.error("External auth service returned non-OK status on theme update: {}", response.getStatusCode());
+                throw new ExternalServiceException(ErrorCode.EXTERNAL_SERVICE_UNAVAILABLE, "Theme update failed", null);
+            }
+
+        } catch (CustomAuthenticationException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error calling external auth service for theme update: {}", e.getMessage());
+            throw new ExternalServiceException(ErrorCode.EXTERNAL_SERVICE_UNAVAILABLE, "Auth service unavailable for theme update: " + e.getMessage(), e);
         }
     }
 }

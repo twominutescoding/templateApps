@@ -16,12 +16,13 @@ import CloseIcon from '@mui/icons-material/Close';
 import LoginIcon from '@mui/icons-material/Login';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import { useAuth } from '../hooks';
+import { useAuth, useThemeContext } from '../hooks';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../components/common/Logo';
 
 const Login = () => {
   const { login } = useAuth();
+  const { loadThemeFromUser } = useThemeContext();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,6 +36,7 @@ const Login = () => {
 
     try {
       await login({ email, password });
+      loadThemeFromUser();
       navigate('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');

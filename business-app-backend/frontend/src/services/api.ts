@@ -158,6 +158,8 @@ export interface LoginResponse {
   lastName?: string;
   company?: string;
   image?: string;
+  theme?: string;
+  paletteId?: string;
 }
 
 export interface RefreshTokenResponse {
@@ -166,6 +168,8 @@ export interface RefreshTokenResponse {
   type?: string;
   username?: string;
   roles?: string[];
+  theme?: string;
+  paletteId?: string;
 }
 
 export interface User {
@@ -215,6 +219,11 @@ export const authAPI = {
 
   getCurrentUser: async (): Promise<ApiResponse<User>> => {
     const response = await apiClient.get<ApiResponse<User>>('/auth/me');
+    return response.data;
+  },
+
+  updateThemePreferences: async (theme: string, paletteId: string): Promise<ApiResponse<void>> => {
+    const response = await apiClient.put<ApiResponse<void>>('/auth/theme', { theme, paletteId });
     return response.data;
   },
 };

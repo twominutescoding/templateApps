@@ -4,6 +4,7 @@ import com.template.business.dto.ApiResponse;
 import com.template.business.dto.LoginRequest;
 import com.template.business.dto.LoginResponse;
 import com.template.business.dto.RefreshTokenRequest;
+import com.template.business.dto.ThemePreferencesRequest;
 import com.template.business.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -32,5 +33,11 @@ public class AuthController {
     public ResponseEntity<ApiResponse<LoginResponse>> refresh(@Valid @RequestBody RefreshTokenRequest request) {
         LoginResponse loginResponse = authService.refreshToken(request.getRefreshToken());
         return ResponseEntity.ok(ApiResponse.success("Token refreshed successfully", loginResponse));
+    }
+
+    @PutMapping("/theme")
+    public ResponseEntity<ApiResponse<Void>> updateTheme(@Valid @RequestBody ThemePreferencesRequest request) {
+        authService.updateThemePreferences(request.getTheme(), request.getPaletteId());
+        return ResponseEntity.ok(ApiResponse.success("Theme preferences updated successfully", null));
     }
 }

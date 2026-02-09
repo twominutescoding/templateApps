@@ -89,4 +89,15 @@ public class AuthService {
                 .authenticationMethod(authData.getAuthenticationMethod())
                 .build();
     }
+
+    /**
+     * Update user's theme preferences via external auth-service
+     *
+     * @param theme Theme mode (light/dark)
+     * @param paletteId Palette ID
+     */
+    public void updateThemePreferences(String theme, String paletteId) {
+        log.info("Updating theme preferences via external auth-service");
+        externalAuthService.updateThemePreferences(theme, paletteId);
+    }
 }

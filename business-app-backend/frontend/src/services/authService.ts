@@ -55,7 +55,14 @@ export const login = async (credentials: LoginCredentials): Promise<{ user: User
     // Store tokens in localStorage
     localStorage.setItem('token', loginData.token);
     localStorage.setItem('refreshToken', loginData.refreshToken);
-    localStorage.setItem('user', JSON.stringify(user));
+
+    // Store user with theme and paletteId from login response
+    const userWithTheme = {
+      ...user,
+      theme: loginData.theme,
+      paletteId: loginData.paletteId,
+    };
+    localStorage.setItem('user', JSON.stringify(userWithTheme));
 
     return { user, tokens };
   } catch (error: any) {
