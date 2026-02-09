@@ -334,6 +334,14 @@ async function main() {
       // Logging
       'logging\\.level\\.com\\.template\\.business': `logging.level.${basePackage}.${projectNameSnake}`,
 
+      // App logging create-user (default value in env var)
+      'LOGGING_CREATE_USER:business-app-backend': `LOGGING_CREATE_USER:${projectNameKebab}`,
+
+      // Auth service URL defaults (replace with user's auth service config)
+      'AUTH_SERVICE_URL:http://localhost:8091/auth/api/v1/auth/login': `AUTH_SERVICE_URL:${authServiceUrl}`,
+      'AUTH_SERVICE_REFRESH_URL:http://localhost:8091/auth/api/v1/auth/refresh': `AUTH_SERVICE_REFRESH_URL:${authServiceRefreshUrl}`,
+      'AUTH_SERVICE_LOG_URL:http://localhost:8091/auth/api/v1/logs': `AUTH_SERVICE_LOG_URL:${authServiceLogUrl}`,
+
       // Entity code prefix for environment variables (for multi-app Tomcat deployment)
       // This replaces ALL occurrences of TEMP_BUSINESS_APP with the user's entity code
       'TEMP_BUSINESS_APP': entityCode,
