@@ -17,7 +17,8 @@ public class ExternalAuthResponse {
 
     @Data
     public static class AuthData {
-        private String token;
+        private String token;           // Used by login endpoint
+        private String accessToken;     // Used by refresh endpoint
         private String refreshToken;
         private String type;
         private String username;
@@ -30,6 +31,13 @@ public class ExternalAuthResponse {
         private String image;
         private List<String> roles;
         private String authenticationMethod;
+
+        /**
+         * Get the access token - handles both login (token) and refresh (accessToken) responses
+         */
+        public String getToken() {
+            return token != null ? token : accessToken;
+        }
     }
 
     // For backward compatibility

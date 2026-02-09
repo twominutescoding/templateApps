@@ -123,7 +123,11 @@ public class ExternalAuthService {
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 ExternalAuthResponse authResponse = response.getBody();
                 if (authResponse.isSuccess() && authResponse.getData() != null) {
-                    log.info("Successfully refreshed token with external service");
+                    log.info("Successfully refreshed token with external service for user: {}",
+                            authResponse.getData().getUsername());
+                    log.debug("Refresh response - token present: {}, refreshToken present: {}",
+                            authResponse.getData().getToken() != null,
+                            authResponse.getData().getRefreshToken() != null);
                     return authResponse;
                 } else {
                     log.error("External auth service returned unsuccessful response on refresh");
