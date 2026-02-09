@@ -103,7 +103,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
             fontSize: '1.1rem',
           }}
         >
-          Auth Service Admin
+          Auth Service
         </Typography>
 
         <Box sx={{ flexGrow: 1 }} />

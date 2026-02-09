@@ -113,7 +113,7 @@ const Login = () => {
           </Box>
 
           <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-            Auth Service Admin
+            Auth Service
           </Typography>
           <Typography variant="body2" sx={{ opacity: 0.9 }}>
             Sign in to manage users, roles, and sessions

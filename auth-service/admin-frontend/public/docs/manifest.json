@@ -6,7 +6,7 @@
     {
       "id": "user-manual",
       "title": "User Manual",
-      "description": "Complete guide for using the Auth Service Admin panel",
+      "description": "Complete guide for using the Auth Service panel",
       "file": "instructions/user-manual.md",
       "category": "manual",
       "icon": "book"
