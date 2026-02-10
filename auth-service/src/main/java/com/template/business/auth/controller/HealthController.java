@@ -10,23 +10,31 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Health check endpoints for monitoring and load balancers.
- * <p>
- * Provides two endpoints:
+ *
+ * <p>Provides two endpoints:
  * <ul>
  *   <li>/health - Public endpoint, no authentication required</li>
  *   <li>/healthDB - Protected endpoint, requires Bearer token, checks database connectivity</li>
  * </ul>
+ *
+ * @author Template Business
+ * @version 1.0
  */
 @Slf4j
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
+@Tag(name = "Health", description = "Health check endpoints for monitoring and load balancers.")
 public class HealthController {
 
     private final JdbcTemplate jdbcTemplate;
@@ -40,6 +48,11 @@ public class HealthController {
      *
      * @return Health status with timestamp
      */
+    @Operation(
+        summary = "Basic health check",
+        description = "Returns service health status. Public endpoint, no authentication required. " +
+                      "Used by load balancers and monitoring systems."
+    )
     @GetMapping("/health")
     public ResponseEntity<ApiResponse<Map<String, Object>>> health() {
         Map<String, Object> healthData = new HashMap<>();
@@ -57,6 +70,12 @@ public class HealthController {
      *
      * @return Health status including database connectivity
      */
+    @Operation(
+        summary = "Database health check",
+        description = "Returns service health status including database connectivity test. " +
+                      "Requires authentication. Reports latency and connection status.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
     @GetMapping("/healthDB")
     public ResponseEntity<ApiResponse<Map<String, Object>>> healthDB() {
         Map<String, Object> healthData = new HashMap<>();

@@ -20,14 +20,29 @@ import com.template.business.auth.exception.CustomValidationException;
 import com.template.business.auth.exception.ResourceNotFoundException;
 import com.template.business.auth.service.EntityAdminService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 /**
- * Controller for entity (application) administration
+ * REST controller for entity (application) administration.
+ *
+ * <p>Entities represent applications or systems that use this auth service.
+ * Each entity has its own set of roles and user assignments.
+ *
+ * <p>All endpoints require ADMIN role.
+ *
+ * @author Template Business
+ * @version 1.0
  */
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/admin/entities")
 @PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
+@Tag(name = "Entity Administration", description = "Entity (application) management APIs. Entities represent applications that use this auth service. All endpoints require ADMIN role.")
+@SecurityRequirement(name = "bearerAuth")
 public class EntityAdminController {
 
     private final EntityAdminService entityAdminService;
@@ -35,6 +50,7 @@ public class EntityAdminController {
     /**
      * Get all entities
      */
+    @Operation(summary = "Get all entities", description = "Returns all registered entities (applications).")
     @GetMapping
     public ResponseEntity<ApiResponse<List<EntityAdminDTO>>> getAllEntities() {
         try {
@@ -50,6 +66,7 @@ public class EntityAdminController {
     /**
      * Search entities with pagination, filtering, and sorting
      */
+    @Operation(summary = "Search entities", description = "Search entities with pagination, filtering, and sorting.")
     @PostMapping("/search")
     public ResponseEntity<ApiResponse<PageResponse<EntityAdminDTO>>> searchEntities(@RequestBody SearchRequest request) {
         try {
@@ -65,8 +82,10 @@ public class EntityAdminController {
     /**
      * Get entity by ID
      */
+    @Operation(summary = "Get entity by ID", description = "Returns entity details by its unique ID.")
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<EntityAdminDTO>> getEntity(@PathVariable String id) {
+    public ResponseEntity<ApiResponse<EntityAdminDTO>> getEntity(
+            @Parameter(description = "Entity ID") @PathVariable String id) {
         try {
             EntityAdminDTO dto = entityAdminService.getEntityById(id);
             return ResponseEntity.ok(ApiResponse.success("Entity retrieved successfully", dto));
@@ -83,6 +102,7 @@ public class EntityAdminController {
     /**
      * Create new entity
      */
+    @Operation(summary = "Create new entity", description = "Creates a new entity (application) with auto-generated ID based on entity type tag.")
     @PostMapping
     public ResponseEntity<ApiResponse<EntityAdminDTO>> createEntity(@Valid @RequestBody EntityAdminDTO dto) {
         try {
@@ -102,9 +122,10 @@ public class EntityAdminController {
     /**
      * Update entity
      */
+    @Operation(summary = "Update entity", description = "Updates an existing entity's name, description, or type.")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<EntityAdminDTO>> updateEntity(
-            @PathVariable String id,
+            @Parameter(description = "Entity ID") @PathVariable String id,
             @Valid @RequestBody EntityAdminDTO dto) {
         try {
             EntityAdminDTO updated = entityAdminService.updateEntity(id, dto);
@@ -122,8 +143,10 @@ public class EntityAdminController {
     /**
      * Delete entity
      */
+    @Operation(summary = "Delete entity", description = "Deletes an entity. Will fail if entity has associated roles or users.")
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<String>> deleteEntity(@PathVariable String id) {
+    public ResponseEntity<ApiResponse<String>> deleteEntity(
+            @Parameter(description = "Entity ID") @PathVariable String id) {
         try {
             entityAdminService.deleteEntity(id);
             return ResponseEntity.ok(ApiResponse.success("Entity deleted successfully", "success"));

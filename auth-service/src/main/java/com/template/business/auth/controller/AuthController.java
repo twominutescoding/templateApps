@@ -25,6 +25,14 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,6 +44,7 @@ import java.util.stream.Collectors;
  *   <li>User login with JWT token generation</li>
  *   <li>User registration</li>
  *   <li>JWT token validation</li>
+ *   <li>Token refresh and session management</li>
  *   <li>Health check endpoint</li>
  * </ul>
  *
@@ -52,6 +61,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
+@Tag(name = "Authentication", description = "Authentication and session management APIs. Supports LDAP and database authentication with JWT tokens.")
 public class AuthController {
 
     private final CustomAuthenticationProvider authenticationProvider;
@@ -80,6 +90,27 @@ public class AuthController {
      * @param request login credentials containing username, password, and optional entityCode
      * @return {@link ApiResponse} containing {@link LoginResponse} with JWT token and user data
      */
+    @Operation(
+        summary = "User login",
+        description = "Authenticates user credentials and returns JWT access token and refresh token. " +
+                      "Supports both LDAP (Active Directory) and database authentication. " +
+                      "Roles are filtered by the specified entityCode."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "Login successful - returns JWT tokens and user profile",
+            content = @Content(schema = @Schema(implementation = LoginResponse.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400",
+            description = "Invalid entity code - entity does not exist"
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "401",
+            description = "Invalid username or password"
+        )
+    })
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(
             @Valid @RequestBody LoginRequest request,
@@ -184,6 +215,16 @@ public class AuthController {
      * @param request registration details including username, password, and profile information
      * @return {@link ApiResponse} containing the created {@link User} object
      */
+    @Operation(
+        summary = "Register new user",
+        description = "Creates a new user account with BCrypt password encryption. " +
+                      "User status is set to ACTIVE by default. Username must be unique."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "User registered successfully"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Username already exists"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid registration data")
+    })
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<User>> register(@Valid @RequestBody UserRegistrationRequest request) {
         try {
@@ -215,6 +256,15 @@ public class AuthController {
      *
      * @return {@link ApiResponse} with boolean indicating token validity
      */
+    @Operation(
+        summary = "Validate JWT token",
+        description = "Validates the JWT token provided in the Authorization header. " +
+                      "Returns true if token is valid and not expired.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Token validation result")
+    })
     @GetMapping("/validate")
     public ResponseEntity<ApiResponse<Boolean>> validateToken() {
         try {
@@ -244,6 +294,15 @@ public class AuthController {
      * @param httpRequest HTTP request for extracting metadata
      * @return {@link ApiResponse} containing new access token and refresh token
      */
+    @Operation(
+        summary = "Refresh access token",
+        description = "Exchanges a valid refresh token for new access and refresh tokens. " +
+                      "Implements token rotation - the old refresh token is revoked."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Tokens refreshed successfully"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Invalid or expired refresh token")
+    })
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<RefreshTokenResponse>> refreshToken(
             @Valid @RequestBody RefreshTokenRequest request,
@@ -270,6 +329,11 @@ public class AuthController {
      * @param request refresh token to revoke
      * @return {@link ApiResponse} with logout confirmation
      */
+    @Operation(
+        summary = "Logout user",
+        description = "Revokes the provided refresh token, ending the session. " +
+                      "The access token remains valid until expiry (typically 15 minutes)."
+    )
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<String>> logout(@Valid @RequestBody RefreshTokenRequest request) {
         try {
@@ -289,6 +353,11 @@ public class AuthController {
      *
      * @return {@link ApiResponse} with logout confirmation
      */
+    @Operation(
+        summary = "Logout from all devices",
+        description = "Revokes all refresh tokens for the current user, logging them out from all devices.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
     @PostMapping("/logout-all")
     public ResponseEntity<ApiResponse<String>> logoutAll() {
         try {
@@ -318,6 +387,11 @@ public class AuthController {
      * @param refreshToken Optional refresh token to mark as current
      * @return {@link ApiResponse} containing list of {@link SessionDTO}
      */
+    @Operation(
+        summary = "Get user sessions",
+        description = "Returns all active sessions for the current user with device info, IP address, and location.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
     @GetMapping("/sessions")
     public ResponseEntity<ApiResponse<List<SessionDTO>>> getSessions(
             @RequestParam(required = false) String refreshToken) {
@@ -343,6 +417,11 @@ public class AuthController {
      * @param request session revocation request
      * @return {@link ApiResponse} with revocation confirmation
      */
+    @Operation(
+        summary = "Revoke specific session",
+        description = "Revokes a specific session by session ID. Users can only revoke their own sessions.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
     @PostMapping("/sessions/revoke")
     public ResponseEntity<ApiResponse<String>> revokeSession(@Valid @RequestBody RevokeSessionRequest request) {
         try {
@@ -366,6 +445,11 @@ public class AuthController {
      *
      * @return {@link ApiResponse} containing list of all {@link SessionDTO}
      */
+    @Operation(
+        summary = "Get all sessions (Admin)",
+        description = "Returns all active sessions across all users. Requires ADMIN role.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
     @GetMapping("/admin/sessions")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<SessionDTO>>> getAllSessions() {
@@ -396,6 +480,11 @@ public class AuthController {
      * @param request search request with filters, pagination, and sorting
      * @return {@link ApiResponse} containing paginated {@link SessionDTO} list
      */
+    @Operation(
+        summary = "Search sessions (Admin)",
+        description = "Search sessions with pagination, filtering by username/IP/device, and sorting. Requires ADMIN role.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
     @PostMapping("/admin/sessions/search")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<PageResponse<SessionDTO>>> searchSessions(@RequestBody SearchRequest request) {
@@ -418,6 +507,11 @@ public class AuthController {
      * @param request session revocation request
      * @return {@link ApiResponse} with revocation confirmation
      */
+    @Operation(
+        summary = "Revoke session by admin",
+        description = "Force revoke any user's session by session ID. Requires ADMIN role.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
     @PostMapping("/admin/sessions/revoke")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> revokeSessionByAdmin(@Valid @RequestBody RevokeSessionRequest request) {
@@ -448,6 +542,11 @@ public class AuthController {
      * @param targetUsername Username to logout
      * @return {@link ApiResponse} with revocation confirmation
      */
+    @Operation(
+        summary = "Force logout user (Admin)",
+        description = "Force logout a specific user from all devices by revoking all their sessions. Requires ADMIN role.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
     @PostMapping("/admin/users/{username}/logout")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> forceLogoutUser(@PathVariable("username") String targetUsername) {
@@ -477,6 +576,11 @@ public class AuthController {
      *
      * @return {@link ApiResponse} containing {@link com.template.business.auth.dto.DashboardStatsDTO}
      */
+    @Operation(
+        summary = "Get dashboard statistics (Admin)",
+        description = "Returns user counts, session statistics, and system metrics for admin dashboard. Requires ADMIN role.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
     @GetMapping("/admin/stats/dashboard")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<com.template.business.auth.dto.DashboardStatsDTO>> getDashboardStats() {
@@ -498,6 +602,11 @@ public class AuthController {
      *
      * @return {@link ApiResponse} with health status message
      */
+    @Operation(
+        summary = "Health check",
+        description = "Returns service health status and LDAP configuration state. " +
+                      "Used for monitoring and load balancer health checks."
+    )
     @GetMapping("/health")
     public ResponseEntity<ApiResponse<String>> health() {
         String ldapStatus = ldapEnabled ? "enabled" : "disabled";
@@ -547,6 +656,11 @@ public class AuthController {
      * Update current user's theme preferences
      * Allows any authenticated user to update their own theme and palette
      */
+    @Operation(
+        summary = "Update theme preferences",
+        description = "Updates the current user's theme (light/dark) and color palette preferences.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
     @PutMapping("/theme")
     public ResponseEntity<ApiResponse<Void>> updateTheme(@Valid @RequestBody ThemePreferencesRequest request) {
         try {

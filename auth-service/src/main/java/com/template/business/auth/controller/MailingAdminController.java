@@ -17,14 +17,29 @@ import com.template.business.auth.dto.SearchRequest;
 import com.template.business.auth.exception.ResourceNotFoundException;
 import com.template.business.auth.service.MailingAdminService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 /**
- * Controller for mailing administration (read-only)
+ * REST controller for mailing administration (read-only).
+ *
+ * <p>Provides read-only access to the email/notification queue (T_MAILING table).
+ * Mailings are created by various services and sent by a scheduled job.
+ *
+ * <p>All endpoints require ADMIN role.
+ *
+ * @author Template Business
+ * @version 1.0
  */
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/admin/mailings")
 @PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
+@Tag(name = "Mailing Administration", description = "Read-only access to email/notification queue. All endpoints require ADMIN role.")
+@SecurityRequirement(name = "bearerAuth")
 public class MailingAdminController {
 
     private final MailingAdminService mailingAdminService;
@@ -32,6 +47,7 @@ public class MailingAdminController {
     /**
      * Get all mailings
      */
+    @Operation(summary = "Get all mailings", description = "Returns all mailings in the queue. For large datasets, use search endpoint with pagination.")
     @GetMapping
     public ResponseEntity<ApiResponse<List<MailingDTO>>> getAllMailings() {
         try {
@@ -47,6 +63,7 @@ public class MailingAdminController {
     /**
      * Search mailings with pagination, filtering, and sorting
      */
+    @Operation(summary = "Search mailings", description = "Search mailings with pagination, filtering by subject/type/sent status, and date range filtering.")
     @PostMapping("/search")
     public ResponseEntity<ApiResponse<PageResponse<MailingDTO>>> searchMailings(@RequestBody SearchRequest request) {
         try {
@@ -62,8 +79,10 @@ public class MailingAdminController {
     /**
      * Get mailing by ID
      */
+    @Operation(summary = "Get mailing by ID", description = "Returns full mailing details including body and attachment info.")
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<MailingDTO>> getMailing(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<MailingDTO>> getMailing(
+            @Parameter(description = "Mailing ID") @PathVariable Long id) {
         try {
             MailingDTO dto = mailingAdminService.getMailingById(id);
             return ResponseEntity.ok(ApiResponse.success("Mailing retrieved successfully", dto));

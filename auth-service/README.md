@@ -204,6 +204,38 @@ The response format is compatible with your business application. To integrate:
 ./mvnw spring-boot:run
 ```
 
+## Environment Variables Template
+
+A template file `ENV_TEMPLATE.env` is provided with all environment variables needed for deployment.
+
+### Usage
+
+Copy the template to your deployment environment:
+
+```bash
+# For Tomcat - add to setenv.sh (Linux) or setenv.bat (Windows)
+cat ENV_TEMPLATE.env >> $CATALINA_HOME/bin/setenv.sh
+
+# For IntelliJ IDEA - copy to Run Configuration environment variables
+```
+
+### Key Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SPRING_PROFILES_ACTIVE` | Active Spring profile (dev/test/prod) | dev |
+| `{ENTITY}_DB_HOST` | Oracle database host | localhost |
+| `{ENTITY}_DB_PORT` | Oracle database port | 1521 |
+| `{ENTITY}_DB_SID` | Oracle SID | ORCL |
+| `{ENTITY}_DB_USERNAME` | Database username | - |
+| `{ENTITY}_DB_PASSWORD` | Database password | - |
+| `{ENTITY}_JWT_SECRET` | JWT signing secret (required in prod) | - |
+| `{ENTITY}_LDAP_ENABLED` | Enable LDAP authentication | false |
+| `{ENTITY}_LDAP_URL` | LDAP server URL | - |
+| `{ENTITY}_LDAP_BASE` | LDAP base domain | - |
+
+**Note**: Variables are prefixed with entity code (e.g., `MY_APP_DB_HOST`) for multi-app Tomcat deployment support.
+
 ## API Documentation
 
 ### Swagger UI URLs

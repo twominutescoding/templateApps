@@ -165,6 +165,30 @@ export DB_USERNAME=your_user
 export DB_PASSWORD=your_password
 ```
 
+### Environment Variables Template
+
+A template file `ENV_TEMPLATE.env` is provided with all environment variables needed for deployment.
+
+**Usage:**
+```bash
+# For Tomcat - add to setenv.sh (Linux) or setenv.bat (Windows)
+cat ENV_TEMPLATE.env >> $CATALINA_HOME/bin/setenv.sh
+
+# For IntelliJ IDEA - copy to Run Configuration environment variables
+```
+
+**Key Variables:**
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `{ENTITY}_DB_HOST` | Oracle database host | localhost |
+| `{ENTITY}_DB_PORT` | Oracle database port | 1521 |
+| `{ENTITY}_DB_SID` | Oracle SID | ORCL |
+| `{ENTITY}_JWT_SECRET` | JWT secret (must match auth-service) | - |
+| `{ENTITY}_AUTH_SERVICE_URL` | Auth-service login URL | localhost:8091 |
+
+Variables are prefixed with entity code for multi-app Tomcat deployment.
+
 ## Project Structure
 
 ```

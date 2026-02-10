@@ -13,16 +13,27 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Controller for entity type lookup operations
+ * REST controller for entity type lookup operations.
+ *
+ * <p>Entity types define categories of entities with a 3-character tag
+ * used for ID generation (e.g., "APP" for applications).
+ *
+ * @author Template Business
+ * @version 1.0
  */
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/admin/entity-types")
 @RequiredArgsConstructor
+@Tag(name = "Entity Types", description = "Entity type lookup operations. Entity types define categories with ID generation tags.")
 public class EntityTypeController {
 
     private final EntityTypeRepository entityTypeRepository;
@@ -30,6 +41,11 @@ public class EntityTypeController {
     /**
      * Get all entity types
      */
+    @Operation(
+        summary = "Get all entity types",
+        description = "Returns all entity types for dropdown/selection. Requires ADMIN role.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<EntityTypeDTO>>> getAllEntityTypes() {

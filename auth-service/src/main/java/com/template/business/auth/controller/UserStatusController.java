@@ -13,16 +13,27 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Controller for user status lookup operations
+ * REST controller for user status lookup operations.
+ *
+ * <p>User statuses define the possible states for user accounts
+ * (e.g., ACTIVE, INACTIVE, LOCKED).
+ *
+ * @author Template Business
+ * @version 1.0
  */
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/admin/user-status")
 @RequiredArgsConstructor
+@Tag(name = "User Status", description = "User status lookup operations. Defines possible account states.")
 public class UserStatusController {
 
     private final UserStatusRepository userStatusRepository;
@@ -30,6 +41,11 @@ public class UserStatusController {
     /**
      * Get all user status values
      */
+    @Operation(
+        summary = "Get all user statuses",
+        description = "Returns all user status values for dropdown/selection. Requires ADMIN role.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<UserStatusDTO>>> getAllUserStatuses() {

@@ -14,15 +14,29 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 /**
- * Controller for creating application logs.
- * Used by other backend services to log their operations.
- * Requires JWT authentication.
+ * REST controller for application logging.
+ *
+ * <p>Provides centralized logging service for backend applications.
+ * Logs are stored in the T_APP_LOG table with entity, module, status,
+ * request/response payloads, and timing information.
+ *
+ * <p>Requires JWT authentication. Logs are associated with the
+ * entity specified in the request.
+ *
+ * @author Template Business
+ * @version 1.0
  */
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/logs")
 @RequiredArgsConstructor
+@Tag(name = "Application Logging", description = "Centralized logging service for backend applications. Stores logs with entity, module, status, and timing information.")
+@SecurityRequirement(name = "bearerAuth")
 public class AppLogController {
 
     private final AppLogService appLogService;
@@ -30,6 +44,11 @@ public class AppLogController {
     /**
      * Create a log entry synchronously
      */
+    @Operation(
+        summary = "Create log entry",
+        description = "Creates a log entry synchronously. Returns the created log with generated ID. " +
+                      "Use this for important logs where you need confirmation of creation."
+    )
     @PostMapping
     public ResponseEntity<ApiResponse<AppLogDTO>> createLog(@Valid @RequestBody AppLogCreateRequest request) {
         try {
@@ -53,6 +72,11 @@ public class AppLogController {
      * Create a log entry asynchronously
      * Returns 202 Accepted immediately, log is processed in background
      */
+    @Operation(
+        summary = "Create log entry asynchronously",
+        description = "Creates a log entry asynchronously. Returns 202 Accepted immediately. " +
+                      "Use this for high-throughput scenarios where confirmation is not required."
+    )
     @PostMapping("/async")
     public ResponseEntity<ApiResponse<String>> createLogAsync(@Valid @RequestBody AppLogCreateRequest request) {
         try {

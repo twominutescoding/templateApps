@@ -17,15 +17,29 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 /**
- * Controller for application log administration (read-only)
- * Requires ADMIN role
+ * REST controller for application log administration (read-only).
+ *
+ * <p>Provides read-only access to application logs stored in T_APP_LOG table.
+ * Logs are created by backend services using the /api/v1/logs endpoint.
+ *
+ * <p>All endpoints require ADMIN role.
+ *
+ * @author Template Business
+ * @version 1.0
  */
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/admin/logs")
 @PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
+@Tag(name = "Log Administration", description = "Read-only access to application logs. All endpoints require ADMIN role.")
+@SecurityRequirement(name = "bearerAuth")
 public class AppLogAdminController {
 
     private final AppLogAdminService appLogAdminService;
@@ -33,6 +47,7 @@ public class AppLogAdminController {
     /**
      * Get all logs
      */
+    @Operation(summary = "Get all logs", description = "Returns all application logs. For large datasets, use search endpoint with pagination.")
     @GetMapping
     public ResponseEntity<ApiResponse<List<AppLogDTO>>> getAllLogs() {
         try {
@@ -48,6 +63,7 @@ public class AppLogAdminController {
     /**
      * Search logs with pagination, filtering, and sorting
      */
+    @Operation(summary = "Search logs", description = "Search logs with pagination, filtering by entity/module/status, and date range filtering.")
     @PostMapping("/search")
     public ResponseEntity<ApiResponse<PageResponse<AppLogDTO>>> searchLogs(@RequestBody SearchRequest request) {
         try {
@@ -63,8 +79,10 @@ public class AppLogAdminController {
     /**
      * Get log by ID (full details)
      */
+    @Operation(summary = "Get log by ID", description = "Returns full log details including request/response payloads.")
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<AppLogDTO>> getLog(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<AppLogDTO>> getLog(
+            @Parameter(description = "Log ID") @PathVariable Long id) {
         try {
             AppLogDTO dto = appLogAdminService.getLogById(id);
             return ResponseEntity.ok(ApiResponse.success("Log retrieved successfully", dto));
@@ -81,6 +99,7 @@ public class AppLogAdminController {
     /**
      * Get all log statuses for dropdown
      */
+    @Operation(summary = "Get log statuses", description = "Returns all available log status values for filtering dropdowns.")
     @GetMapping("/statuses")
     public ResponseEntity<ApiResponse<List<LogStatusDTO>>> getLogStatuses() {
         try {
