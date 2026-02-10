@@ -18,11 +18,11 @@ import {
   Select,
   MenuItem,
   Chip,
+  Avatar,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import PersonIcon from '@mui/icons-material/Person';
 import StorageIcon from '@mui/icons-material/Storage';
 import LanIcon from '@mui/icons-material/Lan';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
@@ -68,19 +68,17 @@ const Settings = () => {
         </Typography>
         {user && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Box
+            <Avatar
+              src={user.avatar || undefined}
               sx={{
                 width: 80,
                 height: 80,
-                borderRadius: '50%',
-                backgroundColor: 'primary.main',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                bgcolor: 'primary.main',
+                fontSize: '2rem',
               }}
             >
-              <PersonIcon sx={{ fontSize: 40, color: 'white' }} />
-            </Box>
+              {user.name.charAt(0).toUpperCase()}
+            </Avatar>
             <Box sx={{ flex: 1 }}>
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 {user.name}
