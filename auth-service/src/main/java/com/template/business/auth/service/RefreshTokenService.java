@@ -177,8 +177,8 @@ public class RefreshTokenService {
                 .distinct()
                 .collect(Collectors.toList());
 
-        // Generate new access token (short-lived)
-        String newAccessToken = jwtUtil.generateToken(refreshToken.getUsername(), roles);
+        // Generate new access token (short-lived) with entityName for validation
+        String newAccessToken = jwtUtil.generateToken(refreshToken.getUsername(), roles, refreshToken.getEntity());
 
         // TOKEN ROTATION: Revoke old refresh token and create new one
         refreshToken.revoke();

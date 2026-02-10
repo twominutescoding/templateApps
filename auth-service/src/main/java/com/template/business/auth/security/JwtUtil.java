@@ -91,6 +91,25 @@ public class JwtUtil {
     }
 
     /**
+     * Extracts the entity name from a JWT token.
+     * <p>
+     * The entity name is used to validate that the token is being used
+     * with the correct application/entity.
+     * </p>
+     *
+     * @param token the JWT token to extract the entity name from
+     * @return the entity name contained in the token, or null if not present
+     */
+    public String extractEntityName(String token) {
+        try {
+            Claims claims = extractAllClaims(token);
+            return claims.get("entityName", String.class);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
      * Extracts a specific claim from a JWT token using a claims resolver function.
      * <p>
      * This generic method allows extraction of any claim from the token by
@@ -166,8 +185,27 @@ public class JwtUtil {
      * @return a signed JWT token as a string
      */
     public String generateToken(String username, java.util.List<String> roles) {
+        return generateToken(username, roles, null);
+    }
+
+    /**
+     * Generates a JWT token with specified username, roles, and entity name.
+     * <p>
+     * This method includes the entityName claim which is used to validate
+     * that the token is being used with the correct application/entity.
+     * </p>
+     *
+     * @param username the username to embed in the token
+     * @param roles list of role strings to embed in the token
+     * @param entityName the entity name to embed in the token (for entity validation)
+     * @return a signed JWT token as a string
+     */
+    public String generateToken(String username, java.util.List<String> roles, String entityName) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("roles", roles);
+        if (entityName != null) {
+            claims.put("entityName", entityName);
+        }
         return createToken(claims, username);
     }
 

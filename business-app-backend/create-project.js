@@ -385,6 +385,10 @@ async function main() {
       // Entity code prefix for environment variables (for multi-app Tomcat deployment)
       // This replaces ALL occurrences of TEMP_BUSINESS_APP with the user's entity code
       'TEMP_BUSINESS_APP': entityCode,
+
+      // Postman collection - replace all APP001 references with entityCode
+      // This covers login entityCode and any other entity references
+      'APP001': entityCode,
     };
 
     // Postman collection baseUrl

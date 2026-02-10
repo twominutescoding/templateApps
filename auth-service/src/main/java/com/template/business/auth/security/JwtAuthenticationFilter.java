@@ -5,8 +5,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -45,11 +45,18 @@ import java.io.IOException;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final DatabaseUserDetailsService userDetailsService;
+
+    @Value("${app.logging.entity-name}")
+    private String configuredEntityName;
+
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, DatabaseUserDetailsService userDetailsService) {
+        this.jwtUtil = jwtUtil;
+        this.userDetailsService = userDetailsService;
+    }
 
     /**
      * Filter method that processes each request to validate JWT tokens.
@@ -97,6 +104,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 // Validate token against user details
                 if (jwtUtil.validateToken(jwt, userDetails)) {
+
+                    // Validate entity name - token must be issued for this application
+                    String tokenEntityName = jwtUtil.extractEntityName(jwt);
+                    if (tokenEntityName != null && !tokenEntityName.equals(configuredEntityName)) {
+                        log.warn("JWT Filter: Token entity '{}' does not match configured entity '{}'",
+                                tokenEntityName, configuredEntityName);
+                        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                        response.setContentType("application/json");
+                        response.getWriter().write("{\"success\":false,\"message\":\"Token not valid for this application\"}");
+                        return;
+                    }
 
                     // Create authentication token with user details and authorities
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(

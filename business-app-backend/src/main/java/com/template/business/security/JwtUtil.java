@@ -59,6 +59,25 @@ public class JwtUtil {
     }
 
     /**
+     * Extracts the entity name from a JWT token.
+     * <p>
+     * The entity name is used to validate that the token is being used
+     * with the correct application/entity.
+     * </p>
+     *
+     * @param token the JWT token to extract the entity name from
+     * @return the entity name contained in the token, or null if not present
+     */
+    public String extractEntityName(String token) {
+        try {
+            Claims claims = extractAllClaims(token);
+            return claims.get("entityName", String.class);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
      * Extracts a specific claim from a JWT token using a claims resolver function.
      *
      * @param <T> the type of the claim to extract

@@ -128,8 +128,8 @@ public class AuthController {
                         .collect(Collectors.toList());
             }
 
-            // Generate JWT access token (short-lived)
-            String accessToken = jwtUtil.generateToken(request.getUsername(), roles);
+            // Generate JWT access token (short-lived) with entityName for validation
+            String accessToken = jwtUtil.generateToken(request.getUsername(), roles, request.getEntityCode());
 
             // Generate refresh token (long-lived) and store in database
             String refreshToken = refreshTokenService.createRefreshToken(

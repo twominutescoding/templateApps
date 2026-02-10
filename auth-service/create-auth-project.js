@@ -272,6 +272,10 @@ async function main() {
 
       // App logging create-user (default value in env var)
       'LOGGING_CREATE_USER:auth-service': `LOGGING_CREATE_USER:${serviceNameKebab}`,
+
+      // Postman collection - replace all APP001 references with entityCode
+      // This covers login entityCode, role assignments, entity filters, etc.
+      'APP001': entityCode,
     };
 
     // Add JWT secret replacement if generated
