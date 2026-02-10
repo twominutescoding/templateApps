@@ -39,7 +39,6 @@ public class Mailing {
     private String sent; // Y/N
 
     @Column(name = "NOT_BEFORE", nullable = false)
-    @Temporal(TemporalType.TIMESTAMP)
     private Date notBefore;
 
     @Column(name = "MAILING_LIST", length = 200, nullable = false)
@@ -49,7 +48,6 @@ public class Mailing {
     private String mailType;
 
     @Column(name = "CREATE_DATE")
-    @Temporal(TemporalType.TIMESTAMP)
     private Date createDate;
 
     @Column(name = "CREATE_USER", length = 100)

@@ -26,7 +26,6 @@ public class LogStatus {
     private Integer deleteAfter; // Number of days to keep logs with this status
 
     @Column(name = "CREATE_DATE")
-    @Temporal(TemporalType.TIMESTAMP)
     private Date createDate;
 
     @Column(name = "CREATE_USER", length = 100)

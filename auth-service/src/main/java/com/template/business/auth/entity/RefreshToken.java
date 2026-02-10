@@ -51,21 +51,18 @@ public class RefreshToken {
      * When this session was created
      */
     @Column(name = "CREATE_DATE", nullable = false)
-    @Temporal(TemporalType.TIMESTAMP)
     private Date createDate;
 
     /**
      * When this refresh token expires
      */
     @Column(name = "EXPIRES_AT", nullable = false)
-    @Temporal(TemporalType.TIMESTAMP)
     private Date expiresAt;
 
     /**
      * Last time this token was used to refresh an access token
      */
     @Column(name = "LAST_USED_AT")
-    @Temporal(TemporalType.TIMESTAMP)
     private Date lastUsedAt;
 
     /**
@@ -78,7 +75,6 @@ public class RefreshToken {
      * When this token was revoked
      */
     @Column(name = "REVOKED_AT")
-    @Temporal(TemporalType.TIMESTAMP)
     private Date revokedAt;
 
     /**

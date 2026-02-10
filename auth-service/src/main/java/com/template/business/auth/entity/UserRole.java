@@ -41,7 +41,6 @@ public class UserRole {
     private UserStatus userStatus;
 
     @Column(name = "CREATE_DATE")
-    @Temporal(TemporalType.TIMESTAMP)
     private Date createDate;
 
     @Column(name = "CREATE_USER", length = 100)

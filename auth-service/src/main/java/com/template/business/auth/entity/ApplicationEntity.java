@@ -38,7 +38,6 @@ public class ApplicationEntity {
     private String description;
 
     @Column(name = "CREATE_DATE")
-    @Temporal(TemporalType.TIMESTAMP)
     private Date createDate;
 
     @Column(name = "CREATE_USER", length = 100)

@@ -54,11 +54,9 @@ public class AppLog {
     private LogStatus logStatus;
 
     @Column(name = "START_TIME")
-    @Temporal(TemporalType.TIMESTAMP)
     private Date startTime;
 
     @Column(name = "END_TIME")
-    @Temporal(TemporalType.TIMESTAMP)
     private Date endTime;
 
     @Column(name = "NOTIFIABLE", length = 1)
@@ -78,7 +76,6 @@ public class AppLog {
     private String createUser; // System/service that created the log
 
     @Column(name = "CREATE_DATE")
-    @Temporal(TemporalType.TIMESTAMP)
     private Date createDate;
 
     @PrePersist
