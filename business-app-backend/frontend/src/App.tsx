@@ -13,7 +13,6 @@ import UIComponents from './pages/components/UIComponents';
 import AdvancedFeatures from './pages/components/AdvancedFeatures';
 import BusinessSpecific from './pages/components/BusinessSpecific';
 import ComprehensiveTableDemo from './pages/components/ComprehensiveTableDemo';
-import DemoProductsPage from './pages/demo/DemoProductsPage';
 import InstructionsPage from './pages/instructions/InstructionsPage';
 
 // Get basename from Vite's base URL (removes trailing slash for React Router)
