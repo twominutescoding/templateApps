@@ -50,6 +50,7 @@ const Profile = () => {
       >
         <Paper sx={{ p: 3, textAlign: 'center' }}>
           <Avatar
+            src={user.avatar || undefined}
             sx={{
               width: 120,
               height: 120,

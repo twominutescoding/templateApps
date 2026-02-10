@@ -164,6 +164,7 @@ export interface LoginResponse {
   company?: string;
   theme?: string;
   paletteId?: string;
+  image?: string;
 }
 
 export interface RefreshTokenResponse {

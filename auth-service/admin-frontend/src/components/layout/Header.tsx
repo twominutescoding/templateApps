@@ -152,14 +152,16 @@ const Header = ({ onMenuClick }: HeaderProps) => {
           }}
         >
           <Avatar
+            src={user?.avatar || undefined}
             sx={{
               width: 32,
               height: 32,
               border: '2px solid rgba(255, 255, 255, 0.3)',
               boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+              fontSize: '0.875rem',
             }}
           >
-            <AccountCircleIcon fontSize="small" />
+            {user?.name?.charAt(0).toUpperCase() || <AccountCircleIcon fontSize="small" />}
           </Avatar>
         </IconButton>
 
