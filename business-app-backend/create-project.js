@@ -190,6 +190,13 @@ async function main() {
     const contextPath = await question('Enter context path (default: /api): ') || '/api';
 
     // ========================================================================
+    // User Input - Company Configuration
+    // ========================================================================
+    console.log('\n--- Company Configuration ---\n');
+
+    const companyName = await question('Enter company name (default: Template Company): ') || 'Template Company';
+
+    // ========================================================================
     // User Input - Entity Configuration
     // ========================================================================
     console.log('\n--- Entity Configuration ---\n');
@@ -258,6 +265,7 @@ async function main() {
     console.log(`Project Name:     ${projectNameKebab}`);
     console.log(`Package:          ${basePackage}.${projectNameSnake}`);
     console.log(`Display Name:     ${displayName}`);
+    console.log(`Company Name:     ${companyName}`);
     console.log(`Server Port:      ${serverPort}`);
     console.log(`Context Path:     ${contextPath}`);
     console.log(`Entity Code:      ${entityCode}`);
@@ -389,6 +397,9 @@ async function main() {
       // Postman collection - replace all APP001 references with entityCode
       // This covers login entityCode and any other entity references
       'APP001': entityCode,
+
+      // Company name (displayed on login page footer)
+      'Template Company': companyName,
     };
 
     // Postman collection baseUrl

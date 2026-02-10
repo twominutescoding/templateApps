@@ -250,7 +250,7 @@ const Login = () => {
               fontSize: '0.75rem',
             }}
           >
-            Secured with JWT Authentication
+            © Template Company
           </Typography>
         </CardContent>
       </Card>
