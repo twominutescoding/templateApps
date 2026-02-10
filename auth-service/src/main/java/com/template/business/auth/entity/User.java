@@ -59,6 +59,7 @@ public class User {
     private String paletteId; // Color palette ID (e.g., ocean-blue, sunset-orange, custom-uuid)
 
     @Lob
+    @Basic(fetch = FetchType.LAZY)
     @Column(name = "IMAGE")
     private String image;
 
