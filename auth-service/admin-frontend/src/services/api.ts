@@ -54,6 +54,12 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
+    // Skip token refresh logic for login endpoint - let the error propagate to show the message
+    const isLoginRequest = originalRequest.url?.includes('/auth/login');
+    if (isLoginRequest) {
+      return Promise.reject(error);
+    }
+
     // Handle both 401 (Unauthorized) and 403 (Forbidden) for expired tokens
     if ((error.response?.status === 401 || error.response?.status === 403) && !originalRequest._retry) {
       if (isRefreshing) {
