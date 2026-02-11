@@ -4,7 +4,9 @@ import { ThemeContextProvider } from './theme/ThemeContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import Layout from './components/layout/Layout';
 import Login from './pages/Login';
+import Home from './pages/Home';
 import Components from './pages/Components';
+import DemoProductsPage from './pages/demo/DemoProductsPage';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import DataVisualization from './pages/components/DataVisualization';
@@ -30,6 +32,16 @@ function App() {
             {/* Protected routes */}
             <Route
               path="/"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Home />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/demo-products"
               element={
                 <ProtectedRoute>
                   <Layout>

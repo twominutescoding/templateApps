@@ -1,4 +1,5 @@
 import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Toolbar, Divider } from '@mui/material';
+import HomeIcon from '@mui/icons-material/Home';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import SettingsIcon from '@mui/icons-material/Settings';
 import InventoryIcon from '@mui/icons-material/Inventory';
@@ -12,7 +13,8 @@ interface SidebarProps {
 }
 
 const menuItems = [
-  { text: 'Demo Products', icon: <InventoryIcon />, path: '/' },
+  { text: 'Home', icon: <HomeIcon />, path: '/' },
+  { text: 'Demo Products', icon: <InventoryIcon />, path: '/demo-products' },
   { text: 'Components', icon: <ViewModuleIcon />, path: '/components' },
 ];
 

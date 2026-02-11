@@ -118,34 +118,68 @@ function removeFrontendPluginsFromPom(pomPath) {
 }
 
 function removeDemoReferences(projectDir) {
-  // Remove demo import and route from App.tsx
+  // Update App.tsx - remove Demo Products and Components imports/routes
   const appTsxPath = path.join(projectDir, 'frontend/src/App.tsx');
   if (fs.existsSync(appTsxPath)) {
     let content = fs.readFileSync(appTsxPath, 'utf8');
-    // Remove demo page import line
+
+    // Remove demo page import
     content = content.replace(/import DemoProductsPage from ['"]\.\/pages\/demo\/DemoProductsPage['"];\n/g, '');
-    // Replace DemoProductsPage with Components in the home route
-    content = content.replace(/<DemoProductsPage \/>/g, '<Components />');
-    // Replace /components route with redirect to home (since Components is now at /)
-    content = content.replace(
-      /(<Route\s+path="\/components"\s+element=\{[\s\S]*?<Components \/>[\s\S]*?\}\s*\/>)/g,
-      '<Route path="/components" element={<Navigate to="/" replace />} />'
-    );
+
+    // Remove Components import
+    content = content.replace(/import Components from ['"]\.\/pages\/Components['"];\n/g, '');
+
+    // Remove component sub-page imports
+    content = content.replace(/import DataVisualization from ['"]\.\/pages\/components\/DataVisualization['"];\n/g, '');
+    content = content.replace(/import FormComponents from ['"]\.\/pages\/components\/FormComponents['"];\n/g, '');
+    content = content.replace(/import UIComponents from ['"]\.\/pages\/components\/UIComponents['"];\n/g, '');
+    content = content.replace(/import AdvancedFeatures from ['"]\.\/pages\/components\/AdvancedFeatures['"];\n/g, '');
+    content = content.replace(/import BusinessSpecific from ['"]\.\/pages\/components\/BusinessSpecific['"];\n/g, '');
+    content = content.replace(/import ComprehensiveTableDemo from ['"]\.\/pages\/components\/ComprehensiveTableDemo['"];\n/g, '');
+
+    // Remove demo-products route block
+    content = content.replace(/\s*<Route\s+path="\/demo-products"[\s\S]*?<DemoProductsPage \/>[\s\S]*?\/>\s*\n/g, '\n');
+
+    // Remove /components route and all sub-routes
+    content = content.replace(/\s*<Route\s+path="\/components"[\s\S]*?<Components \/>[\s\S]*?\/>\s*\n/g, '\n');
+    content = content.replace(/\s*<Route\s+path="\/components\/data-visualization"[\s\S]*?<DataVisualization \/>[\s\S]*?\/>\s*\n/g, '\n');
+    content = content.replace(/\s*<Route\s+path="\/components\/form-components"[\s\S]*?<FormComponents \/>[\s\S]*?\/>\s*\n/g, '\n');
+    content = content.replace(/\s*<Route\s+path="\/components\/ui-components"[\s\S]*?<UIComponents \/>[\s\S]*?\/>\s*\n/g, '\n');
+    content = content.replace(/\s*<Route\s+path="\/components\/advanced-features"[\s\S]*?<AdvancedFeatures \/>[\s\S]*?\/>\s*\n/g, '\n');
+    content = content.replace(/\s*<Route\s+path="\/components\/business-specific"[\s\S]*?<BusinessSpecific \/>[\s\S]*?\/>\s*\n/g, '\n');
+    content = content.replace(/\s*<Route\s+path="\/components\/comprehensive-demo"[\s\S]*?<ComprehensiveTableDemo \/>[\s\S]*?\/>\s*\n/g, '\n');
+
     fs.writeFileSync(appTsxPath, content, 'utf8');
   }
 
-  // Remove demo menu item from Sidebar.tsx
+  // Update Sidebar.tsx - remove Demo Products and Components menu items
   const sidebarPath = path.join(projectDir, 'frontend/src/components/layout/Sidebar.tsx');
   if (fs.existsSync(sidebarPath)) {
     let content = fs.readFileSync(sidebarPath, 'utf8');
-    // Remove InventoryIcon import
+
+    // Remove InventoryIcon and ViewModuleIcon imports
     content = content.replace(/import InventoryIcon from ['"]@mui\/icons-material\/Inventory['"];\n/g, '');
-    // Remove Demo Products menu item from menuItems array
-    content = content.replace(/\s*\{ text: 'Demo Products', icon: <InventoryIcon \/>, path: '\/' \},\n/g, '');
-    // Update Components path to be the home route
-    content = content.replace(/\{ text: 'Components', icon: <ViewModuleIcon \/>, path: '\/components' \}/g,
-      "{ text: 'Components', icon: <ViewModuleIcon />, path: '/' }");
+    content = content.replace(/import ViewModuleIcon from ['"]@mui\/icons-material\/ViewModule['"];\n/g, '');
+
+    // Remove Demo Products menu item
+    content = content.replace(/\s*\{ text: 'Demo Products', icon: <InventoryIcon \/>, path: '\/demo-products' \},\n/g, '\n');
+
+    // Remove Components menu item
+    content = content.replace(/\s*\{ text: 'Components', icon: <ViewModuleIcon \/>, path: '\/components' \},\n/g, '\n');
+
     fs.writeFileSync(sidebarPath, content, 'utf8');
+  }
+
+  // Remove Components.tsx page file
+  const componentsPagePath = path.join(projectDir, 'frontend/src/pages/Components.tsx');
+  if (fs.existsSync(componentsPagePath)) {
+    fs.unlinkSync(componentsPagePath);
+  }
+
+  // Remove components subfolder
+  const componentsSubfolderPath = path.join(projectDir, 'frontend/src/pages/components');
+  if (fs.existsSync(componentsSubfolderPath)) {
+    fs.rmSync(componentsSubfolderPath, { recursive: true, force: true });
   }
 }
 
