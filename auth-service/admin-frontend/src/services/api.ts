@@ -5,6 +5,10 @@ import axios, { type AxiosInstance, AxiosError, type InternalAxiosRequestConfig,
 // In production (Spring Boot): uses relative path
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/auth/api/v1';
 
+// Get the base path for redirects (from vite.config.ts base setting)
+// This ensures redirects work correctly regardless of context path
+const BASE_PATH = import.meta.env.BASE_URL || '/auth/';
+
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -78,7 +82,7 @@ apiClient.interceptors.response.use(
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
-        window.location.href = '/login';
+        window.location.href = `${BASE_PATH}login`;
         return Promise.reject(error);
       }
 
@@ -126,7 +130,7 @@ apiClient.interceptors.response.use(
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
-        window.location.href = '/login';
+        window.location.href = `${BASE_PATH}login`;
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
