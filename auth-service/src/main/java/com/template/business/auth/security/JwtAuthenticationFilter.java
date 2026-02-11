@@ -105,15 +105,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // Validate token against user details
                 if (jwtUtil.validateToken(jwt, userDetails)) {
 
-                    // Validate entity name - token must be issued for this application
+                    // Validate entity name - but only for entity-specific endpoints (admin endpoints)
+                    // Entity-agnostic endpoints (user's own operations) can be accessed with any valid token
                     String tokenEntityName = jwtUtil.extractEntityName(jwt);
                     if (tokenEntityName != null && !tokenEntityName.equals(configuredEntityName)) {
-                        log.warn("JWT Filter: Token entity '{}' does not match configured entity '{}'",
+                        // Check if this is an entity-specific endpoint that requires matching entity
+                        if (isEntitySpecificEndpoint(request.getRequestURI())) {
+                            log.warn("JWT Filter: Token entity '{}' does not match configured entity '{}' for admin endpoint",
+                                    tokenEntityName, configuredEntityName);
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"success\":false,\"message\":\"Token not valid for this application. Admin endpoints require auth-service token.\"}");
+                            return;
+                        }
+                        // For entity-agnostic endpoints, allow the request to proceed
+                        log.debug("JWT Filter: Token entity '{}' differs from configured '{}', but endpoint is entity-agnostic",
                                 tokenEntityName, configuredEntityName);
-                        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                        response.setContentType("application/json");
-                        response.getWriter().write("{\"success\":false,\"message\":\"Token not valid for this application\"}");
-                        return;
                     }
 
                     // Create authentication token with user details and authorities
@@ -178,5 +185,41 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                path.startsWith("/auth/api-docs") ||
                path.startsWith("/auth/swagger-resources") ||
                path.startsWith("/auth/webjars");
+    }
+
+    /**
+     * Determine if the endpoint requires entity-specific token validation.
+     *
+     * <p>Entity-specific endpoints are admin operations that should only be accessible
+     * from the auth-service admin panel (requires token issued for auth-service entity).
+     *
+     * <p>Entity-agnostic endpoints are user-facing operations that can be accessed
+     * from any application with a valid token (theme updates, user's own sessions, etc.)
+     *
+     * @param path the request URI path
+     * @return true if endpoint requires matching entity token, false if any valid token works
+     */
+    private boolean isEntitySpecificEndpoint(String path) {
+        // Admin endpoints - require auth-service entity token
+        // These are administrative operations that should only be accessible from auth-service admin panel
+
+        // Admin session management
+        if (path.startsWith("/auth/api/v1/auth/admin/")) {
+            return true;
+        }
+
+        // Admin user/role/entity management
+        if (path.startsWith("/auth/api/v1/admin/")) {
+            return true;
+        }
+
+        // All other endpoints are entity-agnostic:
+        // - PUT /auth/api/v1/auth/theme - User updates their own theme
+        // - GET /auth/api/v1/auth/sessions - User views their own sessions
+        // - POST /auth/api/v1/auth/sessions/revoke - User revokes their own session
+        // - POST /auth/api/v1/auth/logout-all - User logs out from all devices
+        // - GET /auth/api/v1/auth/validate - Token validation
+        // - POST /auth/api/v1/logs - Any app can write logs
+        return false;
     }
 }

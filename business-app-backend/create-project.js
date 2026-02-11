@@ -118,56 +118,168 @@ function removeFrontendPluginsFromPom(pomPath) {
 }
 
 function removeDemoReferences(projectDir) {
-  // Update App.tsx - remove Demo Products and Components imports/routes
+  // Update App.tsx - rewrite it cleanly without Demo Products and Components
   const appTsxPath = path.join(projectDir, 'frontend/src/App.tsx');
   if (fs.existsSync(appTsxPath)) {
-    let content = fs.readFileSync(appTsxPath, 'utf8');
+    const cleanAppTsx = `import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Provider as JotaiProvider } from 'jotai';
+import { ThemeContextProvider } from './theme/ThemeContext';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import Layout from './components/layout/Layout';
+import Login from './pages/Login';
+import Home from './pages/Home';
+import Settings from './pages/Settings';
+import Profile from './pages/Profile';
+import InstructionsPage from './pages/instructions/InstructionsPage';
 
-    // Remove demo page import
-    content = content.replace(/import DemoProductsPage from ['"]\.\/pages\/demo\/DemoProductsPage['"];\n/g, '');
+// Get basename from Vite's base URL (removes trailing slash for React Router)
+const basename = import.meta.env.BASE_URL.replace(/\\/$/, '') || '/';
 
-    // Remove Components import
-    content = content.replace(/import Components from ['"]\.\/pages\/Components['"];\n/g, '');
+function App() {
+  return (
+    <JotaiProvider>
+      <ThemeContextProvider>
+        <BrowserRouter basename={basename}>
+          <Routes>
+            {/* Public route */}
+            <Route path="/login" element={<Login />} />
 
-    // Remove component sub-page imports
-    content = content.replace(/import DataVisualization from ['"]\.\/pages\/components\/DataVisualization['"];\n/g, '');
-    content = content.replace(/import FormComponents from ['"]\.\/pages\/components\/FormComponents['"];\n/g, '');
-    content = content.replace(/import UIComponents from ['"]\.\/pages\/components\/UIComponents['"];\n/g, '');
-    content = content.replace(/import AdvancedFeatures from ['"]\.\/pages\/components\/AdvancedFeatures['"];\n/g, '');
-    content = content.replace(/import BusinessSpecific from ['"]\.\/pages\/components\/BusinessSpecific['"];\n/g, '');
-    content = content.replace(/import ComprehensiveTableDemo from ['"]\.\/pages\/components\/ComprehensiveTableDemo['"];\n/g, '');
+            {/* Protected routes */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Home />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Settings />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Profile />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/instructions"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <InstructionsPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
 
-    // Remove demo-products route block
-    content = content.replace(/\s*<Route\s+path="\/demo-products"[\s\S]*?<DemoProductsPage \/>[\s\S]*?\/>\s*\n/g, '\n');
+            {/* Catch all - redirect to home */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </ThemeContextProvider>
+    </JotaiProvider>
+  );
+}
 
-    // Remove /components route and all sub-routes
-    content = content.replace(/\s*<Route\s+path="\/components"[\s\S]*?<Components \/>[\s\S]*?\/>\s*\n/g, '\n');
-    content = content.replace(/\s*<Route\s+path="\/components\/data-visualization"[\s\S]*?<DataVisualization \/>[\s\S]*?\/>\s*\n/g, '\n');
-    content = content.replace(/\s*<Route\s+path="\/components\/form-components"[\s\S]*?<FormComponents \/>[\s\S]*?\/>\s*\n/g, '\n');
-    content = content.replace(/\s*<Route\s+path="\/components\/ui-components"[\s\S]*?<UIComponents \/>[\s\S]*?\/>\s*\n/g, '\n');
-    content = content.replace(/\s*<Route\s+path="\/components\/advanced-features"[\s\S]*?<AdvancedFeatures \/>[\s\S]*?\/>\s*\n/g, '\n');
-    content = content.replace(/\s*<Route\s+path="\/components\/business-specific"[\s\S]*?<BusinessSpecific \/>[\s\S]*?\/>\s*\n/g, '\n');
-    content = content.replace(/\s*<Route\s+path="\/components\/comprehensive-demo"[\s\S]*?<ComprehensiveTableDemo \/>[\s\S]*?\/>\s*\n/g, '\n');
-
-    fs.writeFileSync(appTsxPath, content, 'utf8');
+export default App;
+`;
+    fs.writeFileSync(appTsxPath, cleanAppTsx, 'utf8');
   }
 
-  // Update Sidebar.tsx - remove Demo Products and Components menu items
+  // Update Sidebar.tsx - rewrite it cleanly without Demo Products and Components
   const sidebarPath = path.join(projectDir, 'frontend/src/components/layout/Sidebar.tsx');
   if (fs.existsSync(sidebarPath)) {
-    let content = fs.readFileSync(sidebarPath, 'utf8');
+    const cleanSidebar = `import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Toolbar, Divider } from '@mui/material';
+import HomeIcon from '@mui/icons-material/Home';
+import SettingsIcon from '@mui/icons-material/Settings';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
+import { useNavigate, useLocation } from 'react-router-dom';
 
-    // Remove InventoryIcon and ViewModuleIcon imports
-    content = content.replace(/import InventoryIcon from ['"]@mui\/icons-material\/Inventory['"];\n/g, '');
-    content = content.replace(/import ViewModuleIcon from ['"]@mui\/icons-material\/ViewModule['"];\n/g, '');
+interface SidebarProps {
+  open: boolean;
+  onClose: () => void;
+  width: number;
+}
 
-    // Remove Demo Products menu item
-    content = content.replace(/\s*\{ text: 'Demo Products', icon: <InventoryIcon \/>, path: '\/demo-products' \},\n/g, '\n');
+const menuItems = [
+  { text: 'Home', icon: <HomeIcon />, path: '/' },
+];
 
-    // Remove Components menu item
-    content = content.replace(/\s*\{ text: 'Components', icon: <ViewModuleIcon \/>, path: '\/components' \},\n/g, '\n');
+const settingsItems = [
+  { text: 'Instructions', icon: <MenuBookIcon />, path: '/instructions' },
+  { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
+];
 
-    fs.writeFileSync(sidebarPath, content, 'utf8');
+const Sidebar = ({ open, width }: SidebarProps) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleNavigation = (path: string) => {
+    navigate(path);
+  };
+
+  return (
+    <Drawer
+      variant="persistent"
+      open={open}
+      sx={{
+        width: width,
+        flexShrink: 0,
+        '& .MuiDrawer-paper': {
+          width: width,
+          boxSizing: 'border-box',
+        },
+      }}
+    >
+      <Toolbar />
+      <List>
+        {menuItems.map((item) => (
+          <ListItem key={item.text} disablePadding>
+            <ListItemButton
+              selected={location.pathname === item.path}
+              onClick={() => handleNavigation(item.path)}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.text} />
+            </ListItemButton>
+          </ListItem>
+        ))}
+      </List>
+      <Divider />
+      <List>
+        {settingsItems.map((item) => (
+          <ListItem key={item.text} disablePadding>
+            <ListItemButton
+              selected={location.pathname === item.path}
+              onClick={() => handleNavigation(item.path)}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.text} />
+            </ListItemButton>
+          </ListItem>
+        ))}
+      </List>
+    </Drawer>
+  );
+};
+
+export default Sidebar;
+`;
+    fs.writeFileSync(sidebarPath, cleanSidebar, 'utf8');
   }
 
   // Remove Components.tsx page file
@@ -180,6 +292,12 @@ function removeDemoReferences(projectDir) {
   const componentsSubfolderPath = path.join(projectDir, 'frontend/src/pages/components');
   if (fs.existsSync(componentsSubfolderPath)) {
     fs.rmSync(componentsSubfolderPath, { recursive: true, force: true });
+  }
+
+  // Remove demo subfolder (if it exists)
+  const demoSubfolderPath = path.join(projectDir, 'frontend/src/pages/demo');
+  if (fs.existsSync(demoSubfolderPath)) {
+    fs.rmSync(demoSubfolderPath, { recursive: true, force: true });
   }
 }
 
