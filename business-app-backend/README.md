@@ -122,14 +122,18 @@ Users are managed in the auth-service database.
 
 ### Auth Service Integration
 
-This app is configured to use auth-service at:
-- **Login**: http://localhost:8091/auth/api/v1/auth/login
-- **Refresh**: http://localhost:8091/auth/api/v1/auth/refresh
+This app is configured to use auth-service at: `http://localhost:8091/auth`
 
-To change this, update `application.properties`:
+To change the host, update the profile-specific properties (e.g., `application-dev.properties`):
 ```properties
-auth.service.url=${AUTH_SERVICE_URL:http://localhost:8091/auth/api/v1/auth/login}
-auth.service.refresh-url=${AUTH_SERVICE_REFRESH_URL:http://localhost:8091/auth/api/v1/auth/refresh}
+auth.service.host=${TEMP_BUSINESS_APP_AUTH_SERVICE_HOST:http://localhost:8091/auth}
+```
+
+Endpoint paths are configured in `application.properties`:
+```properties
+auth.service.login-endpoint=/api/v1/auth/login
+auth.service.refresh-endpoint=/api/v1/auth/refresh
+auth.service.log-endpoint=/api/v1/logs
 ```
 
 ## Configuration
@@ -185,7 +189,7 @@ cat ENV_TEMPLATE.env >> $CATALINA_HOME/bin/setenv.sh
 | `{ENTITY}_DB_PORT` | Oracle database port | 1521 |
 | `{ENTITY}_DB_SID` | Oracle SID | ORCL |
 | `{ENTITY}_JWT_SECRET` | JWT secret (must match auth-service) | - |
-| `{ENTITY}_AUTH_SERVICE_URL` | Auth-service login URL | localhost:8091 |
+| `{ENTITY}_AUTH_SERVICE_HOST` | Auth-service host URL | http://localhost:8091/auth |
 
 Variables are prefixed with entity code for multi-app Tomcat deployment.
 
@@ -470,9 +474,8 @@ rm -rf src/main/java/com/template/business/demo/
 Set these in production:
 
 ```bash
-# Auth Service URLs
-export AUTH_SERVICE_URL=https://your-auth-service/api/v1/auth/login
-export AUTH_SERVICE_REFRESH_URL=https://your-auth-service/api/v1/auth/refresh
+# Auth Service Host
+export AUTH_SERVICE_HOST=https://your-auth-service/auth
 
 # JWT Secret (MUST match auth-service!)
 export JWT_SECRET=your-production-secret-key

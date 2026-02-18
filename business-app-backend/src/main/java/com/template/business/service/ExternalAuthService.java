@@ -26,11 +26,14 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 @RequiredArgsConstructor
 public class ExternalAuthService {
 
-    @Value("${auth.service.url}")
-    private String authServiceUrl;
+    @Value("${auth.service.host}")
+    private String authServiceHost;
 
-    @Value("${auth.service.refresh-url:${auth.service.url}/refresh}")
-    private String authServiceRefreshUrl;
+    @Value("${auth.service.login-endpoint}")
+    private String loginEndpoint;
+
+    @Value("${auth.service.refresh-endpoint}")
+    private String refreshEndpoint;
 
     @Value("${auth.service.theme-url:}")
     private String authServiceThemeUrl;
@@ -47,6 +50,7 @@ public class ExternalAuthService {
      */
     public ExternalAuthResponse authenticate(String username, String password, String entityCode) {
         try {
+            String authServiceUrl = authServiceHost + loginEndpoint;
             log.debug("Authenticating with external auth-service: {}", authServiceUrl);
 
             // Create request body
@@ -99,6 +103,7 @@ public class ExternalAuthService {
      */
     public ExternalAuthResponse refreshToken(String refreshToken) {
         try {
+            String authServiceRefreshUrl = authServiceHost + refreshEndpoint;
             log.debug("Refreshing token with external auth-service: {}", authServiceRefreshUrl);
 
             // Create request body
@@ -153,11 +158,11 @@ public class ExternalAuthService {
      */
     public void updateThemePreferences(String theme, String paletteId) {
         try {
-            // Get the theme URL - derive from auth service URL if not explicitly set
+            // Get the theme URL - derive from auth service login endpoint if not explicitly set
             String themeUrl = authServiceThemeUrl;
             if (themeUrl == null || themeUrl.isEmpty()) {
                 // Derive from login URL: replace /login with /theme
-                themeUrl = authServiceUrl.replace("/login", "/theme");
+                themeUrl = authServiceHost + loginEndpoint.replace("/login", "/theme");
             }
 
             log.debug("Updating theme preferences with external auth-service: {}", themeUrl);

@@ -61,9 +61,11 @@ The `business-app-backend` has been refactored to **ONLY** use external auth-ser
 
 4. **application.properties**
    ```properties
-   # Auth Service URLs
-   auth.service.url=http://localhost:8091/auth/api/v1/auth/login
-   auth.service.refresh-url=http://localhost:8091/auth/api/v1/auth/refresh
+   # Auth Service Configuration
+   auth.service.host=http://localhost:8091/auth
+   auth.service.login-endpoint=/api/v1/auth/login
+   auth.service.refresh-endpoint=/api/v1/auth/refresh
+   auth.service.log-endpoint=/api/v1/logs
    ```
 
 5. **AuthController.java**
@@ -137,9 +139,8 @@ Frontend → business-app /api/products
 ### Required Environment Variables
 
 ```bash
-# Auth Service URLs
-AUTH_SERVICE_URL=http://localhost:8091/auth/api/v1/auth/login
-AUTH_SERVICE_REFRESH_URL=http://localhost:8091/auth/api/v1/auth/refresh
+# Auth Service Host
+AUTH_SERVICE_HOST=http://localhost:8091/auth
 
 # JWT Secret (must match auth-service secret!)
 JWT_SECRET=your-secret-key-change-this-in-production-make-it-at-least-256-bits-long

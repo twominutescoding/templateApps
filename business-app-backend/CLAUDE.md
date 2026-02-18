@@ -153,8 +153,10 @@ formatTimestamp('2025-12-07T...');// Accepts Date or ISO string
 - Manager: `user2` / `password` (roles: USER)
 
 **Configuration**:
-- `auth.service.url` - Auth-service login URL
-- `auth.service.refresh-url` - Auth-service refresh URL
+- `auth.service.host` - Auth-service host URL (per profile)
+- `auth.service.login-endpoint` - Login endpoint path
+- `auth.service.refresh-endpoint` - Refresh endpoint path
+- `auth.service.log-endpoint` - Logging endpoint path
 - `jwt.secret` - Must match auth-service secret for token validation
 
 ### 4. Advanced Data Table Component

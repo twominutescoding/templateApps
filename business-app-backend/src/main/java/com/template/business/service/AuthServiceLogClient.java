@@ -20,8 +20,11 @@ import java.util.concurrent.CompletableFuture;
 @RequiredArgsConstructor
 public class AuthServiceLogClient {
 
-    @Value("${auth.service.log-url}")
-    private String authServiceLogUrl;
+    @Value("${auth.service.host}")
+    private String authServiceHost;
+
+    @Value("${auth.service.log-endpoint}")
+    private String logEndpoint;
 
     @Value("${app.logging.enabled:true}")
     private boolean loggingEnabled;
@@ -58,6 +61,7 @@ public class AuthServiceLogClient {
             HttpEntity<AppLogRequest> requestEntity = new HttpEntity<>(logRequest, headers);
 
             // Call auth-service log endpoint
+            String authServiceLogUrl = authServiceHost + logEndpoint;
             ResponseEntity<String> response = restTemplate.exchange(
                     authServiceLogUrl,
                     HttpMethod.POST,
@@ -112,6 +116,7 @@ public class AuthServiceLogClient {
             HttpEntity<AppLogRequest> requestEntity = new HttpEntity<>(logRequest, headers);
 
             // Call auth-service log endpoint
+            String authServiceLogUrl = authServiceHost + logEndpoint;
             ResponseEntity<String> response = restTemplate.exchange(
                     authServiceLogUrl,
                     HttpMethod.POST,

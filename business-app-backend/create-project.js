@@ -395,11 +395,8 @@ async function main() {
     const projectNameKebab = toKebabCase(projectName);
     const projectNamePascal = toPascalCase(projectName);
 
-    // Build auth-service URLs from components
+    // Build auth-service host from components
     const authServiceBaseUrl = `http://${authServiceHost}:${authServicePort}${authServiceContext}`;
-    const authServiceUrl = `${authServiceBaseUrl}/api/v1/auth/login`;
-    const authServiceRefreshUrl = `${authServiceBaseUrl}/api/v1/auth/refresh`;
-    const authServiceLogUrl = `${authServiceBaseUrl}/api/v1/logs`;
 
     const newProjectDir = path.join(targetDir, projectNameKebab);
     const packagePath = basePackage.replace(/\./g, '/');
@@ -423,9 +420,6 @@ async function main() {
     console.log(`Entity Code:      ${entityCode}`);
     console.log(`Database Name:    ${databaseName}`);
     console.log(`Auth Service:     ${authServiceBaseUrl}`);
-    console.log(`  - Login URL:    ${authServiceUrl}`);
-    console.log(`  - Refresh URL:  ${authServiceRefreshUrl}`);
-    console.log(`  - Log URL:      ${authServiceLogUrl}`);
     console.log(`JWT Secret:       ${jwtSecret ? '(generated)' : '(not changed)'}`);
     console.log(`Target Directory: ${newProjectDir}`);
     console.log('\n==========================================\n');
@@ -529,7 +523,7 @@ async function main() {
       '<name>business-app-backend</name>': `<name>${projectNameKebab}</name>`,
 
       // Auth service URLs (these are part of the prefixed env vars, handled by TEMP_BUSINESS_APP replacement)
-      // The prefix replacement handles: TEMP_BUSINESS_APP_AUTH_SERVICE_URL -> ENTITY_CODE_AUTH_SERVICE_URL
+      // The prefix replacement handles: TEMP_BUSINESS_APP_AUTH_SERVICE_HOST -> ENTITY_CODE_AUTH_SERVICE_HOST
 
       // Logging
       'logging\\.level\\.com\\.template\\.business': `logging.level.${basePackage}.${projectNameSnake}`,
@@ -537,10 +531,8 @@ async function main() {
       // App logging create-user (default value in env var)
       'LOGGING_CREATE_USER:business-app-backend': `LOGGING_CREATE_USER:${projectNameKebab}`,
 
-      // Auth service URL defaults (replace with user's auth service config)
-      'AUTH_SERVICE_URL:http://localhost:8091/auth/api/v1/auth/login': `AUTH_SERVICE_URL:${authServiceUrl}`,
-      'AUTH_SERVICE_REFRESH_URL:http://localhost:8091/auth/api/v1/auth/refresh': `AUTH_SERVICE_REFRESH_URL:${authServiceRefreshUrl}`,
-      'AUTH_SERVICE_LOG_URL:http://localhost:8091/auth/api/v1/logs': `AUTH_SERVICE_LOG_URL:${authServiceLogUrl}`,
+      // Auth service host default (replace with user's auth service config)
+      'AUTH_SERVICE_HOST:http://localhost:8091/auth': `AUTH_SERVICE_HOST:${authServiceBaseUrl}`,
 
       // Entity code prefix for environment variables (for multi-app Tomcat deployment)
       // This replaces ALL occurrences of TEMP_BUSINESS_APP with the user's entity code
@@ -589,14 +581,14 @@ async function main() {
       readme = generateFullStackReadme({
         displayName, projectNameKebab, projectNameSnake, basePackage,
         serverPort, contextPath, entityCode, databaseName,
-        authServiceBaseUrl, authServiceUrl, authServiceRefreshUrl, authServiceLogUrl,
+        authServiceBaseUrl,
         jwtSecret, packagePath
       });
     } else {
       readme = generateBackendOnlyReadme({
         displayName, projectNameKebab, projectNameSnake, basePackage,
         serverPort, contextPath, entityCode, databaseName,
-        authServiceBaseUrl, authServiceUrl, authServiceRefreshUrl, authServiceLogUrl,
+        authServiceBaseUrl,
         jwtSecret, packagePath
       });
     }
@@ -657,7 +649,7 @@ function generateFullStackReadme(config) {
   const {
     displayName, projectNameKebab, projectNameSnake, basePackage,
     serverPort, contextPath, entityCode, databaseName,
-    authServiceBaseUrl, authServiceUrl, authServiceRefreshUrl, authServiceLogUrl,
+    authServiceBaseUrl,
     jwtSecret
   } = config;
 
@@ -736,9 +728,7 @@ npm run dev
 ### Auth Service Integration
 
 This app is configured to use auth-service at:
-- **Login**: ${authServiceUrl}
-- **Refresh**: ${authServiceRefreshUrl}
-- **Logging**: ${authServiceLogUrl}
+- **Host**: ${authServiceBaseUrl}
 
 ## Configuration
 
@@ -797,7 +787,7 @@ function generateBackendOnlyReadme(config) {
   const {
     displayName, projectNameKebab, projectNameSnake, basePackage,
     serverPort, contextPath, entityCode, databaseName,
-    authServiceBaseUrl, authServiceUrl, authServiceRefreshUrl, authServiceLogUrl,
+    authServiceBaseUrl,
     jwtSecret, packagePath
   } = config;
 
