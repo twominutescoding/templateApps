@@ -4,6 +4,8 @@ import com.template.business.auth.entity.AppLog;
 import com.template.business.auth.entity.ApplicationEntity;
 import com.template.business.auth.entity.EntityType;
 import com.template.business.auth.entity.LogStatus;
+import com.template.business.auth.entity.MailingList;
+import com.template.business.auth.entity.MailingListUser;
 import com.template.business.auth.entity.Role;
 import com.template.business.auth.entity.User;
 import com.template.business.auth.entity.UserRole;
@@ -12,6 +14,8 @@ import com.template.business.auth.repository.AppLogRepository;
 import com.template.business.auth.repository.EntityRepository;
 import com.template.business.auth.repository.EntityTypeRepository;
 import com.template.business.auth.repository.LogStatusRepository;
+import com.template.business.auth.repository.MailingListRepository;
+import com.template.business.auth.repository.MailingListUserRepository;
 import com.template.business.auth.repository.RoleRepository;
 import com.template.business.auth.repository.UserRepository;
 import com.template.business.auth.repository.UserRoleRepository;
@@ -75,6 +79,8 @@ public class DataInitializer {
     private final UserStatusRepository userStatusRepository;
     private final LogStatusRepository logStatusRepository;
     private final AppLogRepository appLogRepository;
+    private final MailingListRepository mailingListRepository;
+    private final MailingListUserRepository mailingListUserRepository;
     private final PasswordEncoder passwordEncoder;
 
     /**
@@ -305,6 +311,31 @@ public class DataInitializer {
 
                 log.info("Created {} sample application logs", appLogRepository.count());
 
+                // 7. Create Mailing Lists
+                log.info("Creating mailing lists...");
+
+                MailingList allUsers = createMailingList("ALL_USERS", "All registered users", "ACTIVE");
+                MailingList admins = createMailingList("ADMINISTRATORS", "System administrators", "ACTIVE");
+                MailingList newsletter = createMailingList("NEWSLETTER", "Newsletter subscribers", "INACTIVE");
+
+                mailingListRepository.save(allUsers);
+                mailingListRepository.save(admins);
+                mailingListRepository.save(newsletter);
+
+                log.info("Created {} mailing lists", mailingListRepository.count());
+
+                // 8. Create Mailing List User assignments
+                log.info("Creating mailing list user assignments...");
+
+                mailingListUserRepository.save(createMailingListUser("ALL_USERS", "admin"));
+                mailingListUserRepository.save(createMailingListUser("ALL_USERS", "user1"));
+                mailingListUserRepository.save(createMailingListUser("ALL_USERS", "user2"));
+                mailingListUserRepository.save(createMailingListUser("ADMINISTRATORS", "admin"));
+                mailingListUserRepository.save(createMailingListUser("NEWSLETTER", "user1"));
+                mailingListUserRepository.save(createMailingListUser("NEWSLETTER", "user2"));
+
+                log.info("Created {} mailing list user assignments", mailingListUserRepository.count());
+
                 log.info("Data initialization completed successfully!");
                 log.info("Sample users created:");
                 log.info("  - admin/password (ADMIN in DEFAULT, APP001, APP002 & AUTH_ADMIN)");
@@ -428,6 +459,27 @@ public class DataInitializer {
      * @param createUser the service that created the log
      * @return a configured AppLog entity ready to be persisted
      */
+    private MailingList createMailingList(String name, String description, String status) {
+        MailingList ml = new MailingList();
+        ml.setName(name);
+        ml.setDescription(description);
+        ml.setStatus(status);
+        ml.setCreateDate(new Date());
+        ml.setCreateUser("system");
+        return ml;
+    }
+
+    private MailingListUser createMailingListUser(String name, String username) {
+        MailingListUser mlu = new MailingListUser();
+        MailingListUser.MailingListUserId id = new MailingListUser.MailingListUserId();
+        id.setName(name);
+        id.setUsername(username);
+        mlu.setId(id);
+        mlu.setCreateDate(new Date());
+        mlu.setCreateUser("system");
+        return mlu;
+    }
+
     private AppLog createAppLog(String entity, String module, String status,
                                 String request, String response,
                                 Date startTime, Date endTime,

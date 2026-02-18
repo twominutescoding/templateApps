@@ -5,6 +5,7 @@ import SecurityIcon from '@mui/icons-material/Security';
 import BusinessIcon from '@mui/icons-material/Business';
 import DevicesIcon from '@mui/icons-material/Devices';
 import EmailIcon from '@mui/icons-material/Email';
+import ContactMailIcon from '@mui/icons-material/ContactMail';
 import HistoryIcon from '@mui/icons-material/History';
 import SettingsIcon from '@mui/icons-material/Settings';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
@@ -23,6 +24,7 @@ const menuItems = [
   { text: 'Entities', icon: <BusinessIcon />, path: '/entities' },
   { text: 'Sessions', icon: <DevicesIcon />, path: '/sessions' },
   { text: 'Mailings', icon: <EmailIcon />, path: '/mailings' },
+  { text: 'Mailing Lists', icon: <ContactMailIcon />, path: '/mailing-lists' },
   { text: 'Logs', icon: <HistoryIcon />, path: '/logs' },
 ];
 

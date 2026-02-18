@@ -139,7 +139,7 @@ public class SecurityConfig {
                         .requestMatchers("/assets/**", "/images/**", "/*.js", "/*.css", "/*.svg", "/*.png", "/*.ico").permitAll()
                         .requestMatchers("/docs/**").permitAll()
                         // SPA routes (handled by SpaController -> forward to index.html)
-                        .requestMatchers("/login", "/dashboard", "/users", "/roles", "/sessions", "/entities", "/mailings", "/logs", "/settings", "/instructions").permitAll()
+                        .requestMatchers("/login", "/dashboard", "/users", "/roles", "/sessions", "/entities", "/mailings", "/mailing-lists", "/logs", "/settings", "/instructions").permitAll()
                         // Public endpoints (no authentication required)
                         .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/health", "/api/v1/health").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()

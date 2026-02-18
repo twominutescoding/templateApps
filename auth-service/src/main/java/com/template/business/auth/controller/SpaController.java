@@ -29,6 +29,7 @@ public class SpaController {
         "/sessions",
         "/entities",
         "/mailings",
+        "/mailing-lists",
         "/logs",
         "/settings",
         "/instructions"

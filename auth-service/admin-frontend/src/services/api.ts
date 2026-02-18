@@ -258,6 +258,26 @@ export interface MailingAdmin {
   createUser: string;
 }
 
+export interface MailingListAdmin {
+  name: string;
+  description: string;
+  status: string;
+  createDate: string;
+  createUser: string;
+  userCount: number;
+  users?: MailingListUserAdmin[];
+}
+
+export interface MailingListUserAdmin {
+  name: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  createDate: string;
+  createUser: string;
+}
+
 export interface AppLogAdmin {
   id: number;
   entity: string;
@@ -594,6 +614,54 @@ export const adminAppLogAPI = {
 
   getLogStatuses: async (): Promise<ApiResponse<LogStatusData[]>> => {
     const response = await apiClient.get<ApiResponse<LogStatusData[]>>('/admin/logs/statuses');
+    return response.data;
+  },
+};
+
+// Admin Mailing List API
+export const adminMailingListAPI = {
+  getAllMailingLists: async (): Promise<ApiResponse<MailingListAdmin[]>> => {
+    const response = await apiClient.get<ApiResponse<MailingListAdmin[]>>('/admin/mailing-lists');
+    return response.data;
+  },
+
+  searchMailingLists: async (searchRequest: SearchRequest): Promise<ApiResponse<PageResponse<MailingListAdmin>>> => {
+    const response = await apiClient.post<ApiResponse<PageResponse<MailingListAdmin>>>('/admin/mailing-lists/search', searchRequest);
+    return response.data;
+  },
+
+  getMailingList: async (name: string): Promise<ApiResponse<MailingListAdmin>> => {
+    const response = await apiClient.get<ApiResponse<MailingListAdmin>>(`/admin/mailing-lists/${encodeURIComponent(name)}`);
+    return response.data;
+  },
+
+  createMailingList: async (data: { name: string; description: string; status: string }): Promise<ApiResponse<MailingListAdmin>> => {
+    const response = await apiClient.post<ApiResponse<MailingListAdmin>>('/admin/mailing-lists', data);
+    return response.data;
+  },
+
+  updateMailingList: async (name: string, data: { description: string; status: string }): Promise<ApiResponse<MailingListAdmin>> => {
+    const response = await apiClient.put<ApiResponse<MailingListAdmin>>(`/admin/mailing-lists/${encodeURIComponent(name)}`, data);
+    return response.data;
+  },
+
+  deleteMailingList: async (name: string): Promise<ApiResponse<string>> => {
+    const response = await apiClient.delete<ApiResponse<string>>(`/admin/mailing-lists/${encodeURIComponent(name)}`);
+    return response.data;
+  },
+
+  getMailingListUsers: async (name: string): Promise<ApiResponse<MailingListUserAdmin[]>> => {
+    const response = await apiClient.get<ApiResponse<MailingListUserAdmin[]>>(`/admin/mailing-lists/${encodeURIComponent(name)}/users`);
+    return response.data;
+  },
+
+  addUserToMailingList: async (name: string, username: string): Promise<ApiResponse<MailingListUserAdmin>> => {
+    const response = await apiClient.post<ApiResponse<MailingListUserAdmin>>(`/admin/mailing-lists/${encodeURIComponent(name)}/users`, { username });
+    return response.data;
+  },
+
+  removeUserFromMailingList: async (name: string, username: string): Promise<ApiResponse<string>> => {
+    const response = await apiClient.delete<ApiResponse<string>>(`/admin/mailing-lists/${encodeURIComponent(name)}/users/${encodeURIComponent(username)}`);
     return response.data;
   },
 };

@@ -10,6 +10,7 @@ import RolesPage from './pages/roles/RolesPage';
 import EntitiesPage from './pages/entities/EntitiesPage';
 import SessionsPage from './pages/sessions/SessionsPage';
 import MailingsPage from './pages/mailings/MailingsPage';
+import MailingListsPage from './pages/mailing-lists/MailingListsPage';
 import LogsPage from './pages/logs/LogsPage';
 import Settings from './pages/Settings';
 import InstructionsPage from './pages/instructions/InstructionsPage';
@@ -83,6 +84,16 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <MailingsPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/mailing-lists"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <MailingListsPage />
                   </Layout>
                 </ProtectedRoute>
               }
