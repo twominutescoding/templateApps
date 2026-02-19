@@ -38,6 +38,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { useDateFormat } from '../../hooks';
 
 type Order = 'asc' | 'desc';
@@ -850,6 +851,36 @@ const AdvancedDataTable = ({
               <CircularProgress size={20} thickness={4} />
             )}
           </Box>
+          {isServerSide && (
+            <Tooltip title="Refresh">
+              <IconButton
+                size="small"
+                onClick={() => onFetchData?.({
+                  filters: columnFilters,
+                  dateRanges: Object.entries(dateRanges).reduce((acc, [key, value]) => {
+                    acc[key] = {
+                      from: value.from ? value.from.format('YYYY-MM-DD') : null,
+                      to: value.to ? value.to.format('YYYY-MM-DD') : null,
+                    };
+                    return acc;
+                  }, {} as Record<string, { from: string | null; to: string | null }>),
+                  sort: { column: orderBy, order },
+                  page,
+                  pageSize: rowsPerPage,
+                })}
+                disabled={loading}
+                sx={{
+                  color: 'action.active',
+                  '&:hover': {
+                    backgroundColor: 'rgba(66, 165, 245, 0.15)',
+                    color: '#42a5f5',
+                  },
+                }}
+              >
+                <RefreshIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
           {activeFilterCount > 0 && (
             <Chip
               label={`${activeFilterCount} filter${activeFilterCount > 1 ? 's' : ''} active`}

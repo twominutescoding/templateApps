@@ -577,7 +577,7 @@ export const adminUserStatusAPI = {
   },
 };
 
-// Admin Mailing API (read-only)
+// Admin Mailing API
 export const adminMailingAPI = {
   getAllMailings: async (): Promise<ApiResponse<MailingAdmin[]>> => {
     const response = await apiClient.get<ApiResponse<MailingAdmin[]>>('/admin/mailings');
@@ -591,6 +591,23 @@ export const adminMailingAPI = {
 
   getMailing: async (id: number): Promise<ApiResponse<MailingAdmin>> => {
     const response = await apiClient.get<ApiResponse<MailingAdmin>>(`/admin/mailings/${id}`);
+    return response.data;
+  },
+
+  createMailing: async (data: {
+    subject: string;
+    body: string;
+    mailingList: string;
+    mailType: string;
+    notBefore?: string;
+    attachment?: string;
+  }): Promise<ApiResponse<MailingAdmin>> => {
+    const response = await apiClient.post<ApiResponse<MailingAdmin>>('/admin/mailings', data);
+    return response.data;
+  },
+
+  resendMailing: async (id: number): Promise<ApiResponse<MailingAdmin>> => {
+    const response = await apiClient.post<ApiResponse<MailingAdmin>>(`/admin/mailings/${id}/resend`);
     return response.data;
   },
 };

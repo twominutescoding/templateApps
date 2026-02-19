@@ -11,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.template.business.auth.dto.ApiResponse;
+import com.template.business.auth.dto.MailingCreateRequest;
 import com.template.business.auth.dto.MailingDTO;
 import com.template.business.auth.dto.PageResponse;
 import com.template.business.auth.dto.SearchRequest;
@@ -23,10 +24,10 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
- * REST controller for mailing administration (read-only).
+ * REST controller for mailing administration.
  *
- * <p>Provides read-only access to the email/notification queue (T_MAILING table).
- * Mailings are created by various services and sent by a scheduled job.
+ * <p>Provides access to the email/notification queue (T_MAILING table).
+ * Supports creating new mailings and resending existing ones.
  *
  * <p>All endpoints require ADMIN role.
  *
@@ -38,7 +39,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RequestMapping("/api/v1/admin/mailings")
 @PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
-@Tag(name = "Mailing Administration", description = "Read-only access to email/notification queue. All endpoints require ADMIN role.")
+@Tag(name = "Mailing Administration", description = "Manage email/notification queue. All endpoints require ADMIN role.")
 @SecurityRequirement(name = "bearerAuth")
 public class MailingAdminController {
 
@@ -93,6 +94,44 @@ public class MailingAdminController {
             log.error("Failed to retrieve mailing {}: {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Failed to retrieve mailing"));
+        }
+    }
+
+    /**
+     * Create a new mailing
+     */
+    @Operation(summary = "Create mailing", description = "Creates a new mailing record in the queue with SENT='N'.")
+    @PostMapping
+    public ResponseEntity<ApiResponse<MailingDTO>> createMailing(
+            @RequestBody @jakarta.validation.Valid MailingCreateRequest request) {
+        try {
+            MailingDTO dto = mailingAdminService.createMailing(request);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.success("Mailing created successfully", dto));
+        } catch (Exception e) {
+            log.error("Failed to create mailing: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to create mailing"));
+        }
+    }
+
+    /**
+     * Resend a mailing (reset SENT flag to 'N')
+     */
+    @Operation(summary = "Resend mailing", description = "Resets mailing SENT flag to 'N' and NOT_BEFORE to now, so the scheduler picks it up again.")
+    @PostMapping("/{id}/resend")
+    public ResponseEntity<ApiResponse<MailingDTO>> resendMailing(
+            @Parameter(description = "Mailing ID") @PathVariable Long id) {
+        try {
+            MailingDTO dto = mailingAdminService.resendMailing(id);
+            return ResponseEntity.ok(ApiResponse.success("Mailing queued for resend", dto));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to resend mailing {}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to resend mailing"));
         }
     }
 }

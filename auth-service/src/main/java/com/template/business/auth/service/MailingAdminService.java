@@ -1,8 +1,10 @@
 package com.template.business.auth.service;
 
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.template.business.auth.dto.MailingCreateRequest;
 import com.template.business.auth.dto.PageResponse;
 import com.template.business.auth.dto.SearchRequest;
 import com.template.business.auth.util.SpecificationBuilder;
@@ -77,6 +79,43 @@ public class MailingAdminService {
         Mailing mailing = mailingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.ENTITY_NOT_FOUND, "Mailing not found: " + id));
         return convertToDTO(mailing);
+    }
+
+    /**
+     * Create a new mailing record in the queue
+     */
+    public MailingDTO createMailing(MailingCreateRequest request) {
+        String currentUser = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        Mailing mailing = new Mailing();
+        mailing.setSubject(request.getSubject());
+        mailing.setBody(request.getBody());
+        mailing.setAttachment(request.getAttachment());
+        mailing.setMailingList(request.getMailingList());
+        mailing.setMailType(request.getMailType());
+        mailing.setNotBefore(request.getNotBefore() != null ? request.getNotBefore() : new Date());
+        mailing.setSent("N");
+        mailing.setCreateDate(new Date());
+        mailing.setCreateUser(currentUser);
+
+        Mailing saved = mailingRepository.save(mailing);
+        log.info("Admin {} created mailing ID={} for list '{}'", currentUser, saved.getId(), saved.getMailingList());
+        return convertToDTO(saved);
+    }
+
+    /**
+     * Resend a mailing by resetting its SENT flag to 'N'
+     */
+    public MailingDTO resendMailing(Long id) {
+        Mailing mailing = mailingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.ENTITY_NOT_FOUND, "Mailing not found: " + id));
+
+        String currentUser = SecurityContextHolder.getContext().getAuthentication().getName();
+        mailing.setSent("N");
+        mailing.setNotBefore(new Date());
+        Mailing saved = mailingRepository.save(mailing);
+        log.info("Admin {} triggered resend for mailing ID={}", currentUser, id);
+        return convertToDTO(saved);
     }
 
     /**
