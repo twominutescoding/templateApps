@@ -1,131 +1,541 @@
 -- ============================================================================
--- Clean Script for Auth-Service (Oracle)
+-- Auth-Service Oracle DDL Script
 -- ============================================================================
--- Drops ALL database objects used by auth-service.
--- Run this to completely remove auth-service schema objects.
+-- Creates ALL database objects required by auth-service Spring Boot application.
 --
 -- Schemas affected:
---   AP_APPLICATIONS - Main auth tables
+--   AP_APPLICATIONS - Main auth tables (users, roles, entities, tokens, mailing)
 --   AP_LOG          - Logging tables
 --
--- WARNING: This script is DESTRUCTIVE and IRREVERSIBLE.
---          All data in these tables will be lost.
+-- Prerequisites:
+--   - Schema users AP_APPLICATIONS and AP_LOG must already exist in Oracle
+--   - Run as DBA or connected as schema owner with sufficient privileges
+--   - Tablespace TBS_UTIL_APP must exist (adjust TABLESPACE clauses if needed)
+--
+-- Objects created (AP_APPLICATIONS):
+--   Sequences : D_ENTITIES_SEQ01, D_REFRESH_TOKENS_SEQ, T_MAILING_SEQ
+--   Tables    : D_USER_STATUS, D_ENTITY_TYPES, D_MAILING_LISTS, D_USERS,
+--               D_ENTITIES, D_ROLES, D_ENTITY_ATTRIBUTES, D_USER_ROLES,
+--               D_MAILING_LIST_USERS, D_REFRESH_TOKENS, T_MAILING
+--   Indexes   : Primary keys, unique constraints, performance indexes
+--   Triggers  : D_ENTITIES_BIFER, TRG_D_REFRESH_TOKENS_ID,
+--               TRG_D_REFRESH_TOKENS_DATE, T_MAILING_TRG
+--
+-- Objects created (AP_LOG):
+--   Sequences : T_APP_LOG_SEQ01
+--   Tables    : D_LOG_STATUS, T_APP_LOG
+--   Triggers  : T_APP_LOG_BIFER
 -- ============================================================================
 
-SET SERVEROUTPUT ON;
 
 -- ============================================================================
--- Helper: Drop object only if it exists (suppresses ORA errors)
+-- AP_APPLICATIONS: Sequences
 -- ============================================================================
-CREATE OR REPLACE PROCEDURE drop_if_exists(
-    p_type  IN VARCHAR2,
-    p_name  IN VARCHAR2,
-    p_owner IN VARCHAR2 DEFAULT NULL
-) IS
-    v_sql VARCHAR2(500);
-    v_owner VARCHAR2(100) := NVL(p_owner, USER);
-    v_count NUMBER;
+
+CREATE SEQUENCE "AP_APPLICATIONS"."D_ENTITIES_SEQ01"
+    MINVALUE 1 MAXVALUE 9999999999999999999999999999
+    INCREMENT BY 1 START WITH 501 CACHE 20 NOORDER NOCYCLE;
+
+CREATE SEQUENCE "AP_APPLICATIONS"."D_REFRESH_TOKENS_SEQ"
+    MINVALUE 1 MAXVALUE 9999999999999999999999999999
+    INCREMENT BY 1 START WITH 1 NOCACHE NOORDER NOCYCLE;
+
+CREATE SEQUENCE "AP_APPLICATIONS"."T_MAILING_SEQ"
+    MINVALUE 1 MAXVALUE 9999999999999999999999999999
+    INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER NOCYCLE;
+
+
+-- ============================================================================
+-- AP_APPLICATIONS: Tables (in dependency order — parents before children)
+-- ============================================================================
+
+-- Lookup: user status values (ACTIVE, INACTIVE, LOCKED)
+CREATE TABLE "AP_APPLICATIONS"."D_USER_STATUS"
+(
+    "STATUS"      VARCHAR2(100 BYTE)               NOT NULL,
+    "DESCRIPTION" VARCHAR2(1000 BYTE),
+    "CREATE_DATE" DATE               DEFAULT SYSDATE,
+    "CREATE_USER" VARCHAR2(100 BYTE) DEFAULT USER
+)
+TABLESPACE "TBS_UTIL_APP";
+
+-- Entity type lookup (WEB, MOBILE, API — defines 3-char TAG prefix for D_ENTITIES ID generation)
+CREATE TABLE "AP_APPLICATIONS"."D_ENTITY_TYPES"
+(
+    "TAG"         VARCHAR2(3 BYTE)                 NOT NULL,
+    "TYPE"        VARCHAR2(200 BYTE)               NOT NULL,
+    "DESCRIPTION" VARCHAR2(1000 BYTE),
+    "CREATE_DATE" DATE               DEFAULT SYSDATE,
+    "CREATE_USER" VARCHAR2(100 BYTE) DEFAULT USER
+)
+TABLESPACE "TBS_UTIL_APP";
+
+-- Mailing lists (email distribution groups)
+CREATE TABLE "AP_APPLICATIONS"."D_MAILING_LISTS"
+(
+    "NAME"        VARCHAR2(200 BYTE)               NOT NULL,
+    "DESCRIPTION" VARCHAR2(4000 BYTE),
+    "STATUS"      VARCHAR2(100 BYTE),
+    "CREATE_DATE" DATE               DEFAULT SYSDATE,
+    "CREATE_USER" VARCHAR2(100 BYTE) DEFAULT USER
+)
+TABLESPACE "TBS_UTIL_APP";
+
+-- Users (core authentication table)
+CREATE TABLE "AP_APPLICATIONS"."D_USERS"
+(
+    "USERNAME"    VARCHAR2(100 BYTE)                    NOT NULL,
+    "FIRST_NAME"  VARCHAR2(200 BYTE)                    NOT NULL,
+    "LAST_NAME"   VARCHAR2(200 BYTE)                    NOT NULL,
+    "EMAIL"       VARCHAR2(500 BYTE),
+    "COMPANY"     VARCHAR2(200 BYTE) DEFAULT 'KONZUM',
+    "STATUS"      VARCHAR2(100 BYTE) DEFAULT 'ACTIVE'   NOT NULL,
+    "CREATE_DATE" DATE               DEFAULT SYSDATE,
+    "CREATE_USER" VARCHAR2(100 BYTE) DEFAULT USER,
+    "THEME"       VARCHAR2(100 BYTE) DEFAULT 'dark',
+    "IMAGE"       CLOB,
+    "PASSWORD"    VARCHAR2(4000 BYTE),
+    "PALETTE_ID"  VARCHAR2(100 BYTE)
+)
+TABLESPACE "TBS_UTIL_APP"
+LOB ("IMAGE") STORE AS SECUREFILE (TABLESPACE "TBS_UTIL_APP" NOCACHE LOGGING NOCOMPRESS);
+
+-- Application entities (registered applications/services)
+-- IMPORTANT: ID is auto-generated by trigger D_ENTITIES_BIFER (TAG || padded sequence).
+--            To insert with fixed IDs (e.g. DEFAULT, APP001), disable the trigger first.
+CREATE TABLE "AP_APPLICATIONS"."D_ENTITIES"
+(
+    "ID"          VARCHAR2(100 BYTE)               NOT NULL,
+    "NAME"        VARCHAR2(200 BYTE),
+    "TYPE"        VARCHAR2(200 BYTE)               NOT NULL,
+    "DESCRIPTION" VARCHAR2(1000 BYTE),
+    "CREATE_DATE" DATE               DEFAULT SYSDATE,
+    "CREATE_USER" VARCHAR2(100 BYTE) DEFAULT USER
+)
+TABLESPACE "TBS_UTIL_APP";
+
+-- Roles (scoped to a specific entity/application, composite PK: ROLE + ENTITY)
+CREATE TABLE "AP_APPLICATIONS"."D_ROLES"
+(
+    "ROLE"        VARCHAR2(100 BYTE)               NOT NULL,
+    "ENTITY"      VARCHAR2(100 BYTE)               NOT NULL,
+    "ROLE_LEVEL"  VARCHAR2(100 BYTE)               NOT NULL,
+    "DESCRIPTION" VARCHAR2(1000 BYTE),
+    "CREATE_DATE" DATE               DEFAULT SYSDATE,
+    "CREATE_USER" VARCHAR2(100 BYTE) DEFAULT USER
+)
+TABLESPACE "TBS_UTIL_APP";
+
+-- Entity attributes / configuration key-value store
+CREATE TABLE "AP_APPLICATIONS"."D_ENTITY_ATTRIBUTES"
+(
+    "ENTITY"      VARCHAR2(200 BYTE)               NOT NULL,
+    "MODULE"      VARCHAR2(200 BYTE)               NOT NULL,
+    "PURPOSE"     VARCHAR2(200 BYTE)               NOT NULL,
+    "NAME"        VARCHAR2(200 BYTE)               NOT NULL,
+    "VALUE"       CLOB,
+    "CREATE_DATE" DATE               DEFAULT SYSDATE,
+    "CREATE_USER" VARCHAR2(100 BYTE)
+)
+TABLESPACE "TBS_UTIL_APP"
+LOB ("VALUE") STORE AS SECUREFILE (TABLESPACE "TBS_UTIL_APP" NOCACHE LOGGING NOCOMPRESS);
+
+-- User-role assignments (many-to-many: user <-> role <-> entity, with status)
+CREATE TABLE "AP_APPLICATIONS"."D_USER_ROLES"
+(
+    "USERNAME"    VARCHAR2(100 BYTE)                    NOT NULL,
+    "ROLE"        VARCHAR2(100 BYTE)                    NOT NULL,
+    "STATUS"      VARCHAR2(100 BYTE) DEFAULT 'ACTIVE'   NOT NULL,
+    "CREATE_DATE" DATE               DEFAULT SYSDATE    NOT NULL,
+    "CREATE_USER" VARCHAR2(100 BYTE),
+    "ENTITY"      VARCHAR2(100 BYTE)                    NOT NULL
+)
+TABLESPACE "TBS_UTIL_APP";
+
+-- Mailing list members
+CREATE TABLE "AP_APPLICATIONS"."D_MAILING_LIST_USERS"
+(
+    "NAME"        VARCHAR2(200 BYTE)               NOT NULL,
+    "USERNAME"    VARCHAR2(200 BYTE),
+    "CREATE_DATE" DATE               DEFAULT SYSDATE,
+    "CREATE_USER" VARCHAR2(100 BYTE) DEFAULT USER
+)
+TABLESPACE "TBS_UTIL_APP";
+
+-- JWT refresh tokens (session management)
+CREATE TABLE "AP_APPLICATIONS"."D_REFRESH_TOKENS"
+(
+    "ID"            NUMBER(19, 0)                              NOT NULL,
+    "TOKEN_HASH"    VARCHAR2(64 BYTE)                          NOT NULL,
+    "USERNAME"      VARCHAR2(100 BYTE)                         NOT NULL,
+    "ENTITY"        VARCHAR2(100 BYTE)                         NOT NULL,
+    "CREATE_DATE"   TIMESTAMP(6)     DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "EXPIRES_AT"    TIMESTAMP(6)                               NOT NULL,
+    "LAST_USED_AT"  TIMESTAMP(6),
+    "REVOKED"       NUMBER(1, 0)     DEFAULT 0                 NOT NULL,
+    "REVOKED_AT"    TIMESTAMP(6),
+    "IP_ADDRESS"    VARCHAR2(45 BYTE),
+    "USER_AGENT"    VARCHAR2(500 BYTE),
+    "DEVICE_NAME"   VARCHAR2(255 BYTE),
+    "LOCATION"      VARCHAR2(255 BYTE),
+    "CREATE_USER"   VARCHAR2(100 BYTE),
+    "CREATION_TYPE" VARCHAR2(20 BYTE)
+)
+TABLESPACE "TBS_UTIL_APP";
+
+-- Email / notification queue
+CREATE TABLE "AP_APPLICATIONS"."T_MAILING"
+(
+    "ID"           NUMBER                           NOT NULL,
+    "SUBJECT"      VARCHAR2(400 BYTE)               NOT NULL,
+    "BODY"         CLOB,
+    "ATTACHMENT"   CLOB,
+    "SENT"         VARCHAR2(1 BYTE)                 NOT NULL,
+    "NOT_BEFORE"   DATE                             NOT NULL,
+    "MAILING_LIST" VARCHAR2(200 BYTE)               NOT NULL,
+    "MAIL_TYPE"    VARCHAR2(100 BYTE)               NOT NULL,
+    "CREATE_DATE"  DATE               DEFAULT SYSDATE,
+    "CREATE_USER"  VARCHAR2(100 BYTE) DEFAULT USER
+)
+TABLESPACE "TBS_UTIL_APP"
+LOB ("BODY")       STORE AS SECUREFILE (TABLESPACE "TBS_UTIL_APP" NOCACHE LOGGING NOCOMPRESS)
+LOB ("ATTACHMENT") STORE AS SECUREFILE (TABLESPACE "TBS_UTIL_APP" NOCACHE LOGGING NOCOMPRESS);
+
+
+-- ============================================================================
+-- AP_APPLICATIONS: Primary Keys and Unique Constraints
+-- ============================================================================
+
+ALTER TABLE "AP_APPLICATIONS"."D_USER_STATUS"
+    ADD CONSTRAINT "D_USER_STATUS_PK" PRIMARY KEY ("STATUS")
+    USING INDEX TABLESPACE "TBS_UTIL_APP" ENABLE;
+
+ALTER TABLE "AP_APPLICATIONS"."D_ENTITY_TYPES"
+    ADD CONSTRAINT "D_ENTITY_TYPE_PK" PRIMARY KEY ("TYPE")
+    USING INDEX TABLESPACE "TBS_UTIL_APP" ENABLE;
+
+ALTER TABLE "AP_APPLICATIONS"."D_MAILING_LISTS"
+    ADD CONSTRAINT "D_MAILING_LISTS_PK" PRIMARY KEY ("NAME")
+    USING INDEX TABLESPACE "TBS_UTIL_APP" ENABLE;
+
+ALTER TABLE "AP_APPLICATIONS"."D_USERS"
+    ADD CONSTRAINT "D_USERS_PK" PRIMARY KEY ("USERNAME")
+    USING INDEX TABLESPACE "TBS_UTIL_APP" ENABLE;
+
+ALTER TABLE "AP_APPLICATIONS"."D_ENTITIES"
+    ADD CONSTRAINT "D_ENTITIES_PK" PRIMARY KEY ("ID")
+    USING INDEX TABLESPACE "TBS_UTIL_APP" ENABLE;
+
+ALTER TABLE "AP_APPLICATIONS"."D_ENTITIES"
+    ADD CONSTRAINT "D_ENTITIES_UK1" UNIQUE ("NAME")
+    USING INDEX TABLESPACE "TBS_UTIL_APP" ENABLE;
+
+ALTER TABLE "AP_APPLICATIONS"."D_ROLES"
+    ADD CONSTRAINT "D_ROLES_PK" PRIMARY KEY ("ROLE", "ENTITY")
+    USING INDEX TABLESPACE "TBS_UTIL_APP" ENABLE;
+
+ALTER TABLE "AP_APPLICATIONS"."D_ENTITY_ATTRIBUTES"
+    ADD CONSTRAINT "D_ENTITY_ATTRIBUTES_PK" PRIMARY KEY ("ENTITY", "NAME", "MODULE", "PURPOSE")
+    USING INDEX TABLESPACE "TBS_UTIL_APP" ENABLE;
+
+ALTER TABLE "AP_APPLICATIONS"."D_USER_ROLES"
+    ADD CONSTRAINT "D_USER_ROLES_PK" PRIMARY KEY ("USERNAME", "ROLE", "ENTITY")
+    USING INDEX TABLESPACE "TBS_UTIL_APP" ENABLE;
+
+ALTER TABLE "AP_APPLICATIONS"."D_REFRESH_TOKENS"
+    ADD CONSTRAINT "PK_D_REFRESH_TOKENS" PRIMARY KEY ("ID")
+    USING INDEX TABLESPACE "TBS_UTIL_APP" ENABLE;
+
+ALTER TABLE "AP_APPLICATIONS"."D_REFRESH_TOKENS"
+    ADD CONSTRAINT "UK_D_REFRESH_TOKENS_TOKEN" UNIQUE ("TOKEN_HASH")
+    USING INDEX TABLESPACE "TBS_UTIL_APP" ENABLE;
+
+ALTER TABLE "AP_APPLICATIONS"."D_REFRESH_TOKENS"
+    ADD CONSTRAINT "CK_D_REFRESH_TOKENS_REVOKED" CHECK (REVOKED IN (0, 1)) ENABLE;
+
+ALTER TABLE "AP_APPLICATIONS"."T_MAILING"
+    ADD CONSTRAINT "T_MAILING_PK" PRIMARY KEY ("ID")
+    USING INDEX TABLESPACE "TBS_UTIL_APP" ENABLE;
+
+
+-- ============================================================================
+-- AP_APPLICATIONS: Performance Indexes
+-- ============================================================================
+
+CREATE INDEX "AP_APPLICATIONS"."IDX_D_REFRESH_TOKENS_USERNAME"
+    ON "AP_APPLICATIONS"."D_REFRESH_TOKENS" ("USERNAME")
+    TABLESPACE "TBS_UTIL_APP";
+
+CREATE INDEX "AP_APPLICATIONS"."IDX_D_REFRESH_TOKENS_EXPIRES"
+    ON "AP_APPLICATIONS"."D_REFRESH_TOKENS" ("EXPIRES_AT")
+    TABLESPACE "TBS_UTIL_APP";
+
+CREATE INDEX "AP_APPLICATIONS"."IDX_D_REFRESH_TOKENS_ENTITY"
+    ON "AP_APPLICATIONS"."D_REFRESH_TOKENS" ("ENTITY")
+    TABLESPACE "TBS_UTIL_APP";
+
+CREATE INDEX "AP_APPLICATIONS"."IDX_D_REFRESH_TOKENS_REVOKED"
+    ON "AP_APPLICATIONS"."D_REFRESH_TOKENS" ("REVOKED")
+    TABLESPACE "TBS_UTIL_APP";
+
+CREATE INDEX "AP_APPLICATIONS"."IDX_D_REFRESH_TOKENS_ACTIVE"
+    ON "AP_APPLICATIONS"."D_REFRESH_TOKENS" ("USERNAME", "REVOKED", "EXPIRES_AT")
+    TABLESPACE "TBS_UTIL_APP";
+
+
+-- ============================================================================
+-- AP_APPLICATIONS: Foreign Key Constraints
+-- ============================================================================
+
+ALTER TABLE "AP_APPLICATIONS"."D_ENTITIES"
+    ADD CONSTRAINT "D_ENTITIES_FK1" FOREIGN KEY ("TYPE")
+        REFERENCES "AP_APPLICATIONS"."D_ENTITY_TYPES" ("TYPE") ENABLE;
+
+ALTER TABLE "AP_APPLICATIONS"."D_ENTITY_ATTRIBUTES"
+    ADD CONSTRAINT "D_ENTITY_ATTRIBUTES_FK1" FOREIGN KEY ("ENTITY")
+        REFERENCES "AP_APPLICATIONS"."D_ENTITIES" ("ID") ENABLE;
+
+ALTER TABLE "AP_APPLICATIONS"."D_ROLES"
+    ADD CONSTRAINT "D_ROLES_FK1" FOREIGN KEY ("ENTITY")
+        REFERENCES "AP_APPLICATIONS"."D_ENTITIES" ("ID") ENABLE;
+
+ALTER TABLE "AP_APPLICATIONS"."D_USERS"
+    ADD CONSTRAINT "D_USERS_FK1" FOREIGN KEY ("STATUS")
+        REFERENCES "AP_APPLICATIONS"."D_USER_STATUS" ("STATUS") ENABLE;
+
+ALTER TABLE "AP_APPLICATIONS"."D_USER_ROLES"
+    ADD CONSTRAINT "D_USER_ROLES_FK1" FOREIGN KEY ("STATUS")
+        REFERENCES "AP_APPLICATIONS"."D_USER_STATUS" ("STATUS") ENABLE;
+
+ALTER TABLE "AP_APPLICATIONS"."D_USER_ROLES"
+    ADD CONSTRAINT "D_USER_ROLES_FK2" FOREIGN KEY ("ROLE", "ENTITY")
+        REFERENCES "AP_APPLICATIONS"."D_ROLES" ("ROLE", "ENTITY") ENABLE;
+
+ALTER TABLE "AP_APPLICATIONS"."D_MAILING_LIST_USERS"
+    ADD CONSTRAINT "D_MAILING_LIST_USERS_FK1" FOREIGN KEY ("NAME")
+        REFERENCES "AP_APPLICATIONS"."D_MAILING_LISTS" ("NAME") ON DELETE CASCADE ENABLE;
+
+ALTER TABLE "AP_APPLICATIONS"."D_MAILING_LIST_USERS"
+    ADD CONSTRAINT "D_MAILING_LIST_USERS_FK2" FOREIGN KEY ("USERNAME")
+        REFERENCES "AP_APPLICATIONS"."D_USERS" ("USERNAME") ON DELETE CASCADE ENABLE;
+
+ALTER TABLE "AP_APPLICATIONS"."D_REFRESH_TOKENS"
+    ADD CONSTRAINT "FK_D_REFRESH_TOKENS_USER" FOREIGN KEY ("USERNAME")
+        REFERENCES "AP_APPLICATIONS"."D_USERS" ("USERNAME") ON DELETE CASCADE ENABLE;
+
+
+-- ============================================================================
+-- AP_APPLICATIONS: Triggers
+-- ============================================================================
+
+-- D_ENTITIES: Auto-generate ID from entity type TAG + padded sequence
+-- Example: type=WEB -> ID = 'WEB0000001', 'WEB0000002', ...
+-- To insert with fixed IDs (e.g. DEFAULT, APP001), disable this trigger first.
+CREATE OR REPLACE TRIGGER "AP_APPLICATIONS"."D_ENTITIES_BIFER"
+    BEFORE INSERT ON "AP_APPLICATIONS"."D_ENTITIES"
+    FOR EACH ROW
 BEGIN
-    IF UPPER(p_type) = 'TABLE' THEN
-        SELECT COUNT(*) INTO v_count
-        FROM all_tables WHERE owner = UPPER(v_owner) AND table_name = UPPER(p_name);
-    ELSIF UPPER(p_type) = 'SEQUENCE' THEN
-        SELECT COUNT(*) INTO v_count
-        FROM all_sequences WHERE sequence_owner = UPPER(v_owner) AND sequence_name = UPPER(p_name);
-    ELSIF UPPER(p_type) = 'TRIGGER' THEN
-        SELECT COUNT(*) INTO v_count
-        FROM all_triggers WHERE owner = UPPER(v_owner) AND trigger_name = UPPER(p_name);
-    ELSIF UPPER(p_type) = 'INDEX' THEN
-        SELECT COUNT(*) INTO v_count
-        FROM all_indexes WHERE owner = UPPER(v_owner) AND index_name = UPPER(p_name);
-    ELSE
-        v_count := 0;
+    IF INSERTING THEN
+        SELECT TAG || LPAD(D_ENTITIES_SEQ01.NEXTVAL, 7, '0')
+        INTO :NEW.ID
+        FROM "AP_APPLICATIONS"."D_ENTITY_TYPES"
+        WHERE TYPE = :NEW.TYPE;
     END IF;
-
-    IF v_count > 0 THEN
-        IF UPPER(p_type) = 'TABLE' THEN
-            v_sql := 'DROP TABLE ' || v_owner || '.' || p_name || ' CASCADE CONSTRAINTS PURGE';
-        ELSE
-            v_sql := 'DROP ' || p_type || ' ' || v_owner || '.' || p_name;
-        END IF;
-        EXECUTE IMMEDIATE v_sql;
-        DBMS_OUTPUT.PUT_LINE('Dropped ' || p_type || ': ' || v_owner || '.' || p_name);
-    ELSE
-        DBMS_OUTPUT.PUT_LINE('Skip (not found) ' || p_type || ': ' || v_owner || '.' || p_name);
-    END IF;
-EXCEPTION
-    WHEN OTHERS THEN
-        DBMS_OUTPUT.PUT_LINE('Error dropping ' || p_type || ' ' || v_owner || '.' || p_name || ': ' || SQLERRM);
 END;
 /
+ALTER TRIGGER "AP_APPLICATIONS"."D_ENTITIES_BIFER" ENABLE;
+
+-- D_REFRESH_TOKENS: Auto-generate ID from sequence if not provided by Hibernate
+CREATE OR REPLACE TRIGGER "AP_APPLICATIONS"."TRG_D_REFRESH_TOKENS_ID"
+    BEFORE INSERT ON "AP_APPLICATIONS"."D_REFRESH_TOKENS"
+    FOR EACH ROW
+BEGIN
+    IF :NEW.ID IS NULL THEN
+        SELECT D_REFRESH_TOKENS_SEQ.NEXTVAL INTO :NEW.ID FROM DUAL;
+    END IF;
+END;
+/
+ALTER TRIGGER "AP_APPLICATIONS"."TRG_D_REFRESH_TOKENS_ID" ENABLE;
+
+-- D_REFRESH_TOKENS: Set CREATE_DATE to current timestamp if not provided
+CREATE OR REPLACE TRIGGER "AP_APPLICATIONS"."TRG_D_REFRESH_TOKENS_DATE"
+    BEFORE INSERT ON "AP_APPLICATIONS"."D_REFRESH_TOKENS"
+    FOR EACH ROW
+BEGIN
+    IF :NEW.CREATE_DATE IS NULL THEN
+        :NEW.CREATE_DATE := CURRENT_TIMESTAMP;
+    END IF;
+END;
+/
+ALTER TRIGGER "AP_APPLICATIONS"."TRG_D_REFRESH_TOKENS_DATE" ENABLE;
+
+-- T_MAILING: Auto-generate ID from sequence
+CREATE OR REPLACE TRIGGER "AP_APPLICATIONS"."T_MAILING_TRG"
+    BEFORE INSERT ON "AP_APPLICATIONS"."T_MAILING"
+    FOR EACH ROW
+BEGIN
+    IF INSERTING THEN
+        SELECT T_MAILING_SEQ.NEXTVAL INTO :NEW.ID FROM SYS.DUAL;
+    END IF;
+END;
+/
+ALTER TRIGGER "AP_APPLICATIONS"."T_MAILING_TRG" ENABLE;
+
 
 -- ============================================================================
--- 1. Drop Triggers (AP_APPLICATIONS)
--- ============================================================================
-EXEC drop_if_exists('TRIGGER', 'D_ENTITIES_BIFER', 'AP_APPLICATIONS');
-EXEC drop_if_exists('TRIGGER', 'TRG_D_REFRESH_TOKENS_ID', 'AP_APPLICATIONS');
-EXEC drop_if_exists('TRIGGER', 'TRG_D_REFRESH_TOKENS_DATE', 'AP_APPLICATIONS');
-EXEC drop_if_exists('TRIGGER', 'T_MAILING_TRG', 'AP_APPLICATIONS');
-
--- ============================================================================
--- 2. Drop Triggers (AP_LOG)
--- ============================================================================
-EXEC drop_if_exists('TRIGGER', 'T_APP_LOG_BIFER', 'AP_LOG');
-
--- ============================================================================
--- 3. Drop Indexes (non-PK, AP_APPLICATIONS - D_REFRESH_TOKENS)
--- ============================================================================
-EXEC drop_if_exists('INDEX', 'IDX_D_REFRESH_TOKENS_ACTIVE', 'AP_APPLICATIONS');
-EXEC drop_if_exists('INDEX', 'IDX_D_REFRESH_TOKENS_ENTITY', 'AP_APPLICATIONS');
-EXEC drop_if_exists('INDEX', 'IDX_D_REFRESH_TOKENS_EXPIRES', 'AP_APPLICATIONS');
-EXEC drop_if_exists('INDEX', 'IDX_D_REFRESH_TOKENS_REVOKED', 'AP_APPLICATIONS');
-EXEC drop_if_exists('INDEX', 'IDX_D_REFRESH_TOKENS_USERNAME', 'AP_APPLICATIONS');
-
--- ============================================================================
--- 4. Drop Tables (AP_APPLICATIONS) - child tables first, then parent tables
+-- AP_LOG: Sequence
 -- ============================================================================
 
--- Child tables (have FK references)
-EXEC drop_if_exists('TABLE', 'D_MAILING_LIST_USERS', 'AP_APPLICATIONS');
-EXEC drop_if_exists('TABLE', 'D_USER_ROLES', 'AP_APPLICATIONS');
-EXEC drop_if_exists('TABLE', 'D_ENTITY_ATTRIBUTES', 'AP_APPLICATIONS');
-EXEC drop_if_exists('TABLE', 'D_REFRESH_TOKENS', 'AP_APPLICATIONS');
-EXEC drop_if_exists('TABLE', 'T_MAILING', 'AP_APPLICATIONS');
+CREATE SEQUENCE "AP_LOG"."T_APP_LOG_SEQ01"
+    MINVALUE 1 MAXVALUE 9999999999999999999999999999
+    INCREMENT BY 1 START WITH 1 CACHE 20 NOORDER NOCYCLE;
 
--- Parent tables (referenced by child tables)
-EXEC drop_if_exists('TABLE', 'D_MAILING_LISTS', 'AP_APPLICATIONS');
-EXEC drop_if_exists('TABLE', 'D_ROLES', 'AP_APPLICATIONS');
-EXEC drop_if_exists('TABLE', 'D_USERS', 'AP_APPLICATIONS');
-EXEC drop_if_exists('TABLE', 'D_ENTITIES', 'AP_APPLICATIONS');
-EXEC drop_if_exists('TABLE', 'D_ENTITY_TYPES', 'AP_APPLICATIONS');
-EXEC drop_if_exists('TABLE', 'D_USER_STATUS', 'AP_APPLICATIONS');
 
 -- ============================================================================
--- 5. Drop Tables (AP_LOG) - child tables first
+-- AP_LOG: Tables
 -- ============================================================================
-EXEC drop_if_exists('TABLE', 'T_APP_LOG', 'AP_LOG');
-EXEC drop_if_exists('TABLE', 'D_LOG_STATUS', 'AP_LOG');
+
+-- Lookup: log status values with retention configuration
+CREATE TABLE "AP_LOG"."D_LOG_STATUS"
+(
+    "STATUS"       VARCHAR2(100 BYTE)               NOT NULL,
+    "DELETE_AFTER" NUMBER,
+    "CREATE_DATE"  DATE               DEFAULT SYSDATE,
+    "CREATE_USER"  VARCHAR2(100 BYTE) DEFAULT USER
+)
+TABLESPACE "TBS_UTIL_APP";
+
+-- Application log entries (cross-application audit/integration log)
+-- Note: ID is DB-generated via trigger (Hibernate uses insertable=false on this column)
+CREATE TABLE "AP_LOG"."T_APP_LOG"
+(
+    "ID"                NUMBER,
+    "ENTITY"            VARCHAR2(100 BYTE),
+    "MODULE"            VARCHAR2(100 BYTE),
+    "REQUEST"           CLOB,
+    "RESPONSE"          CLOB,
+    "STATUS"            VARCHAR2(100 BYTE)               NOT NULL,
+    "START_TIME"        DATE,
+    "END_TIME"          DATE               DEFAULT SYSDATE,
+    "NOTIFIABLE"        VARCHAR2(1 BYTE),
+    "NOTIFICATION_SENT" VARCHAR2(1 BYTE),
+    "USERNAME"          VARCHAR2(100 BYTE),
+    "CREATE_USER"       VARCHAR2(100 BYTE) DEFAULT USER,
+    "CREATE_DATE"       DATE               DEFAULT SYSDATE
+)
+TABLESPACE "TBS_UTIL_APP"
+LOB ("REQUEST")  STORE AS SECUREFILE (TABLESPACE "TBS_UTIL_APP" NOCACHE LOGGING NOCOMPRESS)
+LOB ("RESPONSE") STORE AS SECUREFILE (TABLESPACE "TBS_UTIL_APP" NOCACHE LOGGING NOCOMPRESS);
+
 
 -- ============================================================================
--- 6. Drop Sequences (AP_APPLICATIONS)
+-- AP_LOG: Constraints
 -- ============================================================================
-EXEC drop_if_exists('SEQUENCE', 'D_ENTITIES_SEQ01', 'AP_APPLICATIONS');
-EXEC drop_if_exists('SEQUENCE', 'D_REFRESH_TOKENS_SEQ', 'AP_APPLICATIONS');
-EXEC drop_if_exists('SEQUENCE', 'T_MAILING_SEQ', 'AP_APPLICATIONS');
+
+ALTER TABLE "AP_LOG"."D_LOG_STATUS"
+    ADD CONSTRAINT "D_LOG_STATUS_PK" PRIMARY KEY ("STATUS")
+    USING INDEX TABLESPACE "TBS_UTIL_APP" ENABLE;
+
+ALTER TABLE "AP_LOG"."T_APP_LOG"
+    ADD CONSTRAINT "T_APP_LOG_PK" PRIMARY KEY ("ID")
+    USING INDEX TABLESPACE "TBS_UTIL_APP" ENABLE;
+
 
 -- ============================================================================
--- 7. Drop Sequences (AP_LOG)
+-- AP_LOG: Trigger
 -- ============================================================================
-EXEC drop_if_exists('SEQUENCE', 'T_APP_LOG_SEQ01', 'AP_LOG');
+
+-- T_APP_LOG: Auto-generate ID from sequence (Hibernate uses insertable=false — DB generates ID)
+CREATE OR REPLACE TRIGGER "AP_LOG"."T_APP_LOG_BIFER"
+    BEFORE INSERT ON "AP_LOG"."T_APP_LOG"
+    FOR EACH ROW
+BEGIN
+    IF INSERTING THEN
+        SELECT T_APP_LOG_SEQ01.NEXTVAL INTO :NEW.ID FROM SYS.DUAL;
+    END IF;
+END;
+/
+ALTER TRIGGER "AP_LOG"."T_APP_LOG_BIFER" ENABLE;
+
 
 -- ============================================================================
--- 8. Cleanup: Drop the helper procedure
+-- Reference Data (required for application startup)
 -- ============================================================================
-DROP PROCEDURE drop_if_exists;
+
+-- D_USER_STATUS: used by D_USERS.STATUS FK and D_USER_ROLES.STATUS FK
+INSERT INTO "AP_APPLICATIONS"."D_USER_STATUS" (STATUS, DESCRIPTION, CREATE_DATE, CREATE_USER)
+VALUES ('ACTIVE',   'Active user account',   SYSDATE, 'system');
+INSERT INTO "AP_APPLICATIONS"."D_USER_STATUS" (STATUS, DESCRIPTION, CREATE_DATE, CREATE_USER)
+VALUES ('INACTIVE', 'Inactive user account', SYSDATE, 'system');
+INSERT INTO "AP_APPLICATIONS"."D_USER_STATUS" (STATUS, DESCRIPTION, CREATE_DATE, CREATE_USER)
+VALUES ('LOCKED',   'Locked user account',   SYSDATE, 'system');
+
+-- D_ENTITY_TYPES: defines TAG prefix used in D_ENTITIES_BIFER trigger for ID generation
+INSERT INTO "AP_APPLICATIONS"."D_ENTITY_TYPES" (TAG, TYPE, DESCRIPTION, CREATE_DATE, CREATE_USER)
+VALUES ('WEB', 'WEB',    'Web Application',    SYSDATE, 'system');
+INSERT INTO "AP_APPLICATIONS"."D_ENTITY_TYPES" (TAG, TYPE, DESCRIPTION, CREATE_DATE, CREATE_USER)
+VALUES ('MOB', 'MOBILE', 'Mobile Application', SYSDATE, 'system');
+INSERT INTO "AP_APPLICATIONS"."D_ENTITY_TYPES" (TAG, TYPE, DESCRIPTION, CREATE_DATE, CREATE_USER)
+VALUES ('API', 'API',    'API Service',        SYSDATE, 'system');
+
+-- D_LOG_STATUS: log retention policy configuration
+INSERT INTO "AP_LOG"."D_LOG_STATUS" (STATUS, DELETE_AFTER, CREATE_DATE, CREATE_USER)
+VALUES ('INFO',    7,  SYSDATE, 'system');
+INSERT INTO "AP_LOG"."D_LOG_STATUS" (STATUS, DELETE_AFTER, CREATE_DATE, CREATE_USER)
+VALUES ('SUCCESS', 7,  SYSDATE, 'system');
+INSERT INTO "AP_LOG"."D_LOG_STATUS" (STATUS, DELETE_AFTER, CREATE_DATE, CREATE_USER)
+VALUES ('WARNING', 20, SYSDATE, 'system');
+INSERT INTO "AP_LOG"."D_LOG_STATUS" (STATUS, DELETE_AFTER, CREATE_DATE, CREATE_USER)
+VALUES ('ERROR',   30, SYSDATE, 'system');
+
+-- D_ENTITIES: application registrations
+-- D_ENTITIES_BIFER trigger ALWAYS overrides ID on INSERT.
+-- Disable it here to insert entities with specific fixed IDs.
+ALTER TRIGGER "AP_APPLICATIONS"."D_ENTITIES_BIFER" DISABLE;
+
+INSERT INTO "AP_APPLICATIONS"."D_ENTITIES" (ID, NAME, TYPE, DESCRIPTION, CREATE_DATE, CREATE_USER)
+VALUES ('DEFAULT',           'Default Application', 'WEB', 'Default entity for general access',           SYSDATE, 'system');
+INSERT INTO "AP_APPLICATIONS"."D_ENTITIES" (ID, NAME, TYPE, DESCRIPTION, CREATE_DATE, CREATE_USER)
+VALUES ('APP001',            'Main Application',    'WEB', 'Main web application',                        SYSDATE, 'system');
+INSERT INTO "AP_APPLICATIONS"."D_ENTITIES" (ID, NAME, TYPE, DESCRIPTION, CREATE_DATE, CREATE_USER)
+VALUES ('APP002',            'Admin Portal',        'WEB', 'Administrative portal',                       SYSDATE, 'system');
+INSERT INTO "AP_APPLICATIONS"."D_ENTITIES" (ID, NAME, TYPE, DESCRIPTION, CREATE_DATE, CREATE_USER)
+VALUES ('TEMP_AUTH_SERVICE', 'TEMP_AUTH_SERVICE',  'WEB', 'Authentication Service Administration Panel', SYSDATE, 'system');
+
+ALTER TRIGGER "AP_APPLICATIONS"."D_ENTITIES_BIFER" ENABLE;
+
+-- D_ROLES
+INSERT INTO "AP_APPLICATIONS"."D_ROLES" (ROLE, ENTITY, ROLE_LEVEL, DESCRIPTION, CREATE_DATE, CREATE_USER)
+VALUES ('ADMIN',   'DEFAULT',           '1', 'Administrator role for DEFAULT',      SYSDATE, 'system');
+INSERT INTO "AP_APPLICATIONS"."D_ROLES" (ROLE, ENTITY, ROLE_LEVEL, DESCRIPTION, CREATE_DATE, CREATE_USER)
+VALUES ('USER',    'DEFAULT',           '3', 'User role for DEFAULT',               SYSDATE, 'system');
+INSERT INTO "AP_APPLICATIONS"."D_ROLES" (ROLE, ENTITY, ROLE_LEVEL, DESCRIPTION, CREATE_DATE, CREATE_USER)
+VALUES ('ADMIN',   'APP001',            '1', 'Administrator role for APP001',       SYSDATE, 'system');
+INSERT INTO "AP_APPLICATIONS"."D_ROLES" (ROLE, ENTITY, ROLE_LEVEL, DESCRIPTION, CREATE_DATE, CREATE_USER)
+VALUES ('USER',    'APP001',            '3', 'User role for APP001',                SYSDATE, 'system');
+INSERT INTO "AP_APPLICATIONS"."D_ROLES" (ROLE, ENTITY, ROLE_LEVEL, DESCRIPTION, CREATE_DATE, CREATE_USER)
+VALUES ('MANAGER', 'APP001',            '2', 'Manager role for APP001',             SYSDATE, 'system');
+INSERT INTO "AP_APPLICATIONS"."D_ROLES" (ROLE, ENTITY, ROLE_LEVEL, DESCRIPTION, CREATE_DATE, CREATE_USER)
+VALUES ('ADMIN',   'APP002',            '1', 'Administrator role for APP002',       SYSDATE, 'system');
+INSERT INTO "AP_APPLICATIONS"."D_ROLES" (ROLE, ENTITY, ROLE_LEVEL, DESCRIPTION, CREATE_DATE, CREATE_USER)
+VALUES ('USER',    'APP002',            '3', 'User role for APP002',                SYSDATE, 'system');
+INSERT INTO "AP_APPLICATIONS"."D_ROLES" (ROLE, ENTITY, ROLE_LEVEL, DESCRIPTION, CREATE_DATE, CREATE_USER)
+VALUES ('ADMIN',   'TEMP_AUTH_SERVICE', '1', 'Administrator role for Auth Service', SYSDATE, 'system');
+INSERT INTO "AP_APPLICATIONS"."D_ROLES" (ROLE, ENTITY, ROLE_LEVEL, DESCRIPTION, CREATE_DATE, CREATE_USER)
+VALUES ('USER',    'TEMP_AUTH_SERVICE', '3', 'User role for Auth Service',          SYSDATE, 'system');
 
 COMMIT;
 
-DBMS_OUTPUT.PUT_LINE('');
-DBMS_OUTPUT.PUT_LINE('============================================');
-DBMS_OUTPUT.PUT_LINE('Auth-service Oracle cleanup complete.');
-DBMS_OUTPUT.PUT_LINE('============================================');
+
+-- ============================================================================
+-- Done
+-- ============================================================================
+
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('============================================');
+    DBMS_OUTPUT.PUT_LINE('Auth-service Oracle DDL setup complete.');
+    DBMS_OUTPUT.PUT_LINE('Next step: create application users (D_USERS)');
+    DBMS_OUTPUT.PUT_LINE('and assign roles via D_USER_ROLES.');
+    DBMS_OUTPUT.PUT_LINE('============================================');
+END;
+/

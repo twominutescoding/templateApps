@@ -1,68 +1,519 @@
 -- ============================================================================
--- Clean Script for Auth-Service (PostgreSQL)
+-- Auth-Service PostgreSQL DDL Script
 -- ============================================================================
--- Drops ALL database objects used by auth-service.
--- Run this to completely remove auth-service schema objects.
+-- Creates ALL database objects required by auth-service Spring Boot application.
 --
 -- Schemas affected:
---   ap_applications - Main auth tables
+--   ap_applications - Main auth tables (users, roles, entities, tokens, mailing)
 --   ap_log          - Logging tables
 --
--- WARNING: This script is DESTRUCTIVE and IRREVERSIBLE.
---          All data in these tables will be lost.
+-- Usage:
+--   psql -U postgres -d your_database -f clean_auth_service_postgresql.sql
+--   Or run via any PostgreSQL client connected to your target database.
+--
+-- Spring Boot configuration notes for PostgreSQL:
+--   spring.datasource.url=jdbc:postgresql://host:5432/your_database
+--   spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+--   spring.jpa.hibernate.ddl-auto=validate
+--
+-- Column naming:
+--   - All table and column names are lowercase (PostgreSQL convention).
+--   - Hibernate with default naming strategy sends unquoted SQL identifiers
+--     which PostgreSQL folds to lowercase — matching this schema.
+--   - Exception: "VALUE" in d_entity_attributes is quoted (SQL reserved word),
+--     matching the @Column(name = "\"VALUE\"") annotation in the JPA entity.
+--
+-- Objects created (ap_applications):
+--   Sequences  : d_entities_seq01, d_refresh_tokens_seq, t_mailing_seq
+--   Tables     : d_user_status, d_entity_types, d_mailing_lists, d_users,
+--                d_entities, d_roles, d_entity_attributes, d_user_roles,
+--                d_mailing_list_users, d_refresh_tokens, t_mailing
+--   Indexes    : Primary keys, unique constraints, performance indexes
+--   Functions  : d_entities_bifer(), trg_d_refresh_tokens_id(),
+--                trg_d_refresh_tokens_date(), t_mailing_trg()
+--   Triggers   : d_entities_bifer, trg_d_refresh_tokens_id,
+--                trg_d_refresh_tokens_date, t_mailing_trg
+--
+-- Objects created (ap_log):
+--   Sequences  : t_app_log_seq01
+--   Tables     : d_log_status, t_app_log
+--   Functions  : t_app_log_bifer()
+--   Triggers   : t_app_log_bifer
 -- ============================================================================
 
--- ============================================================================
--- 1. Drop Tables (ap_applications) - CASCADE drops dependent FKs/indexes
--- ============================================================================
-
--- Child tables (have FK references)
-DROP TABLE IF EXISTS ap_applications.d_mailing_list_users CASCADE;
-DROP TABLE IF EXISTS ap_applications.d_user_roles CASCADE;
-DROP TABLE IF EXISTS ap_applications.d_entity_attributes CASCADE;
-DROP TABLE IF EXISTS ap_applications.d_refresh_tokens CASCADE;
-DROP TABLE IF EXISTS ap_applications.t_mailing CASCADE;
-
--- Parent tables
-DROP TABLE IF EXISTS ap_applications.d_mailing_lists CASCADE;
-DROP TABLE IF EXISTS ap_applications.d_roles CASCADE;
-DROP TABLE IF EXISTS ap_applications.d_users CASCADE;
-DROP TABLE IF EXISTS ap_applications.d_entities CASCADE;
-DROP TABLE IF EXISTS ap_applications.d_entity_types CASCADE;
-DROP TABLE IF EXISTS ap_applications.d_user_status CASCADE;
 
 -- ============================================================================
--- 2. Drop Tables (ap_log)
+-- Create schemas
 -- ============================================================================
 
-DROP TABLE IF EXISTS ap_log.t_app_log CASCADE;
-DROP TABLE IF EXISTS ap_log.d_log_status CASCADE;
+CREATE SCHEMA IF NOT EXISTS ap_applications;
+CREATE SCHEMA IF NOT EXISTS ap_log;
+
 
 -- ============================================================================
--- 3. Drop Sequences (ap_applications)
+-- ap_applications: Sequences
 -- ============================================================================
 
-DROP SEQUENCE IF EXISTS ap_applications.d_entities_seq01;
-DROP SEQUENCE IF EXISTS ap_applications.d_refresh_tokens_seq;
-DROP SEQUENCE IF EXISTS ap_applications.t_mailing_seq;
+CREATE SEQUENCE IF NOT EXISTS ap_applications.d_entities_seq01
+    START WITH 501 INCREMENT BY 1 NO CYCLE CACHE 20;
+
+CREATE SEQUENCE IF NOT EXISTS ap_applications.d_refresh_tokens_seq
+    START WITH 1 INCREMENT BY 1 NO CYCLE;
+
+CREATE SEQUENCE IF NOT EXISTS ap_applications.t_mailing_seq
+    START WITH 1 INCREMENT BY 1 NO CYCLE CACHE 20;
+
 
 -- ============================================================================
--- 4. Drop Sequences (ap_log)
+-- ap_applications: Tables (in dependency order — parents before children)
 -- ============================================================================
 
-DROP SEQUENCE IF EXISTS ap_log.t_app_log_seq01;
+-- Lookup: user status values (ACTIVE, INACTIVE, LOCKED)
+CREATE TABLE ap_applications.d_user_status
+(
+    status      VARCHAR(100)                        NOT NULL,
+    description VARCHAR(1000),
+    create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    create_user VARCHAR(100) DEFAULT CURRENT_USER
+);
+
+-- Entity type lookup (WEB, MOBILE, API — defines 3-char tag prefix for d_entities ID generation)
+CREATE TABLE ap_applications.d_entity_types
+(
+    tag         VARCHAR(3)                          NOT NULL,
+    type        VARCHAR(200)                        NOT NULL,
+    description VARCHAR(1000),
+    create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    create_user VARCHAR(100) DEFAULT CURRENT_USER
+);
+
+-- Mailing lists (email distribution groups)
+CREATE TABLE ap_applications.d_mailing_lists
+(
+    name        VARCHAR(200)                        NOT NULL,
+    description VARCHAR(4000),
+    status      VARCHAR(100),
+    create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    create_user VARCHAR(100) DEFAULT CURRENT_USER
+);
+
+-- Users (core authentication table)
+CREATE TABLE ap_applications.d_users
+(
+    username    VARCHAR(100)                        NOT NULL,
+    first_name  VARCHAR(200)                        NOT NULL,
+    last_name   VARCHAR(200)                        NOT NULL,
+    email       VARCHAR(500),
+    company     VARCHAR(200) DEFAULT 'KONZUM',
+    status      VARCHAR(100) DEFAULT 'ACTIVE'       NOT NULL,
+    create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    create_user VARCHAR(100) DEFAULT CURRENT_USER,
+    theme       VARCHAR(100) DEFAULT 'dark',
+    image       TEXT,
+    password    VARCHAR(4000),
+    palette_id  VARCHAR(100)
+);
+
+-- Application entities (registered applications/services)
+-- IMPORTANT: id is auto-generated by trigger d_entities_bifer (tag || padded sequence).
+--            To insert with fixed IDs (e.g. DEFAULT, APP001), disable the trigger first.
+CREATE TABLE ap_applications.d_entities
+(
+    id          VARCHAR(100)                        NOT NULL,
+    name        VARCHAR(200),
+    type        VARCHAR(200)                        NOT NULL,
+    description VARCHAR(1000),
+    create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    create_user VARCHAR(100) DEFAULT CURRENT_USER
+);
+
+-- Roles (scoped to a specific entity/application, composite PK: role + entity)
+CREATE TABLE ap_applications.d_roles
+(
+    role        VARCHAR(100)                        NOT NULL,
+    entity      VARCHAR(100)                        NOT NULL,
+    role_level  VARCHAR(100)                        NOT NULL,
+    description VARCHAR(1000),
+    create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    create_user VARCHAR(100) DEFAULT CURRENT_USER
+);
+
+-- Entity attributes / configuration key-value store
+-- Note: "VALUE" is quoted because VALUE is a reserved SQL keyword
+CREATE TABLE ap_applications.d_entity_attributes
+(
+    entity      VARCHAR(200)                        NOT NULL,
+    module      VARCHAR(200)                        NOT NULL,
+    purpose     VARCHAR(200)                        NOT NULL,
+    name        VARCHAR(200)                        NOT NULL,
+    "VALUE"     TEXT,
+    create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    create_user VARCHAR(100)
+);
+
+-- User-role assignments (many-to-many: user <-> role <-> entity, with status)
+CREATE TABLE ap_applications.d_user_roles
+(
+    username    VARCHAR(100)                        NOT NULL,
+    role        VARCHAR(100)                        NOT NULL,
+    status      VARCHAR(100) DEFAULT 'ACTIVE'       NOT NULL,
+    create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    create_user VARCHAR(100),
+    entity      VARCHAR(100)                        NOT NULL
+);
+
+-- Mailing list members
+CREATE TABLE ap_applications.d_mailing_list_users
+(
+    name        VARCHAR(200)                        NOT NULL,
+    username    VARCHAR(200),
+    create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    create_user VARCHAR(100) DEFAULT CURRENT_USER
+);
+
+-- JWT refresh tokens (session management)
+CREATE TABLE ap_applications.d_refresh_tokens
+(
+    id            BIGINT                              NOT NULL,
+    token_hash    VARCHAR(64)                         NOT NULL,
+    username      VARCHAR(100)                        NOT NULL,
+    entity        VARCHAR(100)                        NOT NULL,
+    create_date   TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    expires_at    TIMESTAMP                           NOT NULL,
+    last_used_at  TIMESTAMP,
+    revoked       SMALLINT  DEFAULT 0                 NOT NULL,
+    revoked_at    TIMESTAMP,
+    ip_address    VARCHAR(45),
+    user_agent    VARCHAR(500),
+    device_name   VARCHAR(255),
+    location      VARCHAR(255),
+    create_user   VARCHAR(100),
+    creation_type VARCHAR(20)
+);
+
+-- Email / notification queue
+CREATE TABLE ap_applications.t_mailing
+(
+    id           BIGINT                              NOT NULL,
+    subject      VARCHAR(400)                        NOT NULL,
+    body         TEXT,
+    attachment   TEXT,
+    sent         VARCHAR(1)                          NOT NULL,
+    not_before   TIMESTAMP                           NOT NULL,
+    mailing_list VARCHAR(200)                        NOT NULL,
+    mail_type    VARCHAR(100)                        NOT NULL,
+    create_date  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    create_user  VARCHAR(100) DEFAULT CURRENT_USER
+);
+
 
 -- ============================================================================
--- 5. Drop Functions/Triggers
+-- ap_applications: Primary Keys and Unique Constraints
 -- ============================================================================
--- PostgreSQL triggers are automatically dropped with their tables (CASCADE),
--- but trigger functions may remain. Drop them if they exist.
 
-DROP FUNCTION IF EXISTS ap_applications.d_entities_bifer() CASCADE;
-DROP FUNCTION IF EXISTS ap_applications.trg_d_refresh_tokens_id() CASCADE;
-DROP FUNCTION IF EXISTS ap_applications.trg_d_refresh_tokens_date() CASCADE;
-DROP FUNCTION IF EXISTS ap_applications.t_mailing_trg() CASCADE;
-DROP FUNCTION IF EXISTS ap_log.t_app_log_bifer() CASCADE;
+ALTER TABLE ap_applications.d_user_status
+    ADD CONSTRAINT d_user_status_pk PRIMARY KEY (status);
+
+ALTER TABLE ap_applications.d_entity_types
+    ADD CONSTRAINT d_entity_type_pk PRIMARY KEY (type);
+
+ALTER TABLE ap_applications.d_mailing_lists
+    ADD CONSTRAINT d_mailing_lists_pk PRIMARY KEY (name);
+
+ALTER TABLE ap_applications.d_users
+    ADD CONSTRAINT d_users_pk PRIMARY KEY (username);
+
+ALTER TABLE ap_applications.d_entities
+    ADD CONSTRAINT d_entities_pk PRIMARY KEY (id);
+
+ALTER TABLE ap_applications.d_entities
+    ADD CONSTRAINT d_entities_uk1 UNIQUE (name);
+
+ALTER TABLE ap_applications.d_roles
+    ADD CONSTRAINT d_roles_pk PRIMARY KEY (role, entity);
+
+ALTER TABLE ap_applications.d_entity_attributes
+    ADD CONSTRAINT d_entity_attributes_pk PRIMARY KEY (entity, name, module, purpose);
+
+ALTER TABLE ap_applications.d_user_roles
+    ADD CONSTRAINT d_user_roles_pk PRIMARY KEY (username, role, entity);
+
+ALTER TABLE ap_applications.d_refresh_tokens
+    ADD CONSTRAINT pk_d_refresh_tokens PRIMARY KEY (id);
+
+ALTER TABLE ap_applications.d_refresh_tokens
+    ADD CONSTRAINT uk_d_refresh_tokens_token UNIQUE (token_hash);
+
+ALTER TABLE ap_applications.d_refresh_tokens
+    ADD CONSTRAINT ck_d_refresh_tokens_revoked CHECK (revoked IN (0, 1));
+
+ALTER TABLE ap_applications.t_mailing
+    ADD CONSTRAINT t_mailing_pk PRIMARY KEY (id);
+
+
+-- ============================================================================
+-- ap_applications: Performance Indexes
+-- ============================================================================
+
+CREATE INDEX idx_d_refresh_tokens_username
+    ON ap_applications.d_refresh_tokens (username);
+
+CREATE INDEX idx_d_refresh_tokens_expires
+    ON ap_applications.d_refresh_tokens (expires_at);
+
+CREATE INDEX idx_d_refresh_tokens_entity
+    ON ap_applications.d_refresh_tokens (entity);
+
+CREATE INDEX idx_d_refresh_tokens_revoked
+    ON ap_applications.d_refresh_tokens (revoked);
+
+CREATE INDEX idx_d_refresh_tokens_active
+    ON ap_applications.d_refresh_tokens (username, revoked, expires_at);
+
+
+-- ============================================================================
+-- ap_applications: Foreign Key Constraints
+-- ============================================================================
+
+ALTER TABLE ap_applications.d_entities
+    ADD CONSTRAINT d_entities_fk1 FOREIGN KEY (type)
+        REFERENCES ap_applications.d_entity_types (type);
+
+ALTER TABLE ap_applications.d_entity_attributes
+    ADD CONSTRAINT d_entity_attributes_fk1 FOREIGN KEY (entity)
+        REFERENCES ap_applications.d_entities (id);
+
+ALTER TABLE ap_applications.d_roles
+    ADD CONSTRAINT d_roles_fk1 FOREIGN KEY (entity)
+        REFERENCES ap_applications.d_entities (id);
+
+ALTER TABLE ap_applications.d_users
+    ADD CONSTRAINT d_users_fk1 FOREIGN KEY (status)
+        REFERENCES ap_applications.d_user_status (status);
+
+ALTER TABLE ap_applications.d_user_roles
+    ADD CONSTRAINT d_user_roles_fk1 FOREIGN KEY (status)
+        REFERENCES ap_applications.d_user_status (status);
+
+ALTER TABLE ap_applications.d_user_roles
+    ADD CONSTRAINT d_user_roles_fk2 FOREIGN KEY (role, entity)
+        REFERENCES ap_applications.d_roles (role, entity);
+
+ALTER TABLE ap_applications.d_mailing_list_users
+    ADD CONSTRAINT d_mailing_list_users_fk1 FOREIGN KEY (name)
+        REFERENCES ap_applications.d_mailing_lists (name) ON DELETE CASCADE;
+
+ALTER TABLE ap_applications.d_mailing_list_users
+    ADD CONSTRAINT d_mailing_list_users_fk2 FOREIGN KEY (username)
+        REFERENCES ap_applications.d_users (username) ON DELETE CASCADE;
+
+ALTER TABLE ap_applications.d_refresh_tokens
+    ADD CONSTRAINT fk_d_refresh_tokens_user FOREIGN KEY (username)
+        REFERENCES ap_applications.d_users (username) ON DELETE CASCADE;
+
+
+-- ============================================================================
+-- ap_applications: Trigger Functions and Triggers
+-- ============================================================================
+
+-- d_entities: Auto-generate id from entity type tag + padded sequence
+-- Example: type='WEB' -> id = 'WEB0000001', 'WEB0000002', ...
+-- To insert with fixed IDs (e.g. DEFAULT, APP001), disable the trigger first.
+CREATE OR REPLACE FUNCTION ap_applications.d_entities_bifer()
+    RETURNS TRIGGER AS
+$$
+DECLARE
+    v_tag VARCHAR(3);
+BEGIN
+    SELECT tag INTO v_tag
+    FROM ap_applications.d_entity_types
+    WHERE type = NEW.type;
+
+    NEW.id := v_tag || LPAD(NEXTVAL('ap_applications.d_entities_seq01')::TEXT, 7, '0');
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER d_entities_bifer
+    BEFORE INSERT
+    ON ap_applications.d_entities
+    FOR EACH ROW
+EXECUTE FUNCTION ap_applications.d_entities_bifer();
+
+-- d_refresh_tokens: Auto-generate id from sequence if not provided by Hibernate
+CREATE OR REPLACE FUNCTION ap_applications.trg_d_refresh_tokens_id()
+    RETURNS TRIGGER AS
+$$
+BEGIN
+    IF NEW.id IS NULL THEN
+        NEW.id := NEXTVAL('ap_applications.d_refresh_tokens_seq');
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_d_refresh_tokens_id
+    BEFORE INSERT
+    ON ap_applications.d_refresh_tokens
+    FOR EACH ROW
+EXECUTE FUNCTION ap_applications.trg_d_refresh_tokens_id();
+
+-- d_refresh_tokens: Set create_date if not provided
+CREATE OR REPLACE FUNCTION ap_applications.trg_d_refresh_tokens_date()
+    RETURNS TRIGGER AS
+$$
+BEGIN
+    IF NEW.create_date IS NULL THEN
+        NEW.create_date := CURRENT_TIMESTAMP;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_d_refresh_tokens_date
+    BEFORE INSERT
+    ON ap_applications.d_refresh_tokens
+    FOR EACH ROW
+EXECUTE FUNCTION ap_applications.trg_d_refresh_tokens_date();
+
+-- t_mailing: Auto-generate id from sequence
+CREATE OR REPLACE FUNCTION ap_applications.t_mailing_trg()
+    RETURNS TRIGGER AS
+$$
+BEGIN
+    NEW.id := NEXTVAL('ap_applications.t_mailing_seq');
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER t_mailing_trg
+    BEFORE INSERT
+    ON ap_applications.t_mailing
+    FOR EACH ROW
+EXECUTE FUNCTION ap_applications.t_mailing_trg();
+
+
+-- ============================================================================
+-- ap_log: Sequence
+-- ============================================================================
+
+CREATE SEQUENCE IF NOT EXISTS ap_log.t_app_log_seq01
+    START WITH 1 INCREMENT BY 1 NO CYCLE CACHE 20;
+
+
+-- ============================================================================
+-- ap_log: Tables
+-- ============================================================================
+
+-- Lookup: log status values with retention configuration
+CREATE TABLE ap_log.d_log_status
+(
+    status       VARCHAR(100)                        NOT NULL,
+    delete_after INTEGER,
+    create_date  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    create_user  VARCHAR(100) DEFAULT CURRENT_USER
+);
+
+-- Application log entries (cross-application audit/integration log)
+-- Note: id is DB-generated via trigger (Hibernate uses insertable=false on this column)
+CREATE TABLE ap_log.t_app_log
+(
+    id                BIGINT,
+    entity            VARCHAR(100),
+    module            VARCHAR(100),
+    request           TEXT,
+    response          TEXT,
+    status            VARCHAR(100)                        NOT NULL,
+    start_time        TIMESTAMP,
+    end_time          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    notifiable        VARCHAR(1),
+    notification_sent VARCHAR(1),
+    username          VARCHAR(100),
+    create_user       VARCHAR(100) DEFAULT CURRENT_USER,
+    create_date       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- ============================================================================
+-- ap_log: Constraints
+-- ============================================================================
+
+ALTER TABLE ap_log.d_log_status
+    ADD CONSTRAINT d_log_status_pk PRIMARY KEY (status);
+
+ALTER TABLE ap_log.t_app_log
+    ADD CONSTRAINT t_app_log_pk PRIMARY KEY (id);
+
+
+-- ============================================================================
+-- ap_log: Trigger Function and Trigger
+-- ============================================================================
+
+-- t_app_log: Auto-generate id from sequence (Hibernate uses insertable=false — DB generates ID)
+CREATE OR REPLACE FUNCTION ap_log.t_app_log_bifer()
+    RETURNS TRIGGER AS
+$$
+BEGIN
+    NEW.id := NEXTVAL('ap_log.t_app_log_seq01');
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER t_app_log_bifer
+    BEFORE INSERT
+    ON ap_log.t_app_log
+    FOR EACH ROW
+EXECUTE FUNCTION ap_log.t_app_log_bifer();
+
+
+-- ============================================================================
+-- Reference Data (required for application startup)
+-- ============================================================================
+
+-- d_user_status: used by d_users.status FK and d_user_roles.status FK
+INSERT INTO ap_applications.d_user_status (status, description)
+VALUES ('ACTIVE',   'Active user account'),
+       ('INACTIVE', 'Inactive user account'),
+       ('LOCKED',   'Locked user account');
+
+-- d_entity_types: defines tag prefix used in d_entities_bifer trigger for ID generation
+INSERT INTO ap_applications.d_entity_types (tag, type, description)
+VALUES ('WEB', 'WEB',    'Web Application'),
+       ('MOB', 'MOBILE', 'Mobile Application'),
+       ('API', 'API',    'API Service');
+
+-- d_log_status: log retention policy configuration
+INSERT INTO ap_log.d_log_status (status, delete_after)
+VALUES ('INFO',    7),
+       ('SUCCESS', 7),
+       ('WARNING', 20),
+       ('ERROR',   30);
+
+-- d_entities: application registrations
+-- d_entities_bifer trigger ALWAYS overrides id on INSERT.
+-- Disable it to insert entities with specific fixed IDs.
+ALTER TABLE ap_applications.d_entities DISABLE TRIGGER d_entities_bifer;
+
+INSERT INTO ap_applications.d_entities (id, name, type, description)
+VALUES ('DEFAULT',           'Default Application', 'WEB', 'Default entity for general access'),
+       ('APP001',            'Main Application',    'WEB', 'Main web application'),
+       ('APP002',            'Admin Portal',        'WEB', 'Administrative portal'),
+       ('TEMP_AUTH_SERVICE', 'TEMP_AUTH_SERVICE',  'WEB', 'Authentication Service Administration Panel');
+
+ALTER TABLE ap_applications.d_entities ENABLE TRIGGER d_entities_bifer;
+
+-- d_roles
+INSERT INTO ap_applications.d_roles (role, entity, role_level, description)
+VALUES ('ADMIN',   'DEFAULT',           '1', 'Administrator role for DEFAULT'),
+       ('USER',    'DEFAULT',           '3', 'User role for DEFAULT'),
+       ('ADMIN',   'APP001',            '1', 'Administrator role for APP001'),
+       ('USER',    'APP001',            '3', 'User role for APP001'),
+       ('MANAGER', 'APP001',            '2', 'Manager role for APP001'),
+       ('ADMIN',   'APP002',            '1', 'Administrator role for APP002'),
+       ('USER',    'APP002',            '3', 'User role for APP002'),
+       ('ADMIN',   'TEMP_AUTH_SERVICE', '1', 'Administrator role for Auth Service'),
+       ('USER',    'TEMP_AUTH_SERVICE', '3', 'User role for Auth Service');
+
 
 -- ============================================================================
 -- Done
@@ -71,6 +522,8 @@ DROP FUNCTION IF EXISTS ap_log.t_app_log_bifer() CASCADE;
 DO $$
 BEGIN
     RAISE NOTICE '============================================';
-    RAISE NOTICE 'Auth-service PostgreSQL cleanup complete.';
+    RAISE NOTICE 'Auth-service PostgreSQL DDL setup complete.';
+    RAISE NOTICE 'Next step: create application users (d_users)';
+    RAISE NOTICE 'and assign roles via d_user_roles.';
     RAISE NOTICE '============================================';
 END $$;
