@@ -224,7 +224,7 @@ const RolesPage = () => {
   );
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Box />
         <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => setCreateRoleOpen(true)}>
