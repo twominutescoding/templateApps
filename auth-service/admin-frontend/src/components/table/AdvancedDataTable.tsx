@@ -40,6 +40,7 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useDateFormat } from '../../hooks';
+import { useThemeContext } from '../../theme/ThemeContext';
 
 type Order = 'asc' | 'desc';
 
@@ -137,6 +138,7 @@ const AdvancedDataTable = ({
   refetchTrigger,
 }: AdvancedDataTableProps) => {
   const { formatDate, dateFormat } = useDateFormat();
+  const { headerGradient } = useThemeContext();
   const [order, setOrder] = useState<Order>(defaultSortOrder);
   const [orderBy, setOrderBy] = useState<string>(defaultSortColumn || columns[0].id);
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
@@ -840,7 +842,7 @@ const AdvancedDataTable = ({
   };
 
   return (
-    <Paper sx={{ p: 3, position: 'relative' }}>
+    <Paper sx={{ p: 3, position: 'relative', overflow: 'hidden', isolation: 'isolate', '&::before': { content: '""', position: 'absolute', top: 0, left: 0, right: 0, height: '5px', background: headerGradient, zIndex: 1 } }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>

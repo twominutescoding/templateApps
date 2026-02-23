@@ -232,7 +232,7 @@ const LogsPage = () => {
   );
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 2 }}>
       <AdvancedDataTable
         columns={columns}
         data={data}
