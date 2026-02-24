@@ -12,7 +12,7 @@ import java.util.Date;
  * Defines available log status values with retention settings
  */
 @Entity
-@Table(name = "D_LOG_STATUS", schema = "AP_LOG")
+@Table(name = "D_LOG_STATUS", schema = "ap_log")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

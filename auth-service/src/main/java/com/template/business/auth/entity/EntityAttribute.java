@@ -13,7 +13,7 @@ import java.util.Date;
  * Key-value store for entity-specific configuration attributes per module/purpose
  */
 @Entity
-@Table(name = "D_ENTITY_ATTRIBUTES")
+@Table(name = "D_ENTITY_ATTRIBUTES", schema = "ap_applications")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

@@ -12,7 +12,7 @@ import java.util.Date;
  * Email/notification queue system
  */
 @Entity
-@Table(name = "T_MAILING")
+@Table(name = "T_MAILING", schema = "ap_applications")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

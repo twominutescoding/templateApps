@@ -12,7 +12,7 @@ import java.util.Date;
  * Lookup table for valid user status values (ACTIVE, INACTIVE, etc.)
  */
 @Entity
-@Table(name = "D_USER_STATUS")
+@Table(name = "D_USER_STATUS", schema = "ap_applications")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

@@ -11,7 +11,7 @@ import java.io.Serializable;
 import java.util.Date;
 
 @Entity
-@Table(name = "D_USER_ROLES")
+@Table(name = "D_USER_ROLES", schema = "ap_applications")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

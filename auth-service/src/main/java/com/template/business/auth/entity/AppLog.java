@@ -15,7 +15,7 @@ import java.util.Date;
  * Centralized application logging for backend services
  */
 @Entity
-@Table(name = "T_APP_LOG", schema = "AP_LOG")
+@Table(name = "T_APP_LOG", schema = "ap_log")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

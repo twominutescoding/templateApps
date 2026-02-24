@@ -13,7 +13,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @jakarta.persistence.Entity
-@Table(name = "D_ROLES")
+@Table(name = "D_ROLES", schema = "ap_applications")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

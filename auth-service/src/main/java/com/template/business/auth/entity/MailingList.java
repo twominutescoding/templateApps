@@ -12,7 +12,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "D_MAILING_LISTS")
+@Table(name = "D_MAILING_LISTS", schema = "ap_applications")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
