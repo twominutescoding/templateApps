@@ -14,7 +14,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "D_USERS")
+@Table(name = "D_USERS", schema = "ap_applications")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

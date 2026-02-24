@@ -14,7 +14,7 @@ import java.util.Date;
  * Each refresh token represents one active user session with metadata for security monitoring.
  */
 @Entity
-@Table(name = "D_REFRESH_TOKENS")
+@Table(name = "D_REFRESH_TOKENS", schema = "ap_applications")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

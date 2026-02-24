@@ -12,7 +12,7 @@ import java.util.Date;
  * Lookup table for entity types with TAG prefix for ID generation
  */
 @Entity
-@Table(name = "D_ENTITY_TYPES")
+@Table(name = "D_ENTITY_TYPES", schema = "ap_applications")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

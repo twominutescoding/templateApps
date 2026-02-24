@@ -75,14 +75,7 @@
             <artifactId>spring-security-ldap</artifactId>
         </dependency>
 
-        <!-- H2 Database (Development) -->
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-
-        <!-- Oracle Database (Production) -->
+        <!-- Oracle Database -->
         <dependency>
             <groupId>com.oracle.database.jdbc</groupId>
             <artifactId>ojdbc8</artifactId>
