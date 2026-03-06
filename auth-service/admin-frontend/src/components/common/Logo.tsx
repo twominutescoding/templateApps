@@ -29,14 +29,14 @@ const Logo = ({
   const logoName = variant === 'white' ? 'logo-white' : 'logo';
   const basePath = `${baseUrl}images/logo/${logoName}`.replace('//', '/');
 
-  // Try SVG first, fallback to PNG
-  const [logoSrc, setLogoSrc] = useState<string>(`${basePath}.svg`);
-  const [triedPng, setTriedPng] = useState(false);
+  // Try PNG first, fallback to SVG
+  const [logoSrc, setLogoSrc] = useState<string>(`${basePath}.png`);
+  const [triedSvg, setTriedSvg] = useState(false);
 
   const handleError = () => {
-    if (!triedPng) {
-      setTriedPng(true);
-      setLogoSrc(`${basePath}.png`);
+    if (!triedSvg) {
+      setTriedSvg(true);
+      setLogoSrc(`${basePath}.svg`);
     }
   };
 

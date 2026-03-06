@@ -21,6 +21,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -415,6 +416,18 @@ public class GlobalExceptionHandler {
                 "Request body is missing or malformed. Please check JSON syntax."
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    // ========================================================================
+    // Static Resource Not Found (404)
+    // ========================================================================
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleNoResourceFound(
+            NoResourceFoundException ex, HttpServletRequest request) {
+        log.debug("Static resource not found: {}", request.getRequestURI());
+        ApiErrorResponse response = new ApiErrorResponse(ErrorCode.ENTITY_NOT_FOUND, "Resource not found.");
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
     // ========================================================================
