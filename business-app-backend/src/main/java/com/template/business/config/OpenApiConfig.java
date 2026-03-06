@@ -48,7 +48,7 @@ public class OpenApiConfig {
                             This application uses **external auth-service** for authentication:
                             - All user authentication is handled by a separate auth-service microservice
                             - JWT tokens are issued by auth-service and validated locally
-                            - Refresh tokens are managed by auth-service (7-day expiration)
+                            - Refresh tokens are managed by auth-service (24h default)
                             - No local user database (users stored in auth-service)
 
                             ## Authentication

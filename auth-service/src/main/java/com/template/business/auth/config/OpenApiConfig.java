@@ -45,7 +45,7 @@ public class OpenApiConfig {
                             Centralized authentication and authorization service.
 
                             ## Features
-                            - **JWT Authentication**: Access tokens (15 min) and refresh tokens (7 days)
+                            - **JWT Authentication**: Access tokens (15 min) and refresh tokens (24h default)
                             - **Dual Authentication**: LDAP (Active Directory) with database fallback
                             - **Multi-Entity Support**: Role-based access control per application/entity
                             - **Session Management**: View and revoke active sessions

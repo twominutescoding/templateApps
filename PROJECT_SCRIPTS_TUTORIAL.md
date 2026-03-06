@@ -290,27 +290,30 @@ export JWT_SECRET=your-generated-secret-here
 
 ### Database Configuration
 
-**Development** (H2 in-memory):
+**Development** (no external DB needed — uses in-memory database by default):
 ```properties
 # Default - no configuration needed
 ```
 
-**Production** (Oracle):
+**Production** (Oracle or PostgreSQL):
+
+Environment variables are prefixed with the entity code (e.g., `MY_APP_`). See `ENVIRONMENT_VARIABLES.md` for the full list.
+
 ```bash
-export SPRING_PROFILES_ACTIVE=prod
-export DB_HOST=your-db-host
-export DB_PORT=1521
-export DB_SID=YOUR_SID
-export DB_USERNAME=your_user
-export DB_PASSWORD=your_password
+# Replace MY_APP_ with your generated project's prefix (shown in generated README)
+export MY_APP_DB_URL=jdbc:oracle:thin:@//your-db-host:1521/YOUR_SID
+export MY_APP_DB_USERNAME=your_user
+export MY_APP_DB_PASSWORD=your_password
+export MY_APP_JWT_SECRET=your_64_byte_secret
 ```
 
 ### LDAP Configuration (Auth Service Only)
 
 ```bash
-export LDAP_ENABLED=true
-export LDAP_URL=ldaps://your-ldap-server:636
-export LDAP_BASE=your.domain.local
+# Replace MY_APP_ with your auth service's prefix
+export MY_APP_LDAP_ENABLED=true
+export MY_APP_LDAP_URL=ldaps://your-ldap-server:636
+export MY_APP_LDAP_BASE=your.domain.local
 ```
 
 ---

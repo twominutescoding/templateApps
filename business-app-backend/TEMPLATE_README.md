@@ -169,8 +169,8 @@ npm run dev
 
 ### 3. Access the application
 - Frontend: http://localhost:5173
-- Backend API: http://localhost:8080
-- H2 Console: http://localhost:8080/h2-console
+- Backend API: http://localhost:8090/api
+- Swagger UI: http://localhost:8090/api/swagger-ui.html
 
 ### 4. Default credentials
 - Admin: `admin@example.com` / `admin123`
