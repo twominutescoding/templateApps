@@ -35,15 +35,14 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
-@Tag(name = "Authentication", description = "Authentication APIs. Proxies requests to external auth-service.")
+@Tag(name = "Authentication", description = "Authentication APIs.")
 public class AuthController {
 
     private final AuthService authService;
 
     @Operation(
         summary = "User login",
-        description = "Authenticates user credentials via external auth-service. " +
-                      "Returns JWT access token and refresh token on success."
+        description = "Authenticates user credentials and returns JWT access token and refresh token."
     )
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Login successful"),
@@ -62,7 +61,7 @@ public class AuthController {
 
     @Operation(
         summary = "Refresh access token",
-        description = "Exchanges a valid refresh token for new access and refresh tokens via auth-service."
+        description = "Exchanges a valid refresh token for new access and refresh tokens."
     )
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Token refreshed successfully"),

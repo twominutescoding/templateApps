@@ -44,7 +44,7 @@ import java.util.List;
 @RequestMapping("/api/v1/admin/roles")
 @PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
-@Tag(name = "Role Administration", description = "Role management APIs for administrators. Roles are entity-scoped. All endpoints require ADMIN role.")
+@Tag(name = "Role Administration", description = "Role management APIs for administrators. All endpoints require ADMIN role.")
 @SecurityRequirement(name = "bearerAuth")
 public class RoleAdminController {
 
@@ -142,7 +142,7 @@ public class RoleAdminController {
     /**
      * Delete role
      */
-    @Operation(summary = "Delete role", description = "Deletes a role. Will fail if role is assigned to any users.")
+    @Operation(summary = "Delete role", description = "Deletes a role.")
     @DeleteMapping("/{role}/entity/{entity}")
     public ResponseEntity<ApiResponse<String>> deleteRole(
             @Parameter(description = "Role name") @PathVariable String role,

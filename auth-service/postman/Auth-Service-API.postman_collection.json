@@ -1089,7 +1089,7 @@
 		},
 		{
 			"name": "Admin - Mailings",
-			"description": "Mailing management - Read only (ADMIN only)",
+			"description": "Mailing (email queue) management (ADMIN only)",
 			"item": [
 				{
 					"name": "Get All Mailings",
@@ -1106,7 +1106,7 @@
 							"host": ["{{baseUrl}}"],
 							"path": ["admin", "mailings"]
 						},
-						"description": "Get all mailings"
+						"description": "Get all mailings from the email queue"
 					}
 				},
 				{
@@ -1157,6 +1157,296 @@
 							]
 						},
 						"description": "Get mailing by ID"
+					}
+				},
+				{
+					"name": "Create Mailing",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"subject\": \"Test Email\",\n    \"body\": \"<p>This is a test email body.</p>\",\n    \"recipientEmail\": \"recipient@example.com\",\n    \"mailingList\": \"ADMINS\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/mailings",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "mailings"]
+						},
+						"description": "Create a new mailing entry in the queue"
+					}
+				},
+				{
+					"name": "Resend Mailing",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/mailings/:id/resend",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "mailings", ":id", "resend"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Resend a previously sent or failed mailing"
+					}
+				}
+			]
+		},
+		{
+			"name": "Admin - Mailing Lists",
+			"description": "Mailing list management — named recipient groups (ADMIN only)",
+			"item": [
+				{
+					"name": "Get All Mailing Lists",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/mailing-lists",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "mailing-lists"]
+						},
+						"description": "Get all mailing lists"
+					}
+				},
+				{
+					"name": "Search Mailing Lists",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"filters\": {\n        \"name\": \"\"\n    },\n    \"dateRanges\": {},\n    \"sort\": {\n        \"column\": \"name\",\n        \"order\": \"asc\"\n    },\n    \"page\": 0,\n    \"pageSize\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/mailing-lists/search",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "mailing-lists", "search"]
+						},
+						"description": "Search mailing lists with pagination and filtering"
+					}
+				},
+				{
+					"name": "Get Mailing List by Name",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/mailing-lists/:name",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "mailing-lists", ":name"],
+							"variable": [
+								{
+									"key": "name",
+									"value": "ADMINS"
+								}
+							]
+						},
+						"description": "Get a mailing list by its name"
+					}
+				},
+				{
+					"name": "Create Mailing List",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"DEVELOPERS\",\n    \"description\": \"Development team mailing list\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/mailing-lists",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "mailing-lists"]
+						},
+						"description": "Create a new mailing list"
+					}
+				},
+				{
+					"name": "Update Mailing List",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"description\": \"Updated description for developers mailing list\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/mailing-lists/:name",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "mailing-lists", ":name"],
+							"variable": [
+								{
+									"key": "name",
+									"value": "DEVELOPERS"
+								}
+							]
+						},
+						"description": "Update a mailing list"
+					}
+				},
+				{
+					"name": "Delete Mailing List",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/mailing-lists/:name",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "mailing-lists", ":name"],
+							"variable": [
+								{
+									"key": "name",
+									"value": "DEVELOPERS"
+								}
+							]
+						},
+						"description": "Delete a mailing list"
+					}
+				},
+				{
+					"name": "Get Mailing List Users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/mailing-lists/:name/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "mailing-lists", ":name", "users"],
+							"variable": [
+								{
+									"key": "name",
+									"value": "ADMINS"
+								}
+							]
+						},
+						"description": "Get all users subscribed to a mailing list"
+					}
+				},
+				{
+					"name": "Add User to Mailing List",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"user1\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/mailing-lists/:name/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "mailing-lists", ":name", "users"],
+							"variable": [
+								{
+									"key": "name",
+									"value": "ADMINS"
+								}
+							]
+						},
+						"description": "Add a user to a mailing list"
+					}
+				},
+				{
+					"name": "Remove User from Mailing List",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/mailing-lists/:name/users/:username",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "mailing-lists", ":name", "users", ":username"],
+							"variable": [
+								{
+									"key": "name",
+									"value": "ADMINS"
+								},
+								{
+									"key": "username",
+									"value": "user1"
+								}
+							]
+						},
+						"description": "Remove a user from a mailing list"
 					}
 				}
 			]

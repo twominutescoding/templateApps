@@ -92,7 +92,12 @@ admin-frontend/
 │   │   ├── Settings.tsx
 │   │   ├── users/UsersPage.tsx
 │   │   ├── roles/RolesPage.tsx
-│   │   └── sessions/SessionsPage.tsx
+│   │   ├── sessions/SessionsPage.tsx
+│   │   ├── entities/EntitiesPage.tsx
+│   │   ├── logs/LogsPage.tsx
+│   │   ├── mailing-lists/MailingListsPage.tsx
+│   │   ├── mailings/MailingsPage.tsx
+│   │   └── instructions/InstructionsPage.tsx
 │   ├── services/api.ts
 │   ├── theme/ThemeContext.tsx
 │   ├── types/palette.ts
@@ -130,10 +135,26 @@ admin-frontend/
    - Revoke sessions individually
    - Status indicators (ACTIVE/REVOKED)
 
-5. **Settings Page** (copied from business-app)
-   - Theme switcher (light/dark mode)
-   - Color palette selection
-   - Date format configuration
+5. **Entities Page**
+   - Manage application entities (application_entity table)
+   - View entity types and attributes
+
+6. **Logs Page**
+   - View application log entries from the database
+
+7. **Mailing Lists Page**
+   - Manage mailing list configurations
+
+8. **Mailings Page**
+   - Read-only view of the email/notification queue (t_mailing table)
+
+9. **Instructions Page**
+   - In-app documentation and help content
+
+10. **Settings Page** (copied from business-app)
+    - Theme switcher (light/dark mode)
+    - Color palette selection
+    - Date format configuration
 
 #### Components Reused from Business-App
 
@@ -223,7 +244,7 @@ curl -X GET http://localhost:8091/auth/api/v1/auth/admin/stats/dashboard \
 ## Known Limitations
 
 1. **No user creation**: Admin must use auth-service registration endpoint
-2. **No role assignment UI**: Roles must be assigned via API (TODO: add dialog)
+2. **No role assignment UI**: `UserManagementDialogs.tsx` exists but dialog integration is incomplete
 3. **No password reset**: Admin cannot reset user passwords (security feature)
 4. **Limited filtering**: Tables show all data (no server-side filtering yet)
 5. **No pagination**: All data loaded at once (acceptable for admin panel with limited data)
@@ -231,15 +252,14 @@ curl -X GET http://localhost:8091/auth/api/v1/auth/admin/stats/dashboard \
 ## Future Improvements
 
 1. **User Creation Dialog**: Add modal to create new users from admin panel
-2. **Role Assignment Dialog**: UI for assigning/removing roles from users
+2. **Role Assignment Dialog**: Complete the UI for assigning/removing roles from users
 3. **Password Reset**: Allow admin to generate temporary passwords
 4. **Advanced Filtering**: Server-side filtering for large datasets
 5. **Pagination**: Implement pagination for tables with many records
 6. **Audit Log**: Track admin actions (who changed what, when)
-7. **Entity Management**: UI for managing application entities
-8. **Bulk Operations**: Bulk activate/deactivate users
-9. **Export Options**: PDF export, custom column selection
-10. **Real-time Updates**: WebSocket for live session monitoring
+7. **Bulk Operations**: Bulk activate/deactivate users
+8. **Export Options**: PDF export, custom column selection
+9. **Real-time Updates**: WebSocket for live session monitoring
 
 ## Files Created
 

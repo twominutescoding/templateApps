@@ -61,7 +61,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
-@Tag(name = "Authentication", description = "Authentication and session management APIs. Supports LDAP and database authentication with JWT tokens.")
+@Tag(name = "Authentication", description = "Authentication and session management APIs.")
 public class AuthController {
 
     private final CustomAuthenticationProvider authenticationProvider;
@@ -92,23 +92,21 @@ public class AuthController {
      */
     @Operation(
         summary = "User login",
-        description = "Authenticates user credentials and returns JWT access token and refresh token. " +
-                      "Supports both LDAP (Active Directory) and database authentication. " +
-                      "Roles are filtered by the specified entityCode."
+        description = "Authenticates user credentials and returns JWT access token and refresh token."
     )
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "200",
-            description = "Login successful - returns JWT tokens and user profile",
+            description = "Login successful",
             content = @Content(schema = @Schema(implementation = LoginResponse.class))
         ),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "400",
-            description = "Invalid entity code - entity does not exist"
+            description = "Bad request"
         ),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "401",
-            description = "Invalid username or password"
+            description = "Invalid credentials"
         )
     })
     @PostMapping("/login")
@@ -218,8 +216,7 @@ public class AuthController {
      */
     @Operation(
         summary = "Register new user",
-        description = "Creates a new user account with BCrypt password encryption. " +
-                      "User status is set to ACTIVE by default. Username must be unique."
+        description = "Creates a new user account. Username must be unique."
     )
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "User registered successfully"),
@@ -297,8 +294,7 @@ public class AuthController {
      */
     @Operation(
         summary = "Refresh access token",
-        description = "Exchanges a valid refresh token for new access and refresh tokens. " +
-                      "Implements token rotation - the old refresh token is revoked."
+        description = "Exchanges a valid refresh token for new access and refresh tokens."
     )
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Tokens refreshed successfully"),
@@ -332,8 +328,7 @@ public class AuthController {
      */
     @Operation(
         summary = "Logout user",
-        description = "Revokes the provided refresh token, ending the session. " +
-                      "The access token remains valid until expiry (typically 15 minutes)."
+        description = "Ends the current session."
     )
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<String>> logout(@Valid @RequestBody RefreshTokenRequest request) {
@@ -390,7 +385,7 @@ public class AuthController {
      */
     @Operation(
         summary = "Get user sessions",
-        description = "Returns all active sessions for the current user with device info, IP address, and location.",
+        description = "Returns all active sessions for the current user.",
         security = @SecurityRequirement(name = "bearerAuth")
     )
     @GetMapping("/sessions")
@@ -420,7 +415,7 @@ public class AuthController {
      */
     @Operation(
         summary = "Revoke specific session",
-        description = "Revokes a specific session by session ID. Users can only revoke their own sessions.",
+        description = "Revokes a specific session by session ID.",
         security = @SecurityRequirement(name = "bearerAuth")
     )
     @PostMapping("/sessions/revoke")
@@ -483,7 +478,7 @@ public class AuthController {
      */
     @Operation(
         summary = "Search sessions (Admin)",
-        description = "Search sessions with pagination, filtering by username/IP/device, and sorting. Requires ADMIN role.",
+        description = "Search sessions with pagination, filtering, and sorting. Requires ADMIN role.",
         security = @SecurityRequirement(name = "bearerAuth")
     )
     @PostMapping("/admin/sessions/search")
@@ -545,7 +540,7 @@ public class AuthController {
      */
     @Operation(
         summary = "Force logout user (Admin)",
-        description = "Force logout a specific user from all devices by revoking all their sessions. Requires ADMIN role.",
+        description = "Logs out a specific user from all devices. Requires ADMIN role.",
         security = @SecurityRequirement(name = "bearerAuth")
     )
     @PostMapping("/admin/users/{username}/logout")
@@ -579,7 +574,7 @@ public class AuthController {
      */
     @Operation(
         summary = "Get dashboard statistics (Admin)",
-        description = "Returns user counts, session statistics, and system metrics for admin dashboard. Requires ADMIN role.",
+        description = "Returns statistics for the admin dashboard. Requires ADMIN role.",
         security = @SecurityRequirement(name = "bearerAuth")
     )
     @GetMapping("/admin/stats/dashboard")
@@ -605,8 +600,7 @@ public class AuthController {
      */
     @Operation(
         summary = "Health check",
-        description = "Returns service health status and LDAP configuration state. " +
-                      "Used for monitoring and load balancer health checks."
+        description = "Returns service health status."
     )
     @GetMapping("/health")
     public ResponseEntity<ApiResponse<String>> health() {

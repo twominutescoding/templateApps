@@ -72,8 +72,7 @@ public class HealthController {
      */
     @Operation(
         summary = "Database health check",
-        description = "Returns service health status including database connectivity test. " +
-                      "Requires authentication. Reports latency and connection status.",
+        description = "Returns service health status including database connectivity.",
         security = @SecurityRequirement(name = "bearerAuth")
     )
     @GetMapping("/healthDB")

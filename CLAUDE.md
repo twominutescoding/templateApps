@@ -31,10 +31,10 @@ A Spring Boot 4.0.1 microservice providing centralized JWT-based authentication.
 - **Dual Authentication Strategy**: Active Directory LDAP (optional) with database fallback
 - **Multi-application Support**: Entity-based role filtering via `applicationCode`
 - **JWT Tokens**: HS256 algorithm with 15-minute expiration (JJWT 0.12.6)
-- **Refresh Tokens**: 7-day expiration with automatic rotation
-- **Database Support**: H2 (dev) and Oracle (prod)
+- **Refresh Tokens**: 24-hour expiration (default, configurable) with automatic rotation
+- **Database Support**: Oracle (test and prod profiles)
 - **SpringDoc OpenAPI 2.8.14**: Spring Boot 4.0 compatible API documentation
-- **Admin Frontend**: React 19 admin panel for user/role/session management
+- **Admin Frontend**: React 19 admin panel for user/role/entity/session/log management
 
 ### Authentication Flow
 1. If LDAP enabled: Attempts AD authentication first, falls back to database if LDAP fails
@@ -48,23 +48,12 @@ A Spring Boot 4.0.1 microservice providing centralized JWT-based authentication.
 ```bash
 cd auth-service
 
-# Development (H2 database, port 8091)
-./mvnw spring-boot:run
-
-# Test (Oracle database with debug logging)
-export SPRING_PROFILES_ACTIVE=test
-export TEMP_AUTH_SERVICE_DB_HOST=localhost
-export TEMP_AUTH_SERVICE_DB_PORT=1521
-export TEMP_AUTH_SERVICE_DB_SID=TESTDB
-export TEMP_AUTH_SERVICE_DB_USERNAME=test_user
-export TEMP_AUTH_SERVICE_DB_PASSWORD=test_password
+# Development (port 8091)
 ./mvnw spring-boot:run
 
 # Production (Oracle + LDAP)
 export SPRING_PROFILES_ACTIVE=prod
-export TEMP_AUTH_SERVICE_DB_HOST=localhost
-export TEMP_AUTH_SERVICE_DB_PORT=1521
-export TEMP_AUTH_SERVICE_DB_SID=ORCL
+export TEMP_AUTH_SERVICE_DB_URL=jdbc:oracle:thin:@localhost:1521:ORCL
 export TEMP_AUTH_SERVICE_DB_USERNAME=your_username
 export TEMP_AUTH_SERVICE_DB_PASSWORD=your_password
 export TEMP_AUTH_SERVICE_JWT_SECRET=your_64_byte_secret_here
@@ -73,18 +62,6 @@ export TEMP_AUTH_SERVICE_LDAP_URL=ldaps://your-ldap-server:636
 export TEMP_AUTH_SERVICE_LDAP_BASE=your.domain.local
 ./mvnw spring-boot:run
 ```
-
-### Spring Profiles Comparison
-
-| Feature | Dev | Test | Prod |
-|---------|-----|------|------|
-| **Database** | H2 (in-memory) | Oracle | Oracle |
-| **Port** | 8091 | 8091 | 8091 |
-| **LDAP** | Configurable | Disabled | Enabled |
-| **SQL Logging** | Yes | Yes | No |
-| **Debug Logging** | Yes | Yes | No |
-| **Hibernate DDL** | create-drop | update | validate |
-| **H2 Console** | Enabled | Disabled | Disabled |
 
 ### LDAP Configuration
 
@@ -128,14 +105,10 @@ The service uses `ActiveDirectoryLdapAuthenticationProvider`:
 - API: http://localhost:8091/auth/api/v1/auth
 - Swagger UI: http://localhost:8091/auth/swagger-ui.html
 - OpenAPI Docs: http://localhost:8091/auth/v3/api-docs
-- H2 Console (dev): http://localhost:8091/auth/h2-console
-  - JDBC URL: `jdbc:h2:mem:authdb`
-  - Username: `sa`
-  - Password: (empty)
 
 ### Admin Frontend (`admin-frontend/`)
 
-**React 19 admin panel for managing users, roles, and sessions**
+**React 19 admin panel for managing users, roles, entities, sessions, and logs**
 
 **Features**:
 - Dashboard with user/session statistics
@@ -143,7 +116,10 @@ The service uses `ActiveDirectoryLdapAuthenticationProvider`:
 - Role management (view, edit)
 - Entity management (applications/entities)
 - Session management (view, revoke)
-- Mailings management (read-only view of email queue)
+- Logs (application log entries)
+- Mailing Lists management
+- Mailings (read-only view of email queue)
+- Instructions (in-app help)
 - Dark mode and theme customization
 - Date format configuration
 
@@ -185,7 +161,7 @@ A comprehensive full-stack business application template with Spring Boot backen
 ### Tech Stack
 - **Backend**: Spring Boot 4.0.1, Java 17, Spring Security, Spring Data JPA
 - **Frontend**: React 19.2, TypeScript, Vite, Material-UI v7
-- **Database**: H2 (dev), Oracle (prod)
+- **Database**: Oracle (test and prod profiles)
 - **Authentication**: External auth-service (JWT tokens validated locally, refresh tokens via auth-service)
 - **API Documentation**: SpringDoc OpenAPI (Swagger)
 
@@ -222,16 +198,12 @@ npm run build
 
 # Full production build (backend + frontend)
 ./mvnw clean package
-java -jar target/business-app-backend-1.0.0.jar
+java -jar target/api.war
 ```
 
 ### Access Points
 - Backend API: http://localhost:8090/api
 - Frontend Dev: http://localhost:5173
-- H2 Console: http://localhost:8090/api/h2-console
-  - JDBC URL: `jdbc:h2:mem:businessdb`
-  - Username: `sa`
-  - Password: (empty)
 - Swagger UI: http://localhost:8090/api/swagger-ui.html
 
 ### Sample Users (Dev)
@@ -455,7 +427,7 @@ Add dependency to `pom.xml`:
 - **LDAPS**: Use secure LDAPS (ldaps://) for production LDAP connections
 - **CORS**: Configure `cors.allowed-origins` for your production frontend URLs
 - **Database Passwords**: Use environment variables, never hardcode
-- **H2 Console**: Disable in production (`spring.h2.console.enabled=false`)
+- **LDAP**: Use `ldaps://` (not `ldap://`) for encrypted connections in production
 
 ## Project Generation
 
@@ -500,9 +472,8 @@ Comprehensive documentation for building OSB-replacement integration systems usi
 
 ## Known Limitations
 
-- **H2 Database**: Both applications use H2 for development - switch to PostgreSQL/MySQL/Oracle for production
 - **Frontend Bundle Size**: Business app frontend is ~1.27 MB (384 KB gzipped) - could be optimized with code splitting
-- **JWT Expiration**: Access tokens expire in 15 minutes, refresh tokens in 7 days - adjust in `application-*.properties`
+- **JWT Expiration**: Access tokens expire in 15 minutes, refresh tokens default to 24 hours - adjust via `TEMP_AUTH_SERVICE_JWT_REFRESH_EXPIRATION` (ms)
 - **AdvancedDataTable Button Colors**: Uses hardcoded hex colors for dark theme visibility (#42a5f5 blue, #66bb6a green, #bdbdbd gray)
 
 ## Shared Frontend Components

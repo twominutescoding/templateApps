@@ -669,7 +669,7 @@ This application uses **external auth-service** for authentication:
 
 - **Backend**: Spring Boot 4.0.1 (Java 17)
 - **Frontend**: React 19 with TypeScript and Vite
-- **Database**: H2 (in-memory) for development, Oracle for production
+- **Database**: Oracle (test and production profiles)
 - **Authentication**: External auth-service (JWT-based)
 - **UI Library**: Material-UI (MUI) v7
 
@@ -712,10 +712,6 @@ npm run dev
 - **Frontend**: http://localhost:5173 (dev) or http://localhost:${serverPort}${contextPath}/ (production)
 - **Backend API**: http://localhost:${serverPort}${contextPath}
 - **Swagger UI**: http://localhost:${serverPort}${contextPath}/swagger-ui.html
-- **H2 Console**: http://localhost:${serverPort}${contextPath}/h2-console
-  - JDBC URL: \`jdbc:h2:mem:${databaseName}\`
-  - Username: \`sa\`
-  - Password: (empty)
 
 ## Authentication
 
@@ -753,16 +749,14 @@ openssl rand -hex 32
 
 \`\`\`bash
 export SPRING_PROFILES_ACTIVE=prod
-export DB_HOST=your-db-host
-export DB_PORT=1521
-export DB_SID=YOUR_SID
-export DB_USERNAME=your_user
-export DB_PASSWORD=your_password
+export ${entityCode}_DB_URL=jdbc:oracle:thin:@your-db-host:1521:YOUR_SID
+export ${entityCode}_DB_USERNAME=your_user
+export ${entityCode}_DB_PASSWORD=your_password
 \`\`\`
 
 ## Building for Production
 
-### Backend + Frontend (Single JAR)
+### Backend + Frontend (Single WAR)
 
 \`\`\`bash
 cd frontend
@@ -771,7 +765,7 @@ npm run build
 
 cd ..
 ./mvnw clean package
-java -jar target/${projectNameKebab}-1.0.0.jar
+java -jar target/${contextPath.replace(/^\//, '')}.war
 \`\`\`
 
 ---
@@ -808,7 +802,7 @@ This is a **backend-only API** application with:
 
 All user authentication is handled by a separate auth-service microservice:
 - JWT tokens issued by auth-service
-- Refresh tokens managed by auth-service (7-day expiration)
+- Refresh tokens managed by auth-service (24-hour expiration default, configurable)
 - Roles embedded in JWT tokens for authorization
 - No local user database
 
@@ -840,10 +834,6 @@ cd ../auth-service
 
 - **API Base URL**: http://localhost:${serverPort}${contextPath}
 - **Swagger UI**: http://localhost:${serverPort}${contextPath}/swagger-ui.html
-- **H2 Console**: http://localhost:${serverPort}${contextPath}/h2-console
-  - JDBC URL: \`jdbc:h2:mem:${databaseName}\`
-  - Username: \`sa\`
-  - Password: (empty)
 
 ## Authentication
 
@@ -893,11 +883,9 @@ openssl rand -hex 32
 
 \`\`\`bash
 export SPRING_PROFILES_ACTIVE=prod
-export DB_HOST=your-db-host
-export DB_PORT=1521
-export DB_SID=YOUR_SID
-export DB_USERNAME=your_user
-export DB_PASSWORD=your_password
+export ${entityCode}_DB_URL=jdbc:oracle:thin:@your-db-host:1521:YOUR_SID
+export ${entityCode}_DB_USERNAME=your_user
+export ${entityCode}_DB_PASSWORD=your_password
 \`\`\`
 
 ### CORS Configuration
@@ -912,7 +900,7 @@ cors.allowed-origins=http://localhost:3000,https://your-frontend.com
 
 \`\`\`bash
 ./mvnw clean package
-java -jar target/${projectNameKebab}-1.0.0.jar
+java -jar target/${contextPath.replace(/^\//, '')}.war
 \`\`\`
 
 ## API Endpoints

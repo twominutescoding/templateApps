@@ -41,7 +41,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RequestMapping("/api/v1/admin/entities")
 @PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
-@Tag(name = "Entity Administration", description = "Entity (application) management APIs. Entities represent applications that use this auth service. All endpoints require ADMIN role.")
+@Tag(name = "Entity Administration", description = "Entity management APIs. All endpoints require ADMIN role.")
 @SecurityRequirement(name = "bearerAuth")
 public class EntityAdminController {
 
@@ -102,7 +102,7 @@ public class EntityAdminController {
     /**
      * Create new entity
      */
-    @Operation(summary = "Create new entity", description = "Creates a new entity (application) with auto-generated ID based on entity type tag.")
+    @Operation(summary = "Create new entity", description = "Creates a new entity.")
     @PostMapping
     public ResponseEntity<ApiResponse<EntityAdminDTO>> createEntity(@Valid @RequestBody EntityAdminDTO dto) {
         try {
@@ -143,7 +143,7 @@ public class EntityAdminController {
     /**
      * Delete entity
      */
-    @Operation(summary = "Delete entity", description = "Deletes an entity. Will fail if entity has associated roles or users.")
+    @Operation(summary = "Delete entity", description = "Deletes an entity.")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<String>> deleteEntity(
             @Parameter(description = "Entity ID") @PathVariable String id) {

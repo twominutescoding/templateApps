@@ -63,7 +63,7 @@ public class AppLogAdminController {
     /**
      * Search logs with pagination, filtering, and sorting
      */
-    @Operation(summary = "Search logs", description = "Search logs with pagination, filtering by entity/module/status, and date range filtering.")
+    @Operation(summary = "Search logs", description = "Search logs with pagination, filtering, and sorting.")
     @PostMapping("/search")
     public ResponseEntity<ApiResponse<PageResponse<AppLogDTO>>> searchLogs(@RequestBody SearchRequest request) {
         try {
@@ -79,7 +79,7 @@ public class AppLogAdminController {
     /**
      * Get log by ID (full details)
      */
-    @Operation(summary = "Get log by ID", description = "Returns full log details including request/response payloads.")
+    @Operation(summary = "Get log by ID", description = "Returns log details by ID.")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<AppLogDTO>> getLog(
             @Parameter(description = "Log ID") @PathVariable Long id) {

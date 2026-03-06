@@ -5,14 +5,14 @@
 This is a comprehensive business application template with:
 - **Backend**: Spring Boot 4.0.1 (Java 17)
 - **Frontend**: React 19.2 with TypeScript and Vite
-- **Database**: H2 (in-memory) for development, Oracle for production
+- **Database**: Oracle (test and production profiles)
 - **Authentication**: External auth-service with JWT tokens and automatic refresh
 - **UI Library**: Material-UI (MUI) v7
 
 **IMPORTANT**: This application uses **external auth-service** for all authentication:
 - No local user management or authentication logic
 - JWT tokens issued and validated by auth-service
-- Refresh tokens managed by auth-service (7-day expiration with rotation)
+- Refresh tokens managed by auth-service (24-hour expiration default, configurable)
 - Roles embedded in JWT token claims for authorization
 - Auth-service must be running before starting this application
 
@@ -133,7 +133,7 @@ formatTimestamp('2025-12-07T...');// Accepts Date or ISO string
 **JWT-based authentication via external auth-service**:
 - Login: `POST /auth/login` → Proxies to auth-service
 - Refresh: `POST /auth/refresh` → Proxies to auth-service
-- Returns JWT access token (15 minutes) + refresh token (7 days)
+- Returns JWT access token (15 minutes) + refresh token (24 hours default)
 - Tokens stored in localStorage (frontend)
 - JwtRequestFilter validates JWT signature and extracts roles from token claims
 - No database query for authentication - stateless validation
@@ -275,10 +275,6 @@ npm run build
 ### Access
 - Backend API: http://localhost:8090/api
 - Frontend Dev: http://localhost:5173
-- H2 Console: http://localhost:8090/api/h2-console
-  - JDBC URL: jdbc:h2:mem:businessdb
-  - Username: sa
-  - Password: (empty)
 - Swagger UI: http://localhost:8090/api/swagger-ui.html
 
 ## Theme & Styling
@@ -417,7 +413,7 @@ const MyEntityPage = () => {
 ## Known Issues / Technical Debt
 
 1. **Build Size**: Frontend bundle is 1.27 MB (384 KB gzipped) - could be optimized with code splitting
-2. **H2 Database**: Using in-memory H2 - need to switch to PostgreSQL/MySQL for production
+2. **Database**: Configure `TEMP_BUSINESS_APP_DB_URL` for Oracle in test/prod profiles
 3. **Error Handling**: Could add global error boundary in React
 4. **Loading States**: Could add skeleton loaders for better UX
 5. **Validation**: Frontend validation could be more comprehensive
@@ -433,14 +429,14 @@ const MyEntityPage = () => {
 - **Always use formatTimestamp** from DateFormatContext for displaying timestamps
 - **Demo package is separate** - safe to delete when ready for production
 - **Access tokens expire** - 15 minutes (from auth-service)
-- **Refresh tokens expire** - 7 days (from auth-service)
+- **Refresh tokens expire** - 24 hours default (from auth-service, configurable)
 
 ## Last Session Summary
 
 **External Authentication Architecture Implementation**:
 - Refactored to use external auth-service for ALL authentication
 - Removed local user management and authentication logic
-- Implemented refresh token flow (7-day tokens with rotation)
+- Implemented refresh token flow (24-hour tokens default, with rotation)
 - Updated JwtRequestFilter to extract roles from JWT claims (no database query)
 - Simplified SecurityConfig (removed UserDetailsService, PasswordEncoder, AuthenticationManager)
 - Updated frontend with automatic token refresh on 401 errors

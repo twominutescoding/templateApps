@@ -68,6 +68,32 @@
 					}
 				},
 				{
+					"name": "Update Theme Preferences",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"theme\": \"dark\",\n    \"paletteId\": \"ocean-blue\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/theme",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "theme"]
+						},
+						"description": "Updates the current user's theme (light/dark) and color palette preferences.\n\n**theme**: `light` or `dark`\n\n**paletteId**: One of the predefined palette IDs: `ocean-blue`, `sunset-orange`, `forest-green`, `royal-purple`, `cherry-red`, `midnight-dark`, or a custom palette ID stored in localStorage."
+					}
+				},
+				{
 					"name": "Refresh Token",
 					"event": [
 						{

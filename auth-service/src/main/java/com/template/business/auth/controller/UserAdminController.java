@@ -58,7 +58,7 @@ public class UserAdminController {
      */
     @Operation(
         summary = "Create new user",
-        description = "Creates a new user account with the specified details. Password is hashed using BCrypt."
+        description = "Creates a new user account with the specified details."
     )
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "User created successfully"),
@@ -171,8 +171,7 @@ public class UserAdminController {
      */
     @Operation(
         summary = "Reset user password",
-        description = "Resets a user's password. If newPassword is provided, it will be set. " +
-                      "Otherwise, a temporary password is auto-generated and returned."
+        description = "Resets a user's password. Provide a new password in the request body, or leave it empty to generate one."
     )
     @PostMapping("/{username}/reset-password")
     public ResponseEntity<ApiResponse<String>> resetPassword(
@@ -251,7 +250,7 @@ public class UserAdminController {
     /**
      * Delete user
      */
-    @Operation(summary = "Delete user", description = "Permanently deletes a user and all associated roles and sessions.")
+    @Operation(summary = "Delete user", description = "Deletes a user account.")
     @DeleteMapping("/{username}")
     public ResponseEntity<ApiResponse<String>> deleteUser(
             @Parameter(description = "Username of the user to delete") @PathVariable String username) {

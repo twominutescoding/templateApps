@@ -312,12 +312,12 @@ A Spring Boot 4.0.1 microservice providing centralized JWT-based authentication.
 - **Dual Authentication**: Active Directory LDAP (optional) with database fallback
 - **Multi-application Support**: Entity-based role filtering via \`entityCode\`
 - **JWT Tokens**: HS256 algorithm with 15-minute expiration
-- **Refresh Tokens**: 7-day expiration with automatic rotation
-- **Admin Frontend**: React 19 admin panel for user/role/session management
+- **Refresh Tokens**: 24-hour expiration (default, configurable) with automatic rotation
+- **Admin Frontend**: React 19 admin panel for user/role/entity/session management
 
 ## Quick Start
 
-### Development Mode (H2 Database)
+### Development Mode
 
 \`\`\`bash
 ./mvnw spring-boot:run
@@ -327,11 +327,9 @@ A Spring Boot 4.0.1 microservice providing centralized JWT-based authentication.
 
 \`\`\`bash
 export SPRING_PROFILES_ACTIVE=prod
-export DB_HOST=your-db-host
-export DB_PORT=1521
-export DB_SID=YOUR_SID
-export DB_USERNAME=your_user
-export DB_PASSWORD=your_password
+export ${entityCode}_DB_URL=jdbc:oracle:thin:@your-db-host:1521:YOUR_SID
+export ${entityCode}_DB_USERNAME=your_user
+export ${entityCode}_DB_PASSWORD=your_password
 ./mvnw spring-boot:run
 \`\`\`
 
@@ -339,10 +337,6 @@ export DB_PASSWORD=your_password
 
 - **API**: http://localhost:${serverPort}${contextPath}/api/v1/auth
 - **Swagger UI**: http://localhost:${serverPort}${contextPath}/swagger-ui.html
-- **H2 Console** (dev): http://localhost:${serverPort}${contextPath}/h2-console
-  - JDBC URL: \`jdbc:h2:mem:${databaseName}\`
-  - Username: \`sa\`
-  - Password: (empty)
 
 ## Admin Frontend
 

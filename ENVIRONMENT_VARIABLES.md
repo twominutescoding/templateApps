@@ -24,11 +24,10 @@ When you run `create-auth-project.js`, the prefix `TEMP_AUTH_SERVICE` is replace
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `TEMP_AUTH_SERVICE_DB_HOST` | Oracle database host | `localhost` | Yes (test/prod) |
-| `TEMP_AUTH_SERVICE_DB_PORT` | Oracle database port | `1521` | No |
-| `TEMP_AUTH_SERVICE_DB_SID` | Oracle database SID | `ORCL` | Yes (test/prod) |
+| `TEMP_AUTH_SERVICE_DB_URL` | Full JDBC URL | `jdbc:oracle:thin:@localhost:1521:ORCL` | Yes (test/prod) |
 | `TEMP_AUTH_SERVICE_DB_USERNAME` | Database username | `your_username` | Yes (test/prod) |
 | `TEMP_AUTH_SERVICE_DB_PASSWORD` | Database password | `your_password` | Yes (test/prod) |
+| `TEMP_AUTH_SERVICE_DB_DRIVER` | JDBC driver class | `oracle.jdbc.OracleDriver` | No |
 
 ### JWT Configuration (Prod Profile)
 
@@ -71,11 +70,10 @@ When you run `create-project.js`, the prefix `TEMP_BUSINESS_APP` is replaced wit
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `TEMP_BUSINESS_APP_DB_HOST` | Oracle database host | `localhost` | Yes (test/prod) |
-| `TEMP_BUSINESS_APP_DB_PORT` | Oracle database port | `1521` | No |
-| `TEMP_BUSINESS_APP_DB_SID` | Oracle database SID | `ORCL` | Yes (test/prod) |
+| `TEMP_BUSINESS_APP_DB_URL` | Full JDBC URL | `jdbc:oracle:thin:@localhost:1521:ORCL` | Yes (test/prod) |
 | `TEMP_BUSINESS_APP_DB_USERNAME` | Database username | `your_username` | Yes (test/prod) |
 | `TEMP_BUSINESS_APP_DB_PASSWORD` | Database password | `your_password` | Yes (test/prod) |
+| `TEMP_BUSINESS_APP_DB_DRIVER` | JDBC driver class | `oracle.jdbc.OracleDriver` | No |
 
 ### JWT Configuration (Prod Profile)
 
@@ -155,13 +153,13 @@ Pre-configured run configurations are available in `.idea/runConfigurations/`:
 
 ### Auth Service
 
-- **AuthService (Dev)** - H2 database, LDAP disabled
+- **AuthService (Dev)** - Default configuration, LDAP disabled
 - **AuthService (Test)** - Oracle database with placeholder credentials
 - **AuthService (Prod)** - Oracle database, LDAP enabled, requires JWT secret
 
 ### Business App
 
-- **BusinessApp (Dev)** - H2 database
+- **BusinessApp (Dev)** - Default configuration
 - **BusinessApp (Test)** - Oracle database with placeholder credentials
 - **BusinessApp (Prod)** - Oracle database, requires JWT secret
 
@@ -174,19 +172,19 @@ When deploying multiple applications on a single Tomcat instance, set environmen
 ```bash
 # Auth Service
 export USER_AUTH_JWT_SECRET=your_jwt_secret_here
-export USER_AUTH_DB_HOST=db.example.com
+export USER_AUTH_DB_URL=jdbc:oracle:thin:@db.example.com:1521:PROD
 export USER_AUTH_DB_USERNAME=auth_user
 export USER_AUTH_DB_PASSWORD=auth_pass
 
 # Inventory Management App
 export INVENTORY_MGMT_JWT_SECRET=your_jwt_secret_here
-export INVENTORY_MGMT_DB_HOST=db.example.com
+export INVENTORY_MGMT_DB_URL=jdbc:oracle:thin:@db.example.com:1521:PROD
 export INVENTORY_MGMT_DB_USERNAME=inv_user
 export INVENTORY_MGMT_DB_PASSWORD=inv_pass
 
 # Order Processing App
 export ORDER_PROC_JWT_SECRET=your_jwt_secret_here
-export ORDER_PROC_DB_HOST=db.example.com
+export ORDER_PROC_DB_URL=jdbc:oracle:thin:@db.example.com:1521:PROD
 export ORDER_PROC_DB_USERNAME=order_user
 export ORDER_PROC_DB_PASSWORD=order_pass
 ```

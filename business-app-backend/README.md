@@ -42,7 +42,7 @@ node create-backend-only-project.js
 This application uses **external auth-service** for authentication:
 - All user authentication is handled by a separate auth-service microservice
 - JWT tokens are issued by auth-service and validated locally
-- Refresh tokens are managed by auth-service (7-day expiration with rotation)
+- Refresh tokens are managed by auth-service (24-hour expiration default, configurable, with rotation)
 - No local user database (users stored in auth-service)
 - Roles are embedded in JWT tokens for authorization
 
@@ -50,10 +50,10 @@ This application uses **external auth-service** for authentication:
 
 - ✅ **Spring Boot 4.0.1** - Latest Spring Boot version
 - ✅ **External Auth Integration** - JWT authentication via auth-service
-- ✅ **Automatic Token Refresh** - 7-day refresh tokens with rotation
+- ✅ **Automatic Token Refresh** - 24-hour refresh tokens (default, configurable) with rotation
 - ✅ **Spring Security** - Stateless JWT validation
 - ✅ **Spring Data JPA** - Database access with Hibernate
-- ✅ **H2 Database** - In-memory database for development (switchable to Oracle)
+- ✅ **Oracle Database** - For test and production profiles
 - ✅ **Lombok** - Reduce boilerplate code
 - ✅ **MapStruct** - DTO mapping
 - ✅ **SpringDoc OpenAPI** - Auto-generated API documentation (Swagger)
@@ -69,8 +69,7 @@ This application uses **external auth-service** for authentication:
 ## Prerequisites
 
 1. **Auth Service must be running first!**
-   - Clone and start auth-service on port 8091
-   - See: https://github.com/your-org/auth-service
+   - Start auth-service on port 8091 (see `auth-service/` in this repository)
 
 2. Java 17 or higher
 3. Node.js 18+ and npm
@@ -105,11 +104,6 @@ npm run dev
 - **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:8090/api
 - **Swagger UI**: http://localhost:8090/api/swagger-ui.html
-- **H2 Console**: http://localhost:8090/api/h2-console
-  - JDBC URL: `jdbc:h2:mem:businessdb`
-  - Username: `sa`
-  - Password: (empty)
-
 ## Authentication
 
 ### Login Credentials (from auth-service)
@@ -162,11 +156,9 @@ export JWT_SECRET=your-generated-secret
 Switch to Oracle in production by setting:
 ```bash
 export SPRING_PROFILES_ACTIVE=prod
-export DB_HOST=your-db-host
-export DB_PORT=1521
-export DB_SID=YOUR_SID
-export DB_USERNAME=your_user
-export DB_PASSWORD=your_password
+export TEMP_BUSINESS_APP_DB_URL=jdbc:oracle:thin:@your-db-host:1521:YOUR_SID
+export TEMP_BUSINESS_APP_DB_USERNAME=your_user
+export TEMP_BUSINESS_APP_DB_PASSWORD=your_password
 ```
 
 ### Environment Variables Template
@@ -185,11 +177,11 @@ cat ENV_TEMPLATE.env >> $CATALINA_HOME/bin/setenv.sh
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `{ENTITY}_DB_HOST` | Oracle database host | localhost |
-| `{ENTITY}_DB_PORT` | Oracle database port | 1521 |
-| `{ENTITY}_DB_SID` | Oracle SID | ORCL |
+| `{ENTITY}_DB_URL` | Full JDBC URL | `jdbc:oracle:thin:@localhost:1521:ORCL` |
+| `{ENTITY}_DB_USERNAME` | Database username | - |
+| `{ENTITY}_DB_PASSWORD` | Database password | - |
 | `{ENTITY}_JWT_SECRET` | JWT secret (must match auth-service) | - |
-| `{ENTITY}_AUTH_SERVICE_HOST` | Auth-service host URL | http://localhost:8091/auth |
+| `{ENTITY}_AUTH_SERVICE_URL` | Auth-service login URL | http://localhost:8091/auth/api/v1/auth/login |
 
 Variables are prefixed with entity code for multi-app Tomcat deployment.
 
@@ -406,13 +398,13 @@ npm run build  # Outputs to src/main/resources/static/
 
 cd ..
 ./mvnw clean package
-java -jar target/business-app-backend-1.0.0.jar
+java -jar target/api.war
 ```
 
 ### Backend Only
 ```bash
 ./mvnw clean package -Dmaven.test.skip=true
-java -jar target/business-app-backend-1.0.0.jar
+java -jar target/api.war
 ```
 
 ## Troubleshooting
@@ -434,11 +426,10 @@ java -jar target/business-app-backend-1.0.0.jar
 Detailed documentation is available in the [`docs/`](docs/) folder:
 
 - **[Exception Handling](docs/EXCEPTION_HANDLING.md)** - Error handling guide
-- **[Exception Migration Guide](docs/EXCEPTION_MIGRATION_GUIDE.md)** - Migrating exceptions
-- **[External Auth Refactoring](docs/EXTERNAL_AUTH_REFACTORING.md)** - Auth architecture
 
 Additional documentation:
-- **[Session Notes](claude.md)** - Development patterns and implementation details
+- **[Session Notes](CLAUDE.md)** - Development patterns and implementation details
+- **[Environment Variables](../ENVIRONMENT_VARIABLES.md)** - Full variable reference
 
 ## Adding New Entities
 
@@ -471,22 +462,15 @@ rm -rf src/main/java/com/template/business/demo/
 
 ## Environment Variables
 
-Set these in production:
+Set these in production (variables use `TEMP_BUSINESS_APP_` prefix — see [ENVIRONMENT_VARIABLES.md](../ENVIRONMENT_VARIABLES.md)):
 
 ```bash
-# Auth Service Host
-export AUTH_SERVICE_HOST=https://your-auth-service/auth
-
-# JWT Secret (MUST match auth-service!)
-export JWT_SECRET=your-production-secret-key
-
-# Database (Oracle for production)
 export SPRING_PROFILES_ACTIVE=prod
-export DB_HOST=your-db-host
-export DB_PORT=1521
-export DB_SID=YOUR_SID
-export DB_USERNAME=your_user
-export DB_PASSWORD=your_password
+export TEMP_BUSINESS_APP_DB_URL=jdbc:oracle:thin:@your-db-host:1521:YOUR_SID
+export TEMP_BUSINESS_APP_DB_USERNAME=your_user
+export TEMP_BUSINESS_APP_DB_PASSWORD=your_password
+export TEMP_BUSINESS_APP_JWT_SECRET=your-production-secret-key
+export TEMP_BUSINESS_APP_AUTH_SERVICE_URL=https://your-auth-service/auth/api/v1/auth/login
 ```
 
 ## License

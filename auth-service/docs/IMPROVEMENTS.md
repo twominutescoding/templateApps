@@ -7,7 +7,7 @@
 
 Implemented comprehensive refresh token mechanism with full session management:
 - Short-lived JWT access tokens (15 minutes)
-- Long-lived refresh tokens (7 days) stored in database
+- Long-lived refresh tokens (24 hours default, configurable) stored in database
 - Token rotation on refresh (old token automatically revoked)
 - Session tracking with device info, IP address, location
 - Maximum concurrent sessions per user (configurable, default: 5)
@@ -22,7 +22,7 @@ Implemented comprehensive refresh token mechanism with full session management:
 - `service/RefreshTokenService.java` - Business logic for token management
 - `dto/RefreshTokenRequest.java`, `RefreshTokenResponse.java`, `SessionDTO.java`
 - `task/TokenCleanupTask.java` - Scheduled cleanup jobs
-- `REFRESH_TOKEN_IMPLEMENTATION.md` - Complete documentation
+- See `auth-service/README.md` for complete endpoint documentation
 
 **Endpoints Added:**
 - `POST /auth/api/v1/auth/refresh` - Refresh access token
@@ -50,7 +50,7 @@ Refactored from controller-based JWT validation to proper Spring Security filter
 - `config/SecurityConfig.java` - Added filter to security chain, enabled method security
 - `controller/AuthController.java` - Removed manual JWT validation
 - `service/DatabaseUserDetailsService.java` - Added @Transactional, ROLE_ prefix
-- `JWT_FILTER_IMPLEMENTATION.md` - Complete documentation
+- See `config/SecurityConfig.java` and `security/JwtAuthenticationFilter.java`
 
 **Key Improvements:**
 - Controller code reduced by ~50%
@@ -81,7 +81,7 @@ Implemented enterprise-grade exception handling system based on template-core pa
 - `exception/InternalDatabaseException.java` - Database errors
 - `exception/InternalApiException.java` - Internal errors
 - `exception/GlobalExceptionHandler.java` - Centralized exception handler
-- `EXCEPTION_HANDLING.md` - Complete documentation with examples
+- `docs/EXCEPTION_HANDLING.md` - Complete documentation with examples
 
 **Error Categories:**
 - General errors (000-099): Validation, arguments, HTTP protocol

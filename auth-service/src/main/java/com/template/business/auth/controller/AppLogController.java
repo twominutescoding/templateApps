@@ -35,7 +35,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RestController
 @RequestMapping("/api/v1/logs")
 @RequiredArgsConstructor
-@Tag(name = "Application Logging", description = "Centralized logging service for backend applications. Stores logs with entity, module, status, and timing information.")
+@Tag(name = "Application Logging", description = "Application logging API.")
 @SecurityRequirement(name = "bearerAuth")
 public class AppLogController {
 
@@ -46,8 +46,7 @@ public class AppLogController {
      */
     @Operation(
         summary = "Create log entry",
-        description = "Creates a log entry synchronously. Returns the created log with generated ID. " +
-                      "Use this for important logs where you need confirmation of creation."
+        description = "Creates a log entry synchronously."
     )
     @PostMapping
     public ResponseEntity<ApiResponse<AppLogDTO>> createLog(@Valid @RequestBody AppLogCreateRequest request) {
@@ -74,8 +73,7 @@ public class AppLogController {
      */
     @Operation(
         summary = "Create log entry asynchronously",
-        description = "Creates a log entry asynchronously. Returns 202 Accepted immediately. " +
-                      "Use this for high-throughput scenarios where confirmation is not required."
+        description = "Creates a log entry asynchronously. Returns 202 Accepted immediately."
     )
     @PostMapping("/async")
     public ResponseEntity<ApiResponse<String>> createLogAsync(@Valid @RequestBody AppLogCreateRequest request) {

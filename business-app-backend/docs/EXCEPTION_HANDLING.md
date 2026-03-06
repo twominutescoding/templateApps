@@ -559,7 +559,7 @@ throw new RuntimeException("Access denied");
 throw new CustomAuthorizationException(ErrorCode.ACCESS_DENIED);
 ```
 
-See `EXCEPTION_MIGRATION_GUIDE.md` for detailed migration instructions.
+Migration to the custom exception hierarchy is complete — see `GlobalExceptionHandler.java` for details.
 
 ## Testing
 
@@ -636,4 +636,4 @@ The logs include:
 For more details, see:
 - `ErrorCode.java` - All error codes with default messages
 - `GlobalExceptionHandler.java` - Exception handling logic
-- `EXCEPTION_MIGRATION_GUIDE.md` - Migration instructions
+- `exception/` package - All exception classes and error codes

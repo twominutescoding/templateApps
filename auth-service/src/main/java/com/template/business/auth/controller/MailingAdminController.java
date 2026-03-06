@@ -39,7 +39,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RequestMapping("/api/v1/admin/mailings")
 @PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
-@Tag(name = "Mailing Administration", description = "Manage email/notification queue. All endpoints require ADMIN role.")
+@Tag(name = "Mailing Administration", description = "Mailing management APIs. All endpoints require ADMIN role.")
 @SecurityRequirement(name = "bearerAuth")
 public class MailingAdminController {
 
@@ -64,7 +64,7 @@ public class MailingAdminController {
     /**
      * Search mailings with pagination, filtering, and sorting
      */
-    @Operation(summary = "Search mailings", description = "Search mailings with pagination, filtering by subject/type/sent status, and date range filtering.")
+    @Operation(summary = "Search mailings", description = "Search mailings with pagination, filtering, and sorting.")
     @PostMapping("/search")
     public ResponseEntity<ApiResponse<PageResponse<MailingDTO>>> searchMailings(@RequestBody SearchRequest request) {
         try {
@@ -80,7 +80,7 @@ public class MailingAdminController {
     /**
      * Get mailing by ID
      */
-    @Operation(summary = "Get mailing by ID", description = "Returns full mailing details including body and attachment info.")
+    @Operation(summary = "Get mailing by ID", description = "Returns mailing details by ID.")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<MailingDTO>> getMailing(
             @Parameter(description = "Mailing ID") @PathVariable Long id) {
@@ -100,7 +100,7 @@ public class MailingAdminController {
     /**
      * Create a new mailing
      */
-    @Operation(summary = "Create mailing", description = "Creates a new mailing record in the queue with SENT='N'.")
+    @Operation(summary = "Create mailing", description = "Creates a new mailing entry.")
     @PostMapping
     public ResponseEntity<ApiResponse<MailingDTO>> createMailing(
             @RequestBody @jakarta.validation.Valid MailingCreateRequest request) {
@@ -118,7 +118,7 @@ public class MailingAdminController {
     /**
      * Resend a mailing (reset SENT flag to 'N')
      */
-    @Operation(summary = "Resend mailing", description = "Resets mailing SENT flag to 'N' and NOT_BEFORE to now, so the scheduler picks it up again.")
+    @Operation(summary = "Resend mailing", description = "Queues an existing mailing to be sent again.")
     @PostMapping("/{id}/resend")
     public ResponseEntity<ApiResponse<MailingDTO>> resendMailing(
             @Parameter(description = "Mailing ID") @PathVariable Long id) {

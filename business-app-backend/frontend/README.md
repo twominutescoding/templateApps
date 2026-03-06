@@ -1,73 +1,131 @@
-# React + TypeScript + Vite
+# Business App Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19 + TypeScript + Vite frontend for the business-app-backend template.
 
-Currently, two official plugins are available:
+## Quick Start
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```bash
+# Install dependencies
+npm install
 
-## React Compiler
+# Start development server (http://localhost:5173)
+npm run dev
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+# Build for production (outputs to ../src/main/resources/static/)
+npm run build
 
-## Expanding the ESLint configuration
+# Preview production build
+npm run preview
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+# Run linter
+npm run lint
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Type check
+npx tsc --noEmit
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+**Requirements**: Auth service must be running on port 8091.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+**Login credentials** (from auth-service):
+- Admin: `admin` / `password`
+- User: `user1` / `password`
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Tech Stack
+
+- React 19.2 with TypeScript
+- Material-UI v7
+- Vite (HMR, fast builds)
+- Axios (API client with automatic token refresh)
+
+## Folder Structure
+
 ```
+src/
+├── components/
+│   ├── auth/            # ProtectedRoute
+│   ├── common/          # CustomPaletteEditor, DateRangeFilter, StatusChip
+│   ├── layout/          # Header, Layout, Sidebar
+│   └── table/           # AdvancedDataTable (inline & bulk editing)
+├── context/
+│   └── DateFormatContext.tsx    # User-configurable date/timestamp formats
+├── contexts/
+│   └── AuthContext.tsx           # JWT authentication state
+├── pages/
+│   ├── demo/
+│   │   └── DemoProductsPage.tsx  # Example CRUD page (safe to delete)
+│   ├── Dashboard.tsx
+│   ├── Login.tsx
+│   └── Settings.tsx
+├── services/
+│   └── api.ts                    # Axios client with automatic token refresh
+├── theme/
+│   └── ThemeContext.tsx          # Dark mode & custom color palettes
+├── types/
+│   └── palette.ts
+└── App.tsx
+```
+
+## Key Components
+
+### AdvancedDataTable
+
+Reusable table with server-side pagination, filtering, sorting, inline editing, and bulk editing.
+
+**CRITICAL for performance** — always wrap props in `useMemo`/`useCallback`:
+
+```tsx
+const columns = useMemo(() => [
+  { id: 'name', label: 'Name', filterType: 'text' as const, editable: true },
+  { id: 'createdAt', label: 'Created', filterType: 'date' as const },
+], [formatTimestamp]);
+
+const fetchData = useCallback(async (params) => {
+  // fetch logic
+}, []);
+```
+
+### Date/Timestamp Formatting
+
+User-configurable from Settings page:
+
+```tsx
+const { formatDate, formatTimestamp } = useDateFormat();
+formatDate(new Date());           // "07.12.2025"
+formatTimestamp(new Date());      // "07.12.2025 14:30:45"
+```
+
+### Theme System
+
+- Dark mode toggle (persisted in localStorage)
+- Predefined palettes: Ocean Blue, Sunset Orange, Forest Green, Royal Purple, Cherry Red, Midnight Dark
+- Custom palettes (user-created, stored in localStorage)
+
+## Authentication
+
+JWT authentication is handled automatically:
+- Access tokens (15 min) stored in localStorage
+- Axios interceptor auto-refreshes on 401 errors
+- Refresh tokens managed by auth-service (24-hour default, configurable)
+- Graceful logout if refresh fails
+
+## Adding New Pages
+
+1. Create a page in `pages/` using `AdvancedDataTable`
+2. Add route in `App.tsx`
+3. Add sidebar link in `components/layout/Sidebar.tsx`
+
+**Pattern**: See `DemoProductsPage.tsx` as a reference implementation.
+
+## Removing Demo Code
+
+When ready for production:
+```bash
+# Remove demo backend package
+rm -rf ../src/main/java/com/template/business/demo/
+
+# Remove demo route from App.tsx and Sidebar.tsx
+```
+
+## Reusable Components
+
+See [REUSABLE_COMPONENTS.md](REUSABLE_COMPONENTS.md) for detailed documentation on shared components (AdvancedDataTable, StatusChip, DateRangeFilter, CustomPaletteEditor).
