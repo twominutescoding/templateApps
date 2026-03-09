@@ -89,9 +89,5 @@ public class User {
         if (company == null) {
             company = "KONZUM";
         }
-        // Convert username to lowercase (as per trigger D_USERS_TO_LOWERCASE)
-        if (username != null) {
-            username = username.toLowerCase();
-        }
     }
 }

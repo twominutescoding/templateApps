@@ -113,8 +113,9 @@ public class AuthController {
     public ResponseEntity<ApiResponse<LoginResponse>> login(
             @Valid @RequestBody LoginRequest request,
             HttpServletRequest httpRequest) {
+        String username = request.getUsername();
         try {
-            log.info("Login attempt for user: {} with entity: {}", request.getUsername(), request.getEntityCode());
+            log.info("Login attempt for user: {} with entity: {}", username, request.getEntityCode());
 
             // Validate that entity exists and get its ID
             ApplicationEntity entity = entityRepository.findByName(request.getEntityCode()).orElse(null);
@@ -127,7 +128,7 @@ public class AuthController {
 
             // Authenticate using custom provider (LDAP + DB fallback)
             Authentication authentication = authenticationProvider.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+                    new UsernamePasswordAuthenticationToken(username, request.getPassword())
             );
 
             // Determine which authentication method was used
@@ -135,7 +136,7 @@ public class AuthController {
             String authMethod = determineAuthMethod(authentication);
 
             // Get user details from database (needed for response and roles)
-            User user = databaseUserDetailsService.getUserByUsername(request.getUsername());
+            User user = databaseUserDetailsService.getUserByUsername(username);
 
             // Extract roles - prioritize database roles if user exists
             List<String> roles;
@@ -158,11 +159,11 @@ public class AuthController {
             }
 
             // Generate JWT access token (short-lived) with entityName for validation
-            String accessToken = jwtUtil.generateToken(request.getUsername(), roles, request.getEntityCode());
+            String accessToken = jwtUtil.generateToken(username, roles, request.getEntityCode());
 
             // Generate refresh token (long-lived) and store in database
             String refreshToken = refreshTokenService.createRefreshToken(
-                    request.getUsername(),
+                    username,
                     request.getEntityCode(),
                     httpRequest,
                     "LOGIN" // This is an initial login
@@ -173,7 +174,7 @@ public class AuthController {
                     .token(accessToken)
                     .refreshToken(refreshToken)
                     .type("Bearer")
-                    .username(request.getUsername())
+                    .username(username)
                     .roles(roles)
                     .authenticationMethod(authMethod);
 
@@ -192,14 +193,14 @@ public class AuthController {
             LoginResponse loginResponse = responseBuilder.build();
 
             log.info("User {} logged in successfully via {} - Data source: {}",
-                    request.getUsername(),
+                    username,
                     authMethod,
                     user != null ? "DATABASE" : "AUTHENTICATION_PROVIDER");
 
             return ResponseEntity.ok(ApiResponse.success("Login successful", loginResponse));
 
         } catch (Exception e) {
-            log.error("Login failed for user {}: {}", request.getUsername(), e.getMessage());
+            log.error("Login failed for user {}: {}", username, e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResponse.error("Invalid username or password"));
         }
