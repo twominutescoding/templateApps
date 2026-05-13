@@ -164,7 +164,7 @@ public class AuthController {
             // Generate refresh token (long-lived) and store in database
             String refreshToken = refreshTokenService.createRefreshToken(
                     username,
-                    request.getEntityCode(),
+                    entityId,
                     httpRequest,
                     "LOGIN" // This is an initial login
             );

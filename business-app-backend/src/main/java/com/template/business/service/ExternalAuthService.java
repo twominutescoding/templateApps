@@ -7,6 +7,7 @@ import com.template.business.dto.ThemePreferencesRequest;
 import com.template.business.exception.CustomAuthenticationException;
 import com.template.business.exception.ErrorCode;
 import com.template.business.exception.ExternalServiceException;
+import org.springframework.web.client.HttpClientErrorException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -89,9 +90,16 @@ public class ExternalAuthService {
                 throw new CustomAuthenticationException(ErrorCode.EXTERNAL_AUTH_ERROR, "Authentication failed");
             }
 
+        } catch (HttpClientErrorException e) {
+            if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                log.warn("Authentication failed for user '{}': invalid credentials", username);
+                throw new CustomAuthenticationException(ErrorCode.INVALID_CREDENTIALS, "Invalid username or password.");
+            }
+            log.error("Auth service returned {} for login request", e.getStatusCode());
+            throw new ExternalServiceException(ErrorCode.EXTERNAL_AUTH_ERROR, "Authentication failed.", e);
         } catch (Exception e) {
             log.error("Error calling external auth service: {}", e.getMessage());
-            throw new ExternalServiceException(ErrorCode.EXTERNAL_SERVICE_UNAVAILABLE, "Authentication service unavailable: " + e.getMessage(), e);
+            throw new ExternalServiceException(ErrorCode.EXTERNAL_SERVICE_UNAVAILABLE, "Authentication service is currently unavailable. Please try again later.", e);
         }
     }
 
@@ -144,9 +152,16 @@ public class ExternalAuthService {
                 throw new CustomAuthenticationException(ErrorCode.TOKEN_EXPIRED, "Token refresh failed");
             }
 
+        } catch (HttpClientErrorException e) {
+            if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                log.warn("Token refresh failed: invalid or expired refresh token");
+                throw new CustomAuthenticationException(ErrorCode.INVALID_REFRESH_TOKEN, "Refresh token is invalid or has expired.");
+            }
+            log.error("Auth service returned {} for token refresh request", e.getStatusCode());
+            throw new ExternalServiceException(ErrorCode.EXTERNAL_AUTH_ERROR, "Token refresh failed.", e);
         } catch (Exception e) {
             log.error("Error calling external auth service for token refresh: {}", e.getMessage());
-            throw new ExternalServiceException(ErrorCode.EXTERNAL_SERVICE_UNAVAILABLE, "Auth service unavailable for token refresh: " + e.getMessage(), e);
+            throw new ExternalServiceException(ErrorCode.EXTERNAL_SERVICE_UNAVAILABLE, "Authentication service is currently unavailable. Please try again later.", e);
         }
     }
 
