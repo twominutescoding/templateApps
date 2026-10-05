@@ -260,6 +260,7 @@ async function main() {
       // Vite configuration
       "base: '/auth/'": `base: '${viteBase}'`,
       "'/auth/api/v1'": `'${contextPath}/api/v1'`,
+      "'/auth/api'": `'${contextPath}/api'`,
       "'/auth/'": `'${viteBase}'`,
 
       // Postman collection baseUrl

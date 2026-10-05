@@ -110,7 +110,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     String tokenEntityName = jwtUtil.extractEntityName(jwt);
                     if (tokenEntityName != null && !tokenEntityName.equals(configuredEntityName)) {
                         // Check if this is an entity-specific endpoint that requires matching entity
-                        if (isEntitySpecificEndpoint(request.getRequestURI())) {
+                        if (isEntitySpecificEndpoint(getPathWithinApplication(request))) {
                             log.warn("JWT Filter: Token entity '{}' does not match configured entity '{}' for admin endpoint",
                                     tokenEntityName, configuredEntityName);
                             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
@@ -169,22 +169,38 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI();
+        String path = getPathWithinApplication(request);
 
         // Skip JWT validation for these public endpoints
-        // Note: getRequestURI() includes the context path (/auth), so paths here
-        // must include it. SecurityConfig uses paths without context path.
-        return path.equals("/auth/api/v1/auth/login") ||
-               path.equals("/auth/api/v1/auth/register") ||
-               path.equals("/auth/api/v1/auth/health") ||
-               path.equals("/auth/api/v1/auth/refresh") ||
-               path.equals("/auth/api/v1/auth/logout") ||
-               path.startsWith("/auth/h2-console") ||
-               path.startsWith("/auth/swagger-ui") ||
-               path.startsWith("/auth/v3/api-docs") ||
-               path.startsWith("/auth/api-docs") ||
-               path.startsWith("/auth/swagger-resources") ||
-               path.startsWith("/auth/webjars");
+        // Paths are relative to the context path, same as in SecurityConfig.
+        return path.equals("/api/v1/auth/login") ||
+               path.equals("/api/v1/auth/register") ||
+               path.equals("/api/v1/auth/health") ||
+               path.equals("/api/v1/auth/refresh") ||
+               path.equals("/api/v1/auth/logout") ||
+               path.startsWith("/h2-console") ||
+               path.startsWith("/swagger-ui") ||
+               path.startsWith("/v3/api-docs") ||
+               path.startsWith("/api-docs") ||
+               path.startsWith("/swagger-resources") ||
+               path.startsWith("/webjars");
+    }
+
+    /**
+     * Returns the request path without the servlet context path
+     * (e.g. /api/v1/auth/login instead of /auth/api/v1/auth/login),
+     * so endpoint checks work regardless of the configured context path.
+     *
+     * @param request the HTTP request
+     * @return the request URI relative to the context path
+     */
+    private String getPathWithinApplication(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        String contextPath = request.getContextPath();
+        if (contextPath != null && !contextPath.isEmpty() && uri.startsWith(contextPath)) {
+            return uri.substring(contextPath.length());
+        }
+        return uri;
     }
 
     /**
@@ -204,22 +220,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // These are administrative operations that should only be accessible from auth-service admin panel
 
         // Admin session management
-        if (path.startsWith("/auth/api/v1/auth/admin/")) {
+        if (path.startsWith("/api/v1/auth/admin/")) {
             return true;
         }
 
         // Admin user/role/entity management
-        if (path.startsWith("/auth/api/v1/admin/")) {
+        if (path.startsWith("/api/v1/admin/")) {
             return true;
         }
 
         // All other endpoints are entity-agnostic:
-        // - PUT /auth/api/v1/auth/theme - User updates their own theme
-        // - GET /auth/api/v1/auth/sessions - User views their own sessions
-        // - POST /auth/api/v1/auth/sessions/revoke - User revokes their own session
-        // - POST /auth/api/v1/auth/logout-all - User logs out from all devices
-        // - GET /auth/api/v1/auth/validate - Token validation
-        // - POST /auth/api/v1/logs - Any app can write logs
+        // - PUT /api/v1/auth/theme - User updates their own theme
+        // - GET /api/v1/auth/sessions - User views their own sessions
+        // - POST /api/v1/auth/sessions/revoke - User revokes their own session
+        // - POST /api/v1/auth/logout-all - User logs out from all devices
+        // - GET /api/v1/auth/validate - Token validation
+        // - POST /api/v1/logs - Any app can write logs
         return false;
     }
 }
