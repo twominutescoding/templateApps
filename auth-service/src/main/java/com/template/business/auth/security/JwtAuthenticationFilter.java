@@ -148,10 +148,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 log.debug("JWT Filter: User already authenticated: {}",
                         SecurityContextHolder.getContext().getAuthentication().getName());
             }
+        } catch (io.jsonwebtoken.ExpiredJwtException e) {
+            log.warn("JWT token expired: {}", e.getMessage());
         } catch (Exception e) {
-            // Log the error but don't fail the request
-            // Let Spring Security handle authorization based on endpoint config
-            log.error("JWT authentication failed: {}", e.getMessage(), e);
+            log.warn("JWT authentication failed: {}", e.getMessage());
         }
 
         // Continue with the filter chain

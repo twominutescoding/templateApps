@@ -51,8 +51,10 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             jwt = authorizationHeader.substring(7);
             try {
                 username = jwtUtil.extractUsername(jwt);
+            } catch (io.jsonwebtoken.ExpiredJwtException e) {
+                log.warn("JWT token expired: {}", e.getMessage());
             } catch (Exception e) {
-                log.error("JWT token extraction failed", e);
+                log.error("JWT token extraction failed: {}", e.getMessage());
             }
         }
 
@@ -97,8 +99,10 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
                     log.debug("JWT token validated for user: {} with roles: {}", username, roles);
                 }
+            } catch (io.jsonwebtoken.ExpiredJwtException e) {
+                log.warn("JWT token expired for user {}: {}", username, e.getMessage());
             } catch (Exception e) {
-                log.error("JWT token validation failed for user: {}", username, e);
+                log.error("JWT token validation failed for user {}: {}", username, e.getMessage());
             }
         }
 

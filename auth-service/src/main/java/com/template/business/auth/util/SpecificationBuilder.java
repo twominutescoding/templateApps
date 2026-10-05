@@ -28,11 +28,14 @@ public class SpecificationBuilder {
 
                     if (value != null && !value.isEmpty()) {
                         try {
-                            // Try to parse as number
-                            if (value.matches("-?\\d+(\\.\\d+)?")) {
+                            Class<?> fieldType = root.get(field).getJavaType();
+                            boolean isNumericField = Number.class.isAssignableFrom(fieldType)
+                                    || fieldType == int.class || fieldType == long.class
+                                    || fieldType == double.class || fieldType == float.class;
+
+                            if (isNumericField && value.matches("-?\\d+(\\.\\d+)?")) {
                                 predicates.add(criteriaBuilder.equal(root.get(field), Double.parseDouble(value)));
                             } else {
-                                // Text search with like
                                 predicates.add(criteriaBuilder.like(
                                         criteriaBuilder.lower(root.get(field).as(String.class)),
                                         "%" + value.toLowerCase() + "%"

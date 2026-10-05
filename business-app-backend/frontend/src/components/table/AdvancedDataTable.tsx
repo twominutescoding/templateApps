@@ -26,7 +26,9 @@ import {
   Checkbox,
   Menu,
   Tooltip,
+  Popover,
 } from '@mui/material';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -52,11 +54,12 @@ export interface Column<T = Record<string, unknown>> {
   filterType?: 'text' | 'select' | 'number' | 'date';
   filterOptions?: { label: string; value: string }[];
   render?: (row: T) => React.ReactNode;
-  editable?: boolean;  // Can this column be edited?
-  editType?: 'text' | 'select' | 'number' | 'date';  // Input type for editing
-  width?: string | number;  // Fixed width for column (e.g., '100px', 100, '10%')
-  minWidth?: string | number;  // Minimum width for column
-  maxWidth?: string | number;  // Maximum width for column
+  editable?: boolean;
+  editType?: 'text' | 'select' | 'number' | 'date';
+  width?: string | number;
+  minWidth?: string | number;
+  maxWidth?: string | number;
+  align?: 'left' | 'right' | 'center';  // Defaults to 'right' when filterType='number'
 }
 
 interface DateRange {
@@ -98,11 +101,14 @@ interface AdvancedDataTableProps {
   rowIdField?: string;  // Field name for row ID (default: 'id')
   enableBulkEdit?: boolean;  // Enable bulk edit mode (default: false)
 
-  // Filter mode props
-  filterTrigger?: 'auto' | 'manual';  // 'auto' = filter on every change, 'manual' = filter on Enter/button click (default: 'auto')
+  // Bulk edit always-on mode — fields are always visible as inputs, no Edit All/Cancel All toggle
+  defaultBulkEditMode?: boolean;
+  // Auto-save: called on field blur when value changed; parent refreshes data after API call
+  onAutoSave?: (row: Record<string, any>) => Promise<void>;
 
   // Row interaction props
   onRowClick?: (rowId: string | number, rowData: Record<string, any>) => void;  // Callback when row is clicked
+  onRowDoubleClick?: (rowId: string | number, rowData: Record<string, any>) => void;  // Callback when row is double-clicked
 
   // Actions column props
   renderActions?: (row: Record<string, any>) => React.ReactNode;  // Custom actions renderer (e.g., delete, custom buttons)
@@ -112,6 +118,82 @@ interface AdvancedDataTableProps {
   showExport?: boolean;  // Show export button (default: false)
   enableSelection?: boolean;  // Enable row selection (default: true)
   refetchTrigger?: number;  // Increment to trigger a refetch without remounting (preserves filters)
+}
+
+function DateRangeFilterPopover({
+  value,
+  onChange,
+}: {
+  value: { from: Dayjs | null; to: Dayjs | null };
+  onChange: (field: 'from' | 'to', val: Dayjs | null) => void;
+}) {
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const open = Boolean(anchorEl);
+
+  const fromStr = value.from ? value.from.format('DD.MM.YY') : null;
+  const toStr = value.to ? value.to.format('DD.MM.YY') : null;
+  const hasValue = value.from || value.to;
+  const label = hasValue ? `${fromStr ?? '–'} — ${toStr ?? '–'}` : 'OD — DO';
+
+  return (
+    <>
+      <Button
+        size="small"
+        variant={hasValue ? 'contained' : 'outlined'}
+        startIcon={<CalendarMonthIcon sx={{ fontSize: '0.85rem !important' }} />}
+        onClick={(e) => setAnchorEl(e.currentTarget)}
+        sx={{
+          fontSize: '0.7rem',
+          py: '2px',
+          px: '6px',
+          minWidth: 0,
+          whiteSpace: 'nowrap',
+          lineHeight: 1.4,
+          textTransform: 'none',
+        }}
+      >
+        {label}
+      </Button>
+      <Popover
+        open={open}
+        anchorEl={anchorEl}
+        onClose={() => setAnchorEl(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+      >
+        <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1, minWidth: 160 }}>
+          <TextField
+            type="date"
+            size="small"
+            label="OD"
+            value={value.from ? value.from.format('YYYY-MM-DD') : ''}
+            onChange={(e) => onChange('from', e.target.value ? dayjs(e.target.value) : null)}
+            InputLabelProps={{ shrink: true }}
+            sx={{ '& .MuiInputBase-input': { fontSize: '0.8rem', py: '5px' } }}
+          />
+          <TextField
+            type="date"
+            size="small"
+            label="DO"
+            value={value.to ? value.to.format('YYYY-MM-DD') : ''}
+            onChange={(e) => onChange('to', e.target.value ? dayjs(e.target.value) : null)}
+            InputLabelProps={{ shrink: true }}
+            sx={{ '& .MuiInputBase-input': { fontSize: '0.8rem', py: '5px' } }}
+          />
+          {hasValue && (
+            <Button
+              size="small"
+              color="inherit"
+              sx={{ fontSize: '0.75rem', py: '2px' }}
+              onClick={() => { onChange('from', null); onChange('to', null); }}
+            >
+              Obriši
+            </Button>
+          )}
+        </Box>
+      </Popover>
+    </>
+  );
 }
 
 const AdvancedDataTable = ({
@@ -127,8 +209,10 @@ const AdvancedDataTable = ({
   onBulkSave,
   rowIdField = 'id',
   enableBulkEdit = false,
-  filterTrigger = 'auto',
+  defaultBulkEditMode = false,
+  onAutoSave,
   onRowClick,
+  onRowDoubleClick,
   renderActions,
   showEditAction = true,
   actionsLabel = 'Actions',
@@ -144,11 +228,10 @@ const AdvancedDataTable = ({
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [dateRanges, setDateRanges] = useState<DateRanges>({});
   const [pendingColumnFilters, setPendingColumnFilters] = useState<Record<string, string>>({});
-  const [pendingDateRanges, setPendingDateRanges] = useState<DateRanges>({});
   const [showFilters, setShowFilters] = useState(false);
   const [filterMode, setFilterMode] = useState<'panel' | 'inline'>('inline');
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(15);
 
   // Editable mode state
   const [editingRowId, setEditingRowId] = useState<string | number | null>(null);
@@ -156,7 +239,7 @@ const AdvancedDataTable = ({
   const [saving, setSaving] = useState(false);
 
   // Bulk edit mode state
-  const [bulkEditMode, setBulkEditMode] = useState(false);
+  const [bulkEditMode, setBulkEditMode] = useState(defaultBulkEditMode);
   const [bulkEditedData, setBulkEditedData] = useState<Record<string | number, Record<string, any>>>({});
 
   // Selection state
@@ -165,7 +248,7 @@ const AdvancedDataTable = ({
 
   // Auto-detect modes
   const isServerSide = !!onFetchData;
-  const isEditable = !!onSave || !!onBulkSave;
+  const isEditable = !!onSave || !!onBulkSave || !!onAutoSave;
   const hasEditAction = isEditable && showEditAction && !enableBulkEdit;
   const hasCustomActions = !!renderActions;
   const showActionsColumn = hasEditAction || hasCustomActions;
@@ -196,6 +279,19 @@ const AdvancedDataTable = ({
       onFetchData(fetchParams);
     }
   }, [isServerSide, onFetchData, columnFilters, dateRanges, orderBy, order, page, rowsPerPage, refetchTrigger]);
+
+  // When defaultBulkEditMode, keep bulkEditedData in sync with incoming data
+  useEffect(() => {
+    if (defaultBulkEditMode && data.length > 0) {
+      const initialData: Record<string | number, Record<string, any>> = {};
+      data.forEach((row) => {
+        const rowId = row[rowIdField];
+        initialData[rowId] = { ...row };
+      });
+      setBulkEditedData(initialData);
+      setBulkEditMode(true);
+    }
+  }, [defaultBulkEditMode, data, rowIdField]);
 
   // Editable mode handlers
   const handleEditRow = (row: Record<string, any>) => {
@@ -295,8 +391,10 @@ const AdvancedDataTable = ({
         await Promise.all(rowsToSave.map((row) => onSave(row)));
       }
 
-      setBulkEditMode(false);
-      setBulkEditedData({});
+      if (!defaultBulkEditMode) {
+        setBulkEditMode(false);
+        setBulkEditedData({});
+      }
 
       // If server-side mode, refetch data
       if (isServerSide && onFetchData) {
@@ -435,40 +533,31 @@ const AdvancedDataTable = ({
     handleExportClose();
   };
 
-  const handleColumnFilterChange = useCallback((columnId: string, value: string) => {
-    if (filterTrigger === 'manual') {
-      // In manual mode, update pending filters only
-      setPendingColumnFilters((prev) => ({
-        ...prev,
-        [columnId]: value,
-      }));
+  // immediate=true for select filters; false (default) for text/number — pending until Enter
+  const handleColumnFilterChange = useCallback((columnId: string, value: string, immediate = false) => {
+    if (immediate) {
+      setColumnFilters((prev) => ({ ...prev, [columnId]: value }));
+      setPendingColumnFilters((prev) => ({ ...prev, [columnId]: value }));
+      setPage(0);
     } else {
-      // In auto mode, update actual filters immediately
-      setColumnFilters((prev) => ({
-        ...prev,
-        [columnId]: value,
-      }));
+      setPendingColumnFilters((prev) => ({ ...prev, [columnId]: value }));
     }
-  }, [filterTrigger]);
+  }, []);
 
+  // Applies pending text/number filters (called on Enter)
   const applyFilters = useCallback(() => {
-    // Apply pending filters to actual filters
-    setColumnFilters(pendingColumnFilters);
-    setDateRanges(pendingDateRanges);
-    setPage(0); // Reset to first page when applying filters
-  }, [pendingColumnFilters, pendingDateRanges]);
+    setColumnFilters((prev) => ({ ...prev, ...pendingColumnFilters }));
+    setPage(0);
+  }, [pendingColumnFilters]);
 
   const handleFilterKeyPress = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && filterTrigger === 'manual') {
-      applyFilters();
-    }
-  }, [filterTrigger, applyFilters]);
+    if (e.key === 'Enter') applyFilters();
+  }, [applyFilters]);
 
   const handleClearFilters = () => {
     setColumnFilters({});
     setDateRanges({});
     setPendingColumnFilters({});
-    setPendingDateRanges({});
     setPage(0);
   };
 
@@ -481,28 +570,14 @@ const AdvancedDataTable = ({
     setPage(0);
   };
 
+  // Dates always fire immediately
   const handleDateChange = useCallback((columnId: string, field: 'from' | 'to', value: Dayjs | null) => {
-    if (filterTrigger === 'manual') {
-      // In manual mode, update pending date ranges only
-      setPendingDateRanges((prev) => ({
-        ...prev,
-        [columnId]: {
-          ...(prev[columnId] || { from: null, to: null }),
-          [field]: value,
-        },
-      }));
-    } else {
-      // In auto mode, update actual date ranges immediately
-      setDateRanges((prev) => ({
-        ...prev,
-        [columnId]: {
-          ...(prev[columnId] || { from: null, to: null }),
-          [field]: value,
-        },
-      }));
-      setPage(0);
-    }
-  }, [filterTrigger]);
+    setDateRanges((prev) => ({
+      ...prev,
+      [columnId]: { ...(prev[columnId] || { from: null, to: null }), [field]: value },
+    }));
+    setPage(0);
+  }, []);
 
   const activeFilterCount = useMemo(() => {
     let count = Object.values(columnFilters).filter((v) => v).length;
@@ -686,12 +761,32 @@ const AdvancedDataTable = ({
       );
     }
 
+    const handleAutoSaveBlur = defaultBulkEditMode && onAutoSave
+      ? async (e: React.FocusEvent<HTMLInputElement>) => {
+          // Read from DOM directly — bulkEditedData may be stale (onChange and onBlur
+          // fire in the same browser task before React flushes the state update)
+          const currentValue = e.target.value;
+          const original = row[column.id];
+          if (String(currentValue) !== String(original ?? '')) {
+            const fullRow = {
+              ...row,
+              ...(bulkEditedData[rowId] || {}),
+              [column.id]: editType === 'number' && currentValue !== ''
+                ? Number(currentValue)
+                : (currentValue || null),
+            };
+            await onAutoSave(fullRow);
+          }
+        }
+      : undefined;
+
     return (
       <TextField
         fullWidth
         size="small"
         value={value || ''}
         onChange={(e) => onChange(column.id, e.target.value)}
+        onBlur={handleAutoSaveBlur}
         type={editType === 'number' ? 'number' : 'text'}
         sx={{
           '& .MuiInputBase-input': { fontSize: '0.813rem', padding: '4px 8px' },
@@ -713,102 +808,35 @@ const AdvancedDataTable = ({
 
     const filterType = column.filterType || 'text';
 
-    // Get current filter values based on filter trigger mode
-    const currentFilters = filterTrigger === 'manual' ? pendingColumnFilters : columnFilters;
-    const currentDateRanges = filterTrigger === 'manual' ? pendingDateRanges : dateRanges;
+    // Text filters show pending value; select shows applied value
+    const currentFilters = pendingColumnFilters;
+    const currentDateRanges = dateRanges;
 
-    // Date column - show from/to date pickers
+    // Date column - compact popover with native date inputs
     if (filterType === 'date') {
       const columnDateRange = currentDateRanges[column.id] || { from: null, to: null };
-
-      // Convert date format to dayjs format
-      const getDatePickerFormat = () => {
-        switch (dateFormat) {
-          case 'DD.MM.YYYY':
-            return 'DD.MM.YYYY';
-          case 'MM/DD/YYYY':
-            return 'MM/DD/YYYY';
-          case 'YYYY-MM-DD':
-            return 'YYYY-MM-DD';
-          default:
-            return 'DD.MM.YYYY';
-        }
-      };
-
       return (
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3, maxWidth: '140px' }}>
-            <DatePicker
-              label="From"
-              value={columnDateRange.from}
-              onChange={(newValue) => handleDateChange(column.id, 'from', newValue)}
-              format={getDatePickerFormat()}
-              slotProps={{
-                textField: {
-                  size: 'small',
-                  InputLabelProps: {
-                    style: {
-                      fontSize: '0.813rem'
-                    }
-                  },
-                  sx: {
-                    fontSize: '0.813rem !important',
-                    '& *': { fontSize: '0.813rem !important' },
-                    '& .MuiInputBase-input': {
-                      padding: '0'
-                    }
-                  }
-                }
-              }}
-              sx={{
-                '& .MuiSvgIcon-root': { fontSize: '1rem' }
-              }}
-            />
-            <DatePicker
-              label="To"
-              value={columnDateRange.to}
-              onChange={(newValue) => handleDateChange(column.id, 'to', newValue)}
-              format={getDatePickerFormat()}
-              slotProps={{
-                textField: {
-                  size: 'small',
-                  InputLabelProps: {
-                    style: {
-                      fontSize: '0.813rem'
-                    }
-                  },
-                  sx: {
-                    fontSize: '0.813rem !important',
-                    '& *': { fontSize: '0.813rem !important' },
-                    '& .MuiInputBase-input': {
-                      padding: '0'
-                    }
-                  }
-                }
-              }}
-              sx={{
-                '& .MuiSvgIcon-root': { fontSize: '1rem' }
-              }}
-            />
-          </Box>
-        </LocalizationProvider>
+        <DateRangeFilterPopover
+          value={columnDateRange}
+          onChange={(field, val) => handleDateChange(column.id, field, val)}
+        />
       );
     }
 
     if (filterType === 'select' && column.filterOptions) {
       return (
-        <FormControl fullWidth size="small" sx={{ minWidth: 100 }}>
+        <FormControl fullWidth size="small" sx={{ minWidth: 80 }}>
           <Select
             value={currentFilters[column.id] || ''}
-            onChange={(e) => handleColumnFilterChange(column.id, e.target.value)}
+            onChange={(e) => handleColumnFilterChange(column.id, e.target.value, true)}
             displayEmpty
-            sx={{ fontSize: '0.875rem', '& .MuiSelect-select': { py: 0.5 } }}
+            sx={{ fontSize: '0.75rem', '& .MuiSelect-select': { py: '3px', px: '8px' } }}
           >
-            <MenuItem value="">
-              <em>All</em>
+            <MenuItem value="" sx={{ fontSize: '0.75rem' }}>
+              <em>Sve</em>
             </MenuItem>
             {column.filterOptions.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
+              <MenuItem key={option.value} value={option.value} sx={{ fontSize: '0.75rem' }}>
                 {option.label}
               </MenuItem>
             ))}
@@ -821,29 +849,26 @@ const AdvancedDataTable = ({
       <TextField
         fullWidth
         size="small"
-        placeholder={`Filter...`}
+        placeholder="Filter..."
         value={currentFilters[column.id] || ''}
         onChange={(e) => handleColumnFilterChange(column.id, e.target.value)}
         onKeyPress={handleFilterKeyPress}
         type={filterType === 'number' ? 'number' : 'text'}
         sx={{
-          '& .MuiInputBase-input': { fontSize: '0.875rem', py: 0.5 },
-          // Hide number input spinners
+          '& .MuiInputBase-input': { fontSize: '0.75rem', py: '3px', px: '6px' },
           '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': {
             WebkitAppearance: 'none',
             margin: 0,
           },
-          '& input[type=number]': {
-            MozAppearance: 'textfield',
-          },
+          '& input[type=number]': { MozAppearance: 'textfield' },
         }}
       />
     );
   };
 
   return (
-    <Paper sx={{ p: 3, position: 'relative', overflow: 'hidden', isolation: 'isolate', '&::before': { content: '""', position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: headerGradient, zIndex: 1 } }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+    <Paper sx={{ p: 1.5, position: 'relative', overflow: 'hidden', isolation: 'isolate', '&::before': { content: '""', position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: headerGradient, zIndex: 1 } }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             {title}
@@ -912,74 +937,78 @@ const AdvancedDataTable = ({
             <>
               {bulkEditMode ? (
                 <>
-                  <Button
-                    size="small"
-                    variant="contained"
-                    startIcon={<SaveIcon />}
-                    onClick={handleBulkSaveAll}
-                    disabled={saving}
-                    sx={{
-                      backgroundColor: '#66bb6a',
-                      '&:hover': {
-                        backgroundColor: '#43a047',
-                      },
-                    }}
-                  >
-                    Save All
-                  </Button>
+                  {!onAutoSave && (
+                    <Button
+                      size="small"
+                      variant="contained"
+                      startIcon={<SaveIcon />}
+                      onClick={handleBulkSaveAll}
+                      disabled={saving}
+                      sx={{
+                        backgroundColor: '#66bb6a',
+                        '&:hover': {
+                          backgroundColor: '#43a047',
+                        },
+                      }}
+                    >
+                      Spremi sve
+                    </Button>
+                  )}
+                  {!defaultBulkEditMode && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<CancelIcon />}
+                      onClick={handleBulkEditCancel}
+                      disabled={saving}
+                      sx={{
+                        color: '#bdbdbd',
+                        borderColor: '#bdbdbd',
+                        '&:hover': {
+                          backgroundColor: 'rgba(189, 189, 189, 0.15)',
+                          borderColor: '#9e9e9e',
+                        },
+                      }}
+                    >
+                      Cancel All
+                    </Button>
+                  )}
+                </>
+              ) : (
+                !defaultBulkEditMode && (
                   <Button
                     size="small"
                     variant="outlined"
-                    startIcon={<CancelIcon />}
-                    onClick={handleBulkEditCancel}
-                    disabled={saving}
+                    startIcon={<EditIcon />}
+                    onClick={handleBulkEditStart}
+                    disabled={editingRowId !== null}
                     sx={{
-                      color: '#bdbdbd',
-                      borderColor: '#bdbdbd',
+                      color: '#42a5f5',
+                      borderColor: '#42a5f5',
                       '&:hover': {
-                        backgroundColor: 'rgba(189, 189, 189, 0.15)',
-                        borderColor: '#9e9e9e',
+                        backgroundColor: 'rgba(66, 165, 245, 0.15)',
+                        borderColor: '#64b5f6',
                       },
                     }}
                   >
-                    Cancel All
+                    Edit All
                   </Button>
-                </>
-              ) : (
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<EditIcon />}
-                  onClick={handleBulkEditStart}
-                  disabled={editingRowId !== null}
-                  sx={{
-                    color: '#42a5f5',
-                    borderColor: '#42a5f5',
-                    '&:hover': {
-                      backgroundColor: 'rgba(66, 165, 245, 0.15)',
-                      borderColor: '#64b5f6',
-                    },
-                  }}
-                >
-                  Edit All
-                </Button>
+                )
               )}
             </>
           )}
 
-          {filterTrigger === 'manual' && (
+          {filterMode === 'panel' && (
             <Button
               size="small"
               variant="contained"
               onClick={applyFilters}
               sx={{
                 backgroundColor: '#42a5f5',
-                '&:hover': {
-                  backgroundColor: '#1e88e5',
-                },
+                '&:hover': { backgroundColor: '#1e88e5' },
               }}
             >
-              Apply Filters
+              Primijeni filtere
             </Button>
           )}
 
@@ -1034,7 +1063,7 @@ const AdvancedDataTable = ({
       </Box>
 
       <Collapse in={filterMode === 'panel' && showFilters}>
-        <Box sx={{ mb: 3, p: 2, backgroundColor: 'action.hover', borderRadius: 1 }}>
+        <Box sx={{ mb: 1.5, p: 1.5, backgroundColor: 'action.hover', borderRadius: 1 }}>
           <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
             Column Filters
           </Typography>
@@ -1062,11 +1091,20 @@ const AdvancedDataTable = ({
       </Collapse>
 
       <TableContainer>
-        <Table size="small">
+        <Table
+          size="small"
+          sx={{
+            '& .MuiTableCell-root': { fontSize: '0.78rem' },
+            '& .MuiTableCell-head': { py: '5px', px: '8px', fontWeight: 600, lineHeight: 1.3 },
+            '& .MuiTableCell-body': { py: '2px', px: '8px', lineHeight: 1.4 },
+            '& .MuiTableSortLabel-root': { fontSize: '0.78rem' },
+            '& .MuiTableSortLabel-icon': { fontSize: '0.9rem !important' },
+          }}
+        >
           <TableHead>
             <TableRow>
               {enableSelection && (
-                <TableCell padding="checkbox" sx={{ py: 1 }}>
+                <TableCell padding="checkbox">
                   <Checkbox
                     indeterminate={selected.size > 0 && selected.size < paginatedData.length}
                     checked={paginatedData.length > 0 && selected.size === paginatedData.length}
@@ -1078,9 +1116,8 @@ const AdvancedDataTable = ({
               {columns.map((column) => (
                 <TableCell
                   key={column.id}
+                  align={column.align ?? (column.filterType === 'number' ? 'right' : 'left')}
                   sx={{
-                    py: 1,
-                    fontWeight: 600,
                     ...(column.width && { width: column.width }),
                     ...(column.minWidth && { minWidth: column.minWidth }),
                     ...(column.maxWidth && { maxWidth: column.maxWidth }),
@@ -1100,7 +1137,7 @@ const AdvancedDataTable = ({
                 </TableCell>
               ))}
               {showActionsColumn && (
-                <TableCell sx={{ py: 1, fontWeight: 600, width: calculatedActionsWidth }}>
+                <TableCell sx={{ width: calculatedActionsWidth }}>
                   {actionsLabel}
                 </TableCell>
               )}
@@ -1112,8 +1149,8 @@ const AdvancedDataTable = ({
                   <TableCell
                     key={`filter-${column.id}`}
                     sx={{
-                      py: 0.5,
-                      px: 1,
+                      py: '3px',
+                      px: '4px',
                       ...(column.width && { width: column.width }),
                       ...(column.minWidth && { minWidth: column.minWidth }),
                       ...(column.maxWidth && { maxWidth: column.maxWidth }),
@@ -1123,7 +1160,7 @@ const AdvancedDataTable = ({
                   </TableCell>
                 ))}
                 {showActionsColumn && (
-                  <TableCell sx={{ py: 0.5, px: 1 }} />
+                  <TableCell sx={{ py: '3px', px: '4px' }} />
                 )}
               </TableRow>
             )}
@@ -1131,9 +1168,9 @@ const AdvancedDataTable = ({
           <TableBody>
             {paginatedData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={columns.length + (showActionsColumn ? 1 : 0) + 1} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={columns.length + (showActionsColumn ? 1 : 0) + 1} align="center" sx={{ py: 3 }}>
                   <Typography variant="body2" color="text.secondary">
-                    No results found
+                    Nema rezultata
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -1149,9 +1186,10 @@ const AdvancedDataTable = ({
                     hover
                     selected={isItemSelected}
                     onClick={() => handleRowClick(rowId, row)}
+                    onDoubleClick={onRowDoubleClick ? () => onRowDoubleClick(rowId, row) : undefined}
                     sx={{
-                      cursor: onRowClick ? 'pointer' : 'default',
-                      '&:hover': onRowClick ? { backgroundColor: 'action.hover' } : {}
+                      cursor: (onRowClick || onRowDoubleClick) ? 'pointer' : 'default',
+                      '&:hover': (onRowClick || onRowDoubleClick) ? { backgroundColor: 'action.hover' } : {}
                     }}
                   >
                     {enableSelection && (
@@ -1169,6 +1207,7 @@ const AdvancedDataTable = ({
                     {columns.map((column) => (
                       <TableCell
                         key={column.id}
+                        align={column.align ?? (column.filterType === 'number' ? 'right' : 'left')}
                         sx={{
                           ...(column.width && { width: column.width }),
                           ...(column.minWidth && { minWidth: column.minWidth }),
@@ -1261,13 +1300,19 @@ const AdvancedDataTable = ({
       </TableContainer>
 
       <TablePagination
-        rowsPerPageOptions={[5, 10, 25, 50, 100]}
+        rowsPerPageOptions={[15, 25, 50, 100]}
         component="div"
         count={isServerSide ? (totalRecords || 0) : filteredAndSortedData.length}
         rowsPerPage={rowsPerPage}
         page={page}
         onPageChange={handleChangePage}
         onRowsPerPageChange={handleChangeRowsPerPage}
+        sx={{
+          '& .MuiTablePagination-toolbar': { minHeight: 36, fontSize: '0.78rem' },
+          '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': { fontSize: '0.78rem' },
+          '& .MuiTablePagination-select': { fontSize: '0.78rem' },
+          '& .MuiTablePagination-actions .MuiIconButton-root': { padding: '4px' },
+        }}
       />
 
       {/* Loading indicator for server-side mode - only show for initial load or when no data */}
